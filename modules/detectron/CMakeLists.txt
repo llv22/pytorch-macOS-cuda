@@ -4,7 +4,11 @@ file(GLOB_RECURSE Detectron_HIP_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/*.hip)
 
 if(BUILD_CAFFE2_OPS)
   if(USE_OPENMP AND OPENMP_FOUND)
-    Set(OpenMP_link ${OpenMP_CXX_LIBRARIES})
+      if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+        Set(OpenMP_link -Xpreprocessor -fopenmp /Users/llv23/opt/miniconda3/lib/libomp.dylib /Users/llv23/opt/miniconda3/lib/libgomp.dylib)
+      else()
+        Set(OpenMP_link ${OpenMP_CXX_LIBRARIES})
+      endif()
   endif()
 
   # Note(ilijar): Since Detectron ops currently have no

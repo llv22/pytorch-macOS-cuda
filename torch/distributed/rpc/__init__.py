@@ -24,6 +24,7 @@ if is_available() and not torch._C._rpc_init():
 
 if is_available():
     from torch._C._distributed_c10d import Store
+## For not using USE_TENSORPIPE for torch-1.9.1 hotfix on macOS
     from torch._C._distributed_rpc import (
         _disable_jit_rref_pickle,
         _enable_jit_rref_pickle,
@@ -48,17 +49,17 @@ if is_available():
         get_rpc_timeout,
         enable_gil_profiling,
         RpcBackendOptions,
-        _TensorPipeRpcBackendOptionsBase,
+        # _TensorPipeRpcBackendOptionsBase,
         ProcessGroupRpcBackendOptions,
         RpcAgent,
         PyRRef,
         ProcessGroupAgent,
-        TensorPipeAgent,
+        # TensorPipeAgent,
         RemoteProfilerManager,
         WorkerInfo,
         _DEFAULT_INIT_METHOD,
         _DEFAULT_NUM_SEND_RECV_THREADS,
-        _DEFAULT_NUM_WORKER_THREADS,
+        # _DEFAULT_NUM_WORKER_THREADS,
         _UNSET_RPC_TIMEOUT,
         _DEFAULT_RPC_TIMEOUT_SEC,
     )  # noqa: F401
