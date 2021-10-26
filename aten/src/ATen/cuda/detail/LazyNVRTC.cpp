@@ -13,6 +13,8 @@ namespace _stubs {
 at::DynamicLibrary& getCUDALibrary() {
 #if defined(_WIN32)
   static at::DynamicLibrary lib("nvcuda.dll");
+#elif defined(__APPLE__) && defined(__MACH__)
+  static at::DynamicLibrary lib("libcuda.dylib");
 #else
   static at::DynamicLibrary lib("libcuda.so.1");
 #endif
@@ -25,6 +27,8 @@ static std::string getLibVersion() {
   //
   // In the following, MAJOR and MINOR denote the major and minor versions of the CUDA Toolkit.
   // e.g. for CUDA 11.2, MAJOR is "11" and MINOR is "2".
+  // MacOS:
+  //  - In apple we add /usr/local/cuda/lib/libnvrtc.10.1.dylib and /usr/local/cuda/lib/libcuda.dylib
   //
   // Linux:
   //   - In CUDA toolkits prior to CUDA 11.3, the soname was set to "MAJOR.MINOR".
@@ -63,6 +67,8 @@ static std::string getLibVersion() {
 static std::string getLibName() {
 #if defined(_WIN32)
   return std::string("nvrtc64_") + getLibVersion() + "_0.dll";
+#elif defined(__APPLE__) && defined(__MACH__)
+  return std::string("libnvrtc.") + getLibVersion() + ".dylib";
 #else
   return std::string("libnvrtc.so.") + getLibVersion();
 #endif

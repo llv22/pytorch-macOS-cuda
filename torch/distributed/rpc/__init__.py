@@ -71,7 +71,8 @@ if is_available():
     import torch.distributed.autograd as dist_autograd
 
     from .backend_registry import BackendType
-    from .options import TensorPipeRpcBackendOptions  # noqa: F401
+## For not using USE_TENSORPIPE for torch-1.9.1 hotfix on macOS
+    # from .options import TensorPipeRpcBackendOptions  # noqa: F401
     from .server_process_global_profiler import (
         _server_process_global_profile,
     )
