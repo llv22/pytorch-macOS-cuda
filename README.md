@@ -1,6 +1,6 @@
 <!-- markdownlint-disable MD033 -->
 <!-- markdownlint-disable MD004 -->
-# ![PyTorch Logo](https://github.com/pytorch/pytorch/blob/master/docs/source/_static/img/pytorch-logo-dark.png)
+# pytorch 1.9.1 on macOS
 
 --------------------------------------------------------------------------------
 As officially Pytorch doesn't support for macOS cuda, I used this repository to build pytorch on macOS cuda. **This branch 1.9.1-fixed branch is the current stable branch**, since some bugs are found in 1.10.0 branch in the issue list of official github repository.
@@ -22,6 +22,8 @@ The system environment as follow:
 The code patch is consolidated into [torch-1.9.1-mac.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v1.9.1-fixed/torch-1.9.1-mac.patch)
 
 --------------------------------------------------------------------------------
+
+# ![PyTorch Logo](https://github.com/pytorch/pytorch/blob/master/docs/source/_static/img/pytorch-logo-dark.png)
 
 PyTorch is a Python package that provides two high-level features:
 
