@@ -20,6 +20,7 @@ The system environment as follow:
 --   USE_DISTRIBUTED       : ON
 --     USE_MPI               : ON
 --     USE_GLOO              : ON
+--     USE_GLOO_WITH_OPENSSL : OFF
 --     USE_TENSORPIPE        : OFF
 ```
 
