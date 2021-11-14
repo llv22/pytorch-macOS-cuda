@@ -5,6 +5,7 @@
 --------------------------------------------------------------------------------
 As officially Pytorch doesn't support for macOS cuda, I used this repository to build pytorch on macOS cuda. **This branch 1.9.1-fixed branch is the current stable branch**. Currently MPI+CUDA is still disabled, an ensuing investigation will start later. My gut feeling is that it has been caused by CMakeList.txt setting, which doesn't set MPI and CUDA setting appropriately simultaneously.
 
+- Base branch from [official pytorch github repository 1.9.1](https://github.com/pytorch/pytorch/tree/v1.9.1)
 - To be specific, test results based on [torch_distributed_macOS_test](https://github.com/llv22/torch_distributed_macOS_test) are given as follow:  
 
 1. torch_distributed_macOS_test/run.py: working
