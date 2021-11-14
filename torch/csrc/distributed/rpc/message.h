@@ -119,19 +119,21 @@ class TORCH_API Message final : public torch::CustomClassHolder {
       std::vector<torch::Tensor>&& tensors,
       MessageType type);
 
+  friend c10::intrusive_ptr<Message>;
+
+ public:
+
   Message(
       std::vector<char>&& payload,
       std::vector<torch::Tensor>&& tensors,
       MessageType type,
       int64_t id);
-
-  friend c10::intrusive_ptr<Message>;
-
- public:
+#if !defined(__APPLE__) && !defined(__MACH__)
   Message(const Message& other) = delete;
   Message(Message&& other) = delete;
   Message& operator=(Message const& rhs) = delete;
   Message& operator=(Message&& rhs) = delete;
+#endif
 
   // Destructively retrieves the payload.
   std::vector<char>&& movePayload() &&;

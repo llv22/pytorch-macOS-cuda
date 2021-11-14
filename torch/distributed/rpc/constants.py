@@ -2,7 +2,8 @@ from datetime import timedelta
 
 from torch._C._distributed_rpc import (
     _DEFAULT_INIT_METHOD,
-    _DEFAULT_NUM_WORKER_THREADS,
+    ## For not using USE_TENSORPIPE for torch-1.9.1 hotfix on macOS
+    # _DEFAULT_NUM_WORKER_THREADS,
     _DEFAULT_RPC_TIMEOUT_SEC,
     _UNSET_RPC_TIMEOUT,
 )
@@ -14,7 +15,10 @@ DEFAULT_INIT_METHOD: str = _DEFAULT_INIT_METHOD
 DEFAULT_SHUTDOWN_TIMEOUT: float = 5.0
 
 # For TensorPipeAgent.
-DEFAULT_NUM_WORKER_THREADS: int = _DEFAULT_NUM_WORKER_THREADS
+## For not using USE_TENSORPIPE for torch-1.10.0 hotfix on macOS
+# DEFAULT_NUM_WORKER_THREADS: int = _DEFAULT_NUM_WORKER_THREADS
+DEFAULT_NUM_WORKER_THREADS: int = 16
+
 # Ensure that we don't time out when there are long periods of time without
 # any operations against the underlying ProcessGroup.
 DEFAULT_PROCESS_GROUP_TIMEOUT: timedelta = timedelta(milliseconds=2 ** 31 - 1)

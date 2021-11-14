@@ -13,6 +13,8 @@ namespace _stubs {
 at::DynamicLibrary& getCUDALibrary() {
 #if defined(_WIN32)
   static at::DynamicLibrary lib("nvcuda.dll");
+#elif defined(__APPLE__) && defined(__MACH__)
+  static at::DynamicLibrary lib("libcuda.dylib");
 #else
   static at::DynamicLibrary lib("libcuda.so.1");
 #endif
@@ -63,6 +65,8 @@ static std::string getLibVersion() {
 static std::string getLibName() {
 #if defined(_WIN32)
   return std::string("nvrtc64_") + getLibVersion() + "_0.dll";
+#elif defined(__APPLE__) && defined(__MACH__)
+  return std::string("libnvrtc.") + getLibVersion() + ".dylib";
 #else
   return std::string("libnvrtc.so.") + getLibVersion();
 #endif

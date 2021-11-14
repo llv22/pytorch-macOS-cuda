@@ -387,7 +387,6 @@ libtorch_distributed_extra_sources = [
     "torch/csrc/distributed/autograd/rpc_messages/rref_backward_resp.cpp",
     "torch/csrc/distributed/c10d/HashStore.cpp",
     "torch/csrc/distributed/c10d/ProcessGroupRoundRobin.cpp",
-    "torch/csrc/distributed/rpc/agent_utils.cpp",
     "torch/csrc/distributed/rpc/message.cpp",
     "torch/csrc/distributed/rpc/profiler/remote_profiler_manager.cpp",
     "torch/csrc/distributed/rpc/profiler/server_process_global_profiler.cpp",
@@ -755,12 +754,15 @@ libtorch_python_distributed_core_sources = [
 
 libtorch_python_distributed_sources = libtorch_python_distributed_core_sources + [
     "torch/csrc/distributed/autograd/init.cpp",
+    "torch/csrc/distributed/rpc/agent_utils.cpp",
     "torch/csrc/distributed/rpc/init.cpp",
+    "torch/csrc/distributed/rpc/process_group_agent.cpp",
     "torch/csrc/distributed/rpc/py_rref.cpp",
     "torch/csrc/distributed/rpc/python_functions.cpp",
     "torch/csrc/distributed/rpc/python_rpc_handler.cpp",
     "torch/csrc/distributed/rpc/request_callback_impl.cpp",
     "torch/csrc/distributed/rpc/testing/init.cpp",
+    "torch/csrc/distributed/rpc/testing/faulty_process_group_agent.cpp",
     "torch/csrc/distributed/rpc/unpickled_python_call.cpp",
     "torch/csrc/distributed/rpc/unpickled_python_remote_call.cpp",
     "torch/csrc/jit/runtime/register_distributed_ops.cpp",

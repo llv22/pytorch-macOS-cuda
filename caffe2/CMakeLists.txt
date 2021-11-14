@@ -345,6 +345,56 @@ endif()
 
 
 if(NOT INTERN_BUILD_MOBILE OR NOT BUILD_CAFFE2_MOBILE)
+  if(USE_DISTRIBUTED)
+
+    # Define this target even if we're building without TensorPipe, to make life
+    # easier to other targets that depend on this. However, in that case, by not
+    # setting the USE_TENSORPIPE compile definition, this target will just end
+    # up being empty. Downstream targets should also add a #ifdef guard.
+    if(NOT WIN32)
+      add_library(process_group_agent
+        "${TORCH_SRC_DIR}/csrc/distributed/rpc/agent_utils.cpp"
+        "${TORCH_SRC_DIR}/csrc/distributed/rpc/agent_utils.h"
+        "${TORCH_SRC_DIR}/csrc/distributed/rpc/process_group_agent.cpp"
+        "${TORCH_SRC_DIR}/csrc/distributed/rpc/process_group_agent.h"
+      )
+      # target_link_libraries(process_group_agent PRIVATE torch c10d fmt::fmt-header-only)
+      # add_dependencies(process_group_agent torch c10d)
+      target_link_libraries(process_group_agent PRIVATE torch fmt::fmt-header-only)
+      add_dependencies(process_group_agent torch)
+
+      if(USE_TENSORPIPE)
+        add_library(tensorpipe_agent
+          "${TORCH_SRC_DIR}/csrc/distributed/rpc/agent_utils.cpp"
+          "${TORCH_SRC_DIR}/csrc/distributed/rpc/agent_utils.h"
+          "${TORCH_SRC_DIR}/csrc/distributed/rpc/macros.h"
+          "${TORCH_SRC_DIR}/csrc/distributed/rpc/tensorpipe_agent.cpp"
+          "${TORCH_SRC_DIR}/csrc/distributed/rpc/tensorpipe_agent.h"
+          "${TORCH_SRC_DIR}/csrc/distributed/rpc/tensorpipe_utils.cpp"
+          "${TORCH_SRC_DIR}/csrc/distributed/rpc/tensorpipe_utils.h"
+          )
+        # target_link_libraries(tensorpipe_agent PRIVATE torch c10d tensorpipe fmt::fmt-header-only)
+        # add_dependencies(tensorpipe_agent torch c10d)
+        target_link_libraries(tensorpipe_agent PRIVATE torch tensorpipe fmt::fmt-header-only)
+        add_dependencies(tensorpipe_agent torch)
+        if(USE_CUDA)
+          target_compile_definitions(tensorpipe_agent PUBLIC USE_CUDA)
+        endif()
+
+        if(USE_ROCM)
+          target_compile_definitions(tensorpipe_agent PRIVATE
+            USE_ROCM
+            __HIP_PLATFORM_HCC__
+          )
+        endif()
+
+        target_compile_definitions(tensorpipe_agent PUBLIC USE_TENSORPIPE)
+        target_link_libraries(tensorpipe_agent PRIVATE tensorpipe)
+        add_dependencies(tensorpipe_agent tensorpipe)
+      endif()
+    endif()
+  endif()
+  
   set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
   # Generate files
@@ -1175,6 +1225,9 @@ endif()
     ${PROJECT_BINARY_DIR}/TorchConfig.cmake
     DESTINATION share/cmake/Torch)
 
+  # if(USE_DISTRIBUTED)
+  #   add_subdirectory(${TORCH_SRC_DIR}/lib/c10d lib_c10d)
+  # endif()
 
   # ---[ Torch python bindings build
   add_subdirectory(../torch torch)
@@ -1909,6 +1962,9 @@ if(BUILD_PYTHON)
   add_library(caffe2_pybind11_state MODULE ${Caffe2_CPU_PYTHON_SRCS})
   if(USE_NUMPY)
     target_compile_options(caffe2_pybind11_state PRIVATE "-DUSE_NUMPY")
+    # Orlando; refer to how to fix issue: ../caffe2/python/pybind_state.h:27:10: fatal error: 'numpy/arrayobject.h' file not found
+    find_package(Python3 REQUIRED COMPONENTS NumPy)
+    target_include_directories(caffe2_pybind11_state PRIVATE ${Python3_NumPy_INCLUDE_DIRS})
   endif()
   if(NOT MSVC)
     set_target_properties(caffe2_pybind11_state PROPERTIES COMPILE_FLAGS "-fvisibility=hidden")

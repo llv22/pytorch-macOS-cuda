@@ -1,5 +1,8 @@
 #include <torch/csrc/python_headers.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <torch/csrc/distributed/rpc/process_group_agent.h>
+#endif
 #include <torch/csrc/distributed/rpc/profiler/remote_profiler_manager.h>
 #include <torch/csrc/distributed/rpc/profiler/server_process_global_profiler.h>
 #include <torch/csrc/distributed/rpc/py_rref.h>
