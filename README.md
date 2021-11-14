@@ -12,15 +12,12 @@ As officially Pytorch doesn't support for macOS cuda, I used this repository to 
 1. torch_distributed_macOS_test/run.py: working
 2. torch_distributed_macOS_test/asynrun.py: working
 3. torch_distributed_macOS_test/eig_test.py: working
-4. torch_distributed_macOS_test/dist_tuto.pth/allreduce.py: failed
+4. torch_distributed_macOS_test/dist_tuto.pth/allreduce.py: working
 
 ```bash
 Process Process-1:
 Traceback (most recent call last):
-  File "/Users/llv23/opt/miniconda3/lib/python3.8/multiprocessing/process.py", line 315, in _bootstrap
-    self.run()
-  File "/Users/llv23/opt/miniconda3/lib/python3.8/multiprocessing/process.py", line 108, in run
-    self._target(*self._args, **self._kwargs)
+  .......
   File "/Users/llv23/Documents/05_machine_learning/dl_gpu_mac/dl-built-libraries/torch-built/gpu-magma2.6.1-distributed-gloo-1.9.1-py3.8/torch_distributed_test/dist_tuto.pth/allreduce.py", line 55, in init_processes
     fn(rank, size)
   File "/Users/llv23/Documents/05_machine_learning/dl_gpu_mac/dl-built-libraries/torch-built/gpu-magma2.6.1-distributed-gloo-1.9.1-py3.8/torch_distributed_test/dist_tuto.pth/allreduce.py", line 44, in run
@@ -47,11 +44,13 @@ Analysis:
   ```bash
   Building with USE_CUDA_AWARE_MPI=ON USE_DISTRIBUTED=ON USE_MPI=ON
   Refer to patch: https://github.com/pytorch/pytorch/pull/48030/files/76b9720e161dc0b166ff9c4ef111812cdd9133cf
-  ```  
+  ```
 
-5. torch_distributed_macOS_test/dist_tuto.pth/gloo.py: working
-6. torch_distributed_macOS_test/dist_tuto.pth/ptp.py: working, also refer to [pytorch distribution issue](https://github.com/pytorch/pytorch/issues/25463) and [distribution example](https://medium.com/@cresclux/example-on-torch-distributed-gather-7b5921092cbc)
-7. torch_distributed_macOS_test/dist_tuto.pth/train_dist.py: working
+  Patch with [torch-1.9.1-mpi-cuda-enabling.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v1.9.1-fixed/torch-1.9.1-mpi-cuda-enabling.patch)
+
+1. torch_distributed_macOS_test/dist_tuto.pth/gloo.py: working
+2. torch_distributed_macOS_test/dist_tuto.pth/ptp.py: working, also refer to [pytorch distribution issue](https://github.com/pytorch/pytorch/issues/25463) and [distribution example](https://medium.com/@cresclux/example-on-torch-distributed-gather-7b5921092cbc)
+3. torch_distributed_macOS_test/dist_tuto.pth/train_dist.py: working
 
 - macOS 10.13.6, cuda 10.1, cudnn 7.6.5 (cuda and cudnn is the last official version which Nvidia released to support macOS)
 - [NCCL on macOS 2.9.6](https://github.com/llv22/nccl-osx) and [test suite](https://github.com/llv22/nccl-tests-macOS-cuda)
@@ -66,7 +65,13 @@ Analysis:
 --     USE_TENSORPIPE        : OFF
 ```
 
-The code patch is consolidated into [torch-1.9.1-mac.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v1.9.1-fixed/torch-1.9.1-mac.patch)
+Consolidating [torch-1.9.1-mac.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v1.9.1-fixed/torch-1.9.1-mac.patch) and [torch-1.9.1-mpi-cuda-enabling.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v1.9.1-fixed/torch-1.9.1-mpi-cuda-enabling.patch) into the whole patch by
+
+```bash
+git format-patch -2 --stdout > torch-1.9.1-mac-with-mpi-cuda-enabling.patch
+```
+
+refer to <https://www.ivankristianto.com/create-patch-files-from-multiple-commits-in-git/>
 
 --------------------------------------------------------------------------------
 
