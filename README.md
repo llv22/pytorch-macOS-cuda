@@ -1,5 +1,6 @@
 <!-- markdownlint-disable MD033 -->
 <!-- markdownlint-disable MD004 -->
+<!-- markdownlint-disable MD029 -->
 # pytorch 1.9.1 on macOS
 
 --------------------------------------------------------------------------------
@@ -28,6 +29,25 @@ Traceback (most recent call last):
     work = default_pg.allreduce([tensor], opts)
 RuntimeError: CUDA tensor detected and the MPI used doesn't have CUDA-aware MPI support
 ```
+
+Analysis:
+
+- Line 47 of torch/lib/c10d/ProcessGroupMPI.cpp
+  How-to-fix:
+  1) [Build with mpi+cuda](https://github.com/Stonesjtu/pytorch-learning/blob/master/build-with-mpi.md)
+  2) Check libraries in local file system
+
+  ```bash
+  cat /usr/local/opt/open-mpi/include/mpi-ext.h
+  ls /usr/local/opt/open-mpi/lib/libopen-rte.dylib
+  ```
+
+  3) [Build with enabling mpi-cuda enabling](https://github.com/pytorch/pytorch/issues/45745)
+
+  ```bash
+  Building with USE_CUDA_AWARE_MPI=ON USE_DISTRIBUTED=ON USE_MPI=ON
+  Refer to patch: https://github.com/pytorch/pytorch/pull/48030/files/76b9720e161dc0b166ff9c4ef111812cdd9133cf
+  ```  
 
 5. torch_distributed_macOS_test/dist_tuto.pth/gloo.py: working
 6. torch_distributed_macOS_test/dist_tuto.pth/ptp.py: working, also refer to [pytorch distribution issue](https://github.com/pytorch/pytorch/issues/25463) and [distribution example](https://medium.com/@cresclux/example-on-torch-distributed-gather-7b5921092cbc)
