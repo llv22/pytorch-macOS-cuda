@@ -3,8 +3,34 @@
 # pytorch 1.9.1 on macOS
 
 --------------------------------------------------------------------------------
-As officially Pytorch doesn't support for macOS cuda, I used this repository to build pytorch on macOS cuda. **This branch 1.9.1-fixed branch is the current stable branch**, since some bugs are found in 1.10.0 branch in the issue list of official github repository.
-The system environment as follow:
+As officially Pytorch doesn't support for macOS cuda, I used this repository to build pytorch on macOS cuda. **This branch 1.9.1-fixed branch is the current stable branch**. Currently MPI+CUDA is still disabled, an ensuing investigation will start later. My gut feeling is that it has been caused by CMakeList.txt setting, which doesn't set MPI and CUDA setting appropriately simultaneously.
+
+- To be specific, test results based on [torch_distributed_macOS_test](https://github.com/llv22/torch_distributed_macOS_test) are given as follow:  
+
+1. torch_distributed_macOS_test/run.py: working
+2. torch_distributed_macOS_test/asynrun.py: working
+3. torch_distributed_macOS_test/eig_test.py: working
+4. torch_distributed_macOS_test/dist_tuto.pth/allreduce.py: failed
+
+```bash
+Process Process-1:
+Traceback (most recent call last):
+  File "/Users/llv23/opt/miniconda3/lib/python3.8/multiprocessing/process.py", line 315, in _bootstrap
+    self.run()
+  File "/Users/llv23/opt/miniconda3/lib/python3.8/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/Users/llv23/Documents/05_machine_learning/dl_gpu_mac/dl-built-libraries/torch-built/gpu-magma2.6.1-distributed-gloo-1.9.1-py3.8/torch_distributed_test/dist_tuto.pth/allreduce.py", line 55, in init_processes
+    fn(rank, size)
+  File "/Users/llv23/Documents/05_machine_learning/dl_gpu_mac/dl-built-libraries/torch-built/gpu-magma2.6.1-distributed-gloo-1.9.1-py3.8/torch_distributed_test/dist_tuto.pth/allreduce.py", line 44, in run
+    dist.all_reduce(c, dist.reduce_op.SUM)
+  File "/Users/llv23/opt/miniconda3/lib/python3.8/site-packages/torch/distributed/distributed_c10d.py", line 1220, in all_reduce
+    work = default_pg.allreduce([tensor], opts)
+RuntimeError: CUDA tensor detected and the MPI used doesn't have CUDA-aware MPI support
+```
+
+5. torch_distributed_macOS_test/dist_tuto.pth/gloo.py: working
+6. torch_distributed_macOS_test/dist_tuto.pth/ptp.py: working, also refer to [pytorch distribution issue](https://github.com/pytorch/pytorch/issues/25463) and [distribution example](https://medium.com/@cresclux/example-on-torch-distributed-gather-7b5921092cbc)
+7. torch_distributed_macOS_test/dist_tuto.pth/train_dist.py: working
 
 - macOS 10.13.6, cuda 10.1, cudnn 7.6.5 (cuda and cudnn is the last official version which Nvidia released to support macOS)
 - [NCCL on macOS 2.9.6](https://github.com/llv22/nccl-osx) and [test suite](https://github.com/llv22/nccl-tests-macOS-cuda)
