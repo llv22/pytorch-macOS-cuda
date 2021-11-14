@@ -1,8 +1,41 @@
-![PyTorch Logo](https://github.com/pytorch/pytorch/blob/master/docs/source/_static/img/pytorch-logo-dark.png)
+<!-- markdownlint-disable MD033 -->
+<!-- markdownlint-disable MD004 -->
+# pytorch 1.10.0 on macOS
 
 --------------------------------------------------------------------------------
+As officially Pytorch doesn't support for macOS cuda, I used this repository to build pytorch on macOS cuda. **This branch 1.9.1-fixed branch is the current stable branch**, since some bugs are found in this branch 1.10.0 in the issue list of official github repository.  
+For instance, distributed training has some parameter changes:
+
+- [dist_tuto.pth](https://github.com/seba-1511/dist_tuto.pth) isn't working after migration to torch 1.10.0, which is still under investigation.
+
+The system environment as follow:
+
+- macOS 10.13.6, cuda 10.1, cudnn 7.6.5 (cuda and cudnn is the last official version which Nvidia released to support macOS)
+- [NCCL on macOS 2.9.6](https://github.com/llv22/nccl-osx) and [test suite](https://github.com/llv22/nccl-tests-macOS-cuda)
+- Xcode 10.1, libuv 1.2.6
+- magma 2.6 built on macOS, providing by [cloned magma repository from The University of Tennessee, Knoxville](https://github.com/llv22/magma-macOS)
+- support distributed options(TENSORPIPE required linux 'link.h', refer to <https://github.com/symengine/symengine/issues/152>. So I can't manage to enable it on macOS. Perhaps with some code hacking it could work, but there may be more efforts.)
+
+```bash
+--   USE_DISTRIBUTED       : ON
+--     USE_MPI               : ON
+--     USE_GLOO              : ON
+--     USE_TENSORPIPE        : OFF
+```
+
+How to extract patch, refer to <https://stackoverflow.com/questions/52884437/git-generate-a-single-patch-across-multiple-commits>
+
+```bash 
+git format-patch cc1dde0dd^..6de6d4b06 --stdout > foo.patch # cc1dde0dd is not included
+```
+
+The code patch is consolidated into [torch-1.10.0-mac.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v1.10.0-fixed/torch-1.10.0-mac.patch)
+
+--------------------------------------------------------------------------------
+![PyTorch Logo](https://github.com/pytorch/pytorch/blob/master/docs/source/_static/img/pytorch-logo-dark.png)
 
 PyTorch is a Python package that provides two high-level features:
+
 - Tensor computation (like NumPy) with strong GPU acceleration
 - Deep neural networks built on a tape-based autograd system
 
@@ -10,32 +43,33 @@ You can reuse your favorite Python packages such as NumPy, SciPy, and Cython to 
 
 <!-- toc -->
 
-- [More About PyTorch](#more-about-pytorch)
-  - [A GPU-Ready Tensor Library](#a-gpu-ready-tensor-library)
-  - [Dynamic Neural Networks: Tape-Based Autograd](#dynamic-neural-networks-tape-based-autograd)
-  - [Python First](#python-first)
-  - [Imperative Experiences](#imperative-experiences)
-  - [Fast and Lean](#fast-and-lean)
-  - [Extensions Without Pain](#extensions-without-pain)
-- [Installation](#installation)
-  - [Binaries](#binaries)
-    - [NVIDIA Jetson Platforms](#nvidia-jetson-platforms)
-  - [From Source](#from-source)
-    - [Install Dependencies](#install-dependencies)
-    - [Get the PyTorch Source](#get-the-pytorch-source)
-    - [Install PyTorch](#install-pytorch)
-      - [Adjust Build Options (Optional)](#adjust-build-options-optional)
-  - [Docker Image](#docker-image)
-    - [Using pre-built images](#using-pre-built-images)
-    - [Building the image yourself](#building-the-image-yourself)
-  - [Building the Documentation](#building-the-documentation)
-  - [Previous Versions](#previous-versions)
-- [Getting Started](#getting-started)
-- [Resources](#resources)
-- [Communication](#communication)
-- [Releases and Contributing](#releases-and-contributing)
-- [The Team](#the-team)
-- [License](#license)
+- [pytorch 1.10.0 on macOS](#pytorch-1100-on-macos)
+  - [More About PyTorch](#more-about-pytorch)
+    - [A GPU-Ready Tensor Library](#a-gpu-ready-tensor-library)
+    - [Dynamic Neural Networks: Tape-Based Autograd](#dynamic-neural-networks-tape-based-autograd)
+    - [Python First](#python-first)
+    - [Imperative Experiences](#imperative-experiences)
+    - [Fast and Lean](#fast-and-lean)
+    - [Extensions Without Pain](#extensions-without-pain)
+  - [Installation](#installation)
+    - [Binaries](#binaries)
+      - [NVIDIA Jetson Platforms](#nvidia-jetson-platforms)
+    - [From Source](#from-source)
+      - [Install Dependencies](#install-dependencies)
+      - [Get the PyTorch Source](#get-the-pytorch-source)
+      - [Install PyTorch](#install-pytorch)
+        - [Adjust Build Options (Optional)](#adjust-build-options-optional)
+    - [Docker Image](#docker-image)
+      - [Using pre-built images](#using-pre-built-images)
+      - [Building the image yourself](#building-the-image-yourself)
+    - [Building the Documentation](#building-the-documentation)
+    - [Previous Versions](#previous-versions)
+  - [Getting Started](#getting-started)
+  - [Resources](#resources)
+  - [Communication](#communication)
+  - [Releases and Contributing](#releases-and-contributing)
+  - [The Team](#the-team)
+  - [License](#license)
 
 <!-- tocstop -->
 
