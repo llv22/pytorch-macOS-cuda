@@ -1,5 +1,6 @@
 <!-- markdownlint-disable MD033 -->
 <!-- markdownlint-disable MD004 -->
+<!-- markdownlint-disable MD029 -->
 # pytorch 1.10.0 on macOS
 
 --------------------------------------------------------------------------------
@@ -29,6 +30,25 @@ Traceback (most recent call last):
 RuntimeError: CUDA tensor detected and the MPI used doesn't have CUDA-aware MPI support
 ```
 
+Analysis:
+
+- Line 47 of torch/csrc/distributed/c10d/ProcessGroupMPI.cpp and Line 1351 of caffe2/CMakeLists.txt
+  How-to-fix:
+  1) [Build with mpi+cuda](https://github.com/Stonesjtu/pytorch-learning/blob/master/build-with-mpi.md)
+  2) Check libraries in local file system
+
+  ```bash
+  cat /usr/local/opt/open-mpi/include/mpi-ext.h
+  ls /usr/local/opt/open-mpi/lib/libopen-rte.dylib
+  ```
+
+  3) [Build with enabling mpi-cuda enabling](https://github.com/pytorch/pytorch/issues/45745)
+
+  ```bash
+  Building with USE_CUDA_AWARE_MPI=ON USE_DISTRIBUTED=ON USE_MPI=ON
+  Refer to patch: https://github.com/pytorch/pytorch/pull/48030/files/76b9720e161dc0b166ff9c4ef111812cdd9133cf
+  ```
+
 5. torch_distributed_macOS_test/dist_tuto.pth/gloo.py: working
 6. torch_distributed_macOS_test/dist_tuto.pth/ptp.py: working, also refer to [pytorch distribution issue](https://github.com/pytorch/pytorch/issues/25463) and [distribution example](https://medium.com/@cresclux/example-on-torch-distributed-gather-7b5921092cbc)
 7. torch_distributed_macOS_test/dist_tuto.pth/train_dist.py: working
@@ -44,6 +64,7 @@ The system environment as follow:
 ```bash
 --   USE_DISTRIBUTED       : ON
 --     USE_MPI               : ON
+--     USE_CUDA_MPI          : ON
 --     USE_GLOO              : ON
 --     USE_GLOO_WITH_OPENSSL : OFF
 --     USE_TENSORPIPE        : OFF
@@ -54,8 +75,13 @@ How to extract patch, refer to <https://stackoverflow.com/questions/52884437/git
 ```bash 
 git format-patch cc1dde0dd^..6de6d4b06 --stdout > foo.patch # cc1dde0dd is not included
 ```
+Consolidating [torch-1.10.0-mac.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v1.10.0-built/torch-1.10.0-mac.patch) and [torch-1.9.1-mpi-cuda-enabling.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v1.9.1-fixed/torch-1.9.1-mpi-cuda-enabling.patch) into the whole patch by
 
-The code patch is consolidated into [torch-1.10.0-mac.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v1.10.0-fixed/torch-1.10.0-mac.patch)
+```bash
+git format-patch -2 --stdout > torch-1.9.1-mac-with-mpi-cuda-enabling.patch
+```
+
+refer to <https://www.ivankristianto.com/create-patch-files-from-multiple-commits-in-git/>
 
 --------------------------------------------------------------------------------
 ![PyTorch Logo](https://github.com/pytorch/pytorch/blob/master/docs/source/_static/img/pytorch-logo-dark.png)

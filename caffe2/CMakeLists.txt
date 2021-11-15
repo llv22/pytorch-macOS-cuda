@@ -1347,6 +1347,10 @@ if(USE_DISTRIBUTED)
   endif()
   if(USE_MPI AND USE_C10D_MPI)
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+      if(USE_CUDA_MPI)
+        message(STATUS "Setting DUSE_CUDA_MPI==1 for compiling ${TORCH_SRC_DIR}/csrc/distributed/c10d/ProcessGroupMPI.cpp")
+        add_definitions(-DUSE_CUDA_MPI=1)
+      endif()
       set_source_files_properties(
         "${TORCH_SRC_DIR}/csrc/distributed/c10d/ProcessGroupMPI.cpp"
         PROPERTIES COMPILE_FLAGS -Wno-deprecated-declarations)
