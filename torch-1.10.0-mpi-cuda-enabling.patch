@@ -1,0 +1,269 @@
+From b8b729a1c6adb93e943721a3d09bc8deb5d1ecac Mon Sep 17 00:00:00 2001
+From: Orlando Ding <xiandao.airs@gmail.com>
+Date: Mon, 15 Nov 2021 08:52:15 +0800
+Subject: [PATCH] orlando - for fixing issue of cuda-mpi
+
+---
+ CMakeLists.txt                                |  3 ++
+ README.md                                     | 28 +++++++++++++++++-
+ caffe2/CMakeLists.txt                         |  4 +++
+ caffe2/core/macros.h.in                       |  2 ++
+ caffe2/mpi/mpi_ops_gpu.cc                     | 26 ++++++++++++++++-
+ cmake/Dependencies.cmake                      | 29 +++++++++++++++++--
+ cmake/Summary.cmake                           |  1 +
+ .../csrc/distributed/c10d/ProcessGroupMPI.cpp | 18 ++++++++----
+ 8 files changed, 102 insertions(+), 9 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 0c11507838..5a0eb517c8 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -294,6 +294,9 @@ option(USE_DISTRIBUTED "Use distributed" ON)
+ cmake_dependent_option(
+     USE_MPI "Use MPI for Caffe2. Only available if USE_DISTRIBUTED is on." ON
+     "USE_DISTRIBUTED" OFF)
++cmake_dependent_option(
++    USE_CUDA_MPI "Force CUDA-Aware MPI for Caffe2. Only available if USE_DISTRIBUTED and USE_MPI is on." OFF
++    "USE_DISTRIBUTED AND USE_MPI" OFF)
+ cmake_dependent_option(
+     USE_GLOO "Use Gloo. Only available if USE_DISTRIBUTED is on." ON
+     "USE_DISTRIBUTED" OFF)
+diff --git a/README.md b/README.md
+index 4c07c7aa9e..b257a8d8f3 100644
+--- a/README.md
++++ b/README.md
+@@ -1,5 +1,6 @@
+ <!-- markdownlint-disable MD033 -->
+ <!-- markdownlint-disable MD004 -->
++<!-- markdownlint-disable MD029 -->
+ # pytorch 1.10.0 on macOS
+ 
+ --------------------------------------------------------------------------------
+@@ -29,6 +30,25 @@ Traceback (most recent call last):
+ RuntimeError: CUDA tensor detected and the MPI used doesn't have CUDA-aware MPI support
+ ```
+ 
++Analysis:
++
++- Line 47 of torch/csrc/distributed/c10d/ProcessGroupMPI.cpp and Line 1351 of caffe2/CMakeLists.txt
++  How-to-fix:
++  1) [Build with mpi+cuda](https://github.com/Stonesjtu/pytorch-learning/blob/master/build-with-mpi.md)
++  2) Check libraries in local file system
++
++  ```bash
++  cat /usr/local/opt/open-mpi/include/mpi-ext.h
++  ls /usr/local/opt/open-mpi/lib/libopen-rte.dylib
++  ```
++
++  3) [Build with enabling mpi-cuda enabling](https://github.com/pytorch/pytorch/issues/45745)
++
++  ```bash
++  Building with USE_CUDA_AWARE_MPI=ON USE_DISTRIBUTED=ON USE_MPI=ON
++  Refer to patch: https://github.com/pytorch/pytorch/pull/48030/files/76b9720e161dc0b166ff9c4ef111812cdd9133cf
++  ```
++
+ 5. torch_distributed_macOS_test/dist_tuto.pth/gloo.py: working
+ 6. torch_distributed_macOS_test/dist_tuto.pth/ptp.py: working, also refer to [pytorch distribution issue](https://github.com/pytorch/pytorch/issues/25463) and [distribution example](https://medium.com/@cresclux/example-on-torch-distributed-gather-7b5921092cbc)
+ 7. torch_distributed_macOS_test/dist_tuto.pth/train_dist.py: working
+@@ -44,6 +64,7 @@ The system environment as follow:
+ ```bash
+ --   USE_DISTRIBUTED       : ON
+ --     USE_MPI               : ON
++--     USE_CUDA_MPI          : ON
+ --     USE_GLOO              : ON
+ --     USE_GLOO_WITH_OPENSSL : OFF
+ --     USE_TENSORPIPE        : OFF
+@@ -54,8 +75,13 @@ How to extract patch, refer to <https://stackoverflow.com/questions/52884437/git
+ ```bash 
+ git format-patch cc1dde0dd^..6de6d4b06 --stdout > foo.patch # cc1dde0dd is not included
+ ```
++Consolidating [torch-1.10.0-mac.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v1.10.0-built/torch-1.10.0-mac.patch) and [torch-1.9.1-mpi-cuda-enabling.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v1.9.1-fixed/torch-1.9.1-mpi-cuda-enabling.patch) into the whole patch by
++
++```bash
++git format-patch -2 --stdout > torch-1.9.1-mac-with-mpi-cuda-enabling.patch
++```
+ 
+-The code patch is consolidated into [torch-1.10.0-mac.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v1.10.0-fixed/torch-1.10.0-mac.patch)
++refer to <https://www.ivankristianto.com/create-patch-files-from-multiple-commits-in-git/>
+ 
+ --------------------------------------------------------------------------------
+ ![PyTorch Logo](https://github.com/pytorch/pytorch/blob/master/docs/source/_static/img/pytorch-logo-dark.png)
+diff --git a/caffe2/CMakeLists.txt b/caffe2/CMakeLists.txt
+index 5fbffeda04..ac0525235c 100644
+--- a/caffe2/CMakeLists.txt
++++ b/caffe2/CMakeLists.txt
+@@ -1347,6 +1347,10 @@ if(USE_DISTRIBUTED)
+   endif()
+   if(USE_MPI AND USE_C10D_MPI)
+     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
++      if(USE_CUDA_MPI)
++        message(STATUS "Setting DUSE_CUDA_MPI==1 for compiling ${TORCH_SRC_DIR}/csrc/distributed/c10d/ProcessGroupMPI.cpp")
++        add_definitions(-DUSE_CUDA_MPI=1)
++      endif()
+       set_source_files_properties(
+         "${TORCH_SRC_DIR}/csrc/distributed/c10d/ProcessGroupMPI.cpp"
+         PROPERTIES COMPILE_FLAGS -Wno-deprecated-declarations)
+diff --git a/caffe2/core/macros.h.in b/caffe2/core/macros.h.in
+index bd9a447b87..4db4b1aef9 100644
+--- a/caffe2/core/macros.h.in
++++ b/caffe2/core/macros.h.in
+@@ -25,6 +25,7 @@ static_assert(
+ 
+ #cmakedefine CAFFE2_BUILD_SHARED_LIBS
+ #cmakedefine CAFFE2_FORCE_FALLBACK_CUDA_MPI
++#cmakedefine CAFFE2_USE_CUDA_MPI
+ #cmakedefine CAFFE2_HAS_MKL_DNN
+ #cmakedefine CAFFE2_HAS_MKL_SGEMM_PACK
+ #cmakedefine CAFFE2_PERF_WITH_AVX
+@@ -62,6 +63,7 @@ static_assert(
+   {"CUDNN_VERSION", "${CUDNN_VERSION}"}, \
+   {"USE_NCCL", "${USE_NCCL}"}, \
+   {"USE_MPI", "${USE_MPI}"}, \
++  {"USE_CUDA_MPI", "${USE_CUDA_MPI}"}, \
+   {"USE_GFLAGS", "${USE_GFLAGS}"}, \
+   {"USE_GLOG", "${USE_GLOG}"}, \
+   {"USE_GLOO", "${USE_GLOI}"}, \
+diff --git a/caffe2/mpi/mpi_ops_gpu.cc b/caffe2/mpi/mpi_ops_gpu.cc
+index 5a16bfa201..dad5dad790 100644
+--- a/caffe2/mpi/mpi_ops_gpu.cc
++++ b/caffe2/mpi/mpi_ops_gpu.cc
+@@ -35,7 +35,23 @@ namespace caffe2 {
+ #define CAFFE2_HAS_CUDA_MPI_ALLREDUCE 0
+ #endif // CAFFE2_OMPI_VERSION >= 10805
+ #endif // CAFFE2_OMPI_VERSION >= 2000
+-#else // !OPEN_MPI
++#elif MVAPICH2_NUMVERSION // !OPEN_MPI
++#define CAFFE2_MV2_VERSION MVAPICH2_NUMVERSION
++#if CAFFE2_MV2_VERSION >= 20305300
++#include "mpi-ext.h"
++#if MPIX_CUDA_AWARE_SUPPORT
++#define CAFFE2_HAS_CUDA_MPI_BASICS 1
++#define CAFFE2_HAS_CUDA_MPI_ALLREDUCE 1
++#endif // MPIX_CUDA_AWARE_SUPPORT
++#else //CAFFE2_MV2_VERSION >= 235
++// In the case of MVAPICH2-GDR before 2.3.5, we don't have compile-time flags
++// // to figure out if CUDA is supported; as a result, we will assume that the
++// // user has built MVAPICH2-GDR with CUDA support.
++#define CAFFE2_HAS_CUDA_MPI_BASICS 1
++#define CAFFE2_HAS_CUDA_MPI_ALLREDUCE 1
++#endif //CAFFE2_MV2_VERSION >= 235
++#else // !OPEN_MPI && !MVAPICH_GDR
++//
+ // We have not really tested against other MPI environments, so let's go for a
+ // safe path and basically say we don't have cuda-aware functions.
+ #define CAFFE2_HAS_CUDA_MPI_BASICS 0
+@@ -50,6 +66,14 @@ namespace caffe2 {
+ #define CAFFE2_HAS_CUDA_MPI_ALLREDUCE 0
+ #endif // CAFFE2_FORCE_FALLBACK_CUDA_MPI
+ 
++// We allow a macro to force using CUDA functions
++#ifdef CAFFE2_USE_CUDA_MPI
++#undef CAFFE2_HAS_CUDA_MPI_BASICS
++#undef CAFFE2_HAS_CUDA_MPI_ALLREDUCE
++#define CAFFE2_HAS_CUDA_MPI_BASICS 1
++#define CAFFE2_HAS_CUDA_MPI_ALLREDUCE 1
++#endif // CAFFE2_FORCE_CUDA_MPI
++
+ REGISTER_CUDA_OPERATOR(
+     MPICreateCommonWorld,
+     MPICreateCommonWorldOp<CUDAContext>);
+diff --git a/cmake/Dependencies.cmake b/cmake/Dependencies.cmake
+index ca560288a4..28c9a25644 100644
+--- a/cmake/Dependencies.cmake
++++ b/cmake/Dependencies.cmake
+@@ -1078,9 +1078,34 @@ if(USE_MPI)
+       if(_output MATCHES "smcuda")
+         message(STATUS "Found OpenMPI with CUDA support built.")
+       else()
+-        message(WARNING "OpenMPI found, but it is not built with CUDA support.")
+-        set(CAFFE2_FORCE_FALLBACK_CUDA_MPI 1)
++        if(USE_CUDA_MPI)
++          if(USE_CUDA)
++            message(WARNING "OpenMPI with CUDA support not found, but forcing anyway.")
++          else()
++            message(WARNING "Force building for OpenMPI with CUDA.")
++          endif()
++          set(CAFFE2_USE_CUDA_MPI 1)
++        else()
++          message(WARNING "OpenMPI found, but it is not built with CUDA support.")
++          set(CAFFE2_FORCE_FALLBACK_CUDA_MPI 1)
++        endif()
+       endif()
++    else()
++      find_program(MV2_INFO NAMES mpiname HINTS ${MPI_CXX_LIBRARIES}/../bin)
++      if(MV2_INFO)
++          execute_process(COMMAND ${MV2_INFO} "-a" OUTPUT_VARIABLE _output)
++          if(_output MATCHES "enable-cuda")
++              message(STATUS "Found MVAPICH2 with CUDA support built.")
++          else()
++              if(USE_CUDA_MPI)
++                  message(WARNING "MVAPICH2 with CUDA support not found, but forcing anyway.")
++                  set(CAFFE2_USE_CUDA_MPI 1)
++              else()
++                  message(WARNING "MVAPICH2 found, but it is not built with CUDA SUPPORT.")
++                  set(CAFFE2_FORCE_FALLBACK_CUDA_MPI 1)
++              endif()
++          endif()
++      endif()   
+     endif()
+   else()
+     message(WARNING "Not compiling with MPI. Suppress this warning with -DUSE_MPI=OFF")
+diff --git a/cmake/Summary.cmake b/cmake/Summary.cmake
+index 6d021536c1..0971b62413 100644
+--- a/cmake/Summary.cmake
++++ b/cmake/Summary.cmake
+@@ -171,6 +171,7 @@ function(caffe2_print_configuration_summary)
+   message(STATUS "  USE_DISTRIBUTED       : ${USE_DISTRIBUTED}")
+   if(${USE_DISTRIBUTED})
+     message(STATUS "    USE_MPI               : ${USE_MPI}")
++    message(STATUS "    USE_CUDA_MPI          : ${USE_CUDA_MPI}")
+     message(STATUS "    USE_GLOO              : ${USE_GLOO}")
+     message(STATUS "    USE_GLOO_WITH_OPENSSL : ${USE_GLOO_WITH_OPENSSL}")
+     message(STATUS "    USE_TENSORPIPE        : ${USE_TENSORPIPE}")
+diff --git a/torch/csrc/distributed/c10d/ProcessGroupMPI.cpp b/torch/csrc/distributed/c10d/ProcessGroupMPI.cpp
+index b75f4417e8..ea66dbc374 100644
+--- a/torch/csrc/distributed/c10d/ProcessGroupMPI.cpp
++++ b/torch/csrc/distributed/c10d/ProcessGroupMPI.cpp
+@@ -9,7 +9,13 @@
+ #include <c10/core/DeviceGuard.h>
+ #include <c10/util/irange.h>
+ 
+-#if defined(OPEN_MPI) && OPEN_MPI
++// #if defined(OPEN_MPI) && OPEN_MPI
++#ifndef OPEN_MPI
++#define OPEN_MPI 0
++#endif
++//Build flag USE_CUDA_MPI forces CUDA-Aware MPI support and removes run-time checks. 
++//USE_CUDA_MPI is meant for older MPI libraries that don't support MPIX_Query_cuda_support()
++#if (OPEN_MPI || (defined(MVAPICH2_NUMVERSION) && (MVAPICH2_NUMVERSION >= 20205300))) && !USE_CUDA_MPI
+ #include <mpi-ext.h> // Needed for CUDA-aware check
+ #endif
+ 
+@@ -47,18 +53,20 @@ std::map<at::ScalarType, MPI_Datatype> mpiDatatype = {
+ };
+ 
+ // Checking CUDA-aware MPI support, currently we only support CUDA aware
+-// MPI ops through Open MPI
++// MPI ops through Open MPI and MVAPICH2-GDR
+ bool cudaAwareMpiCheck() {
+ // Run time check
+-#if defined(MPIX_CUDA_AWARE_SUPPORT)
++#if !defined(USE_CUDA_MPI) && defined(MPIX_CUDA_AWARE_SUPPORT)
+   if (MPIX_Query_cuda_support() == 1) {
+     return true;
+   } else {
+     return false;
+   }
+-#else // !defined(MPIX_CUDA_AWARE_SUPPORT)
++#elif defined(USE_CUDA_MPI)
++  return true;
++#else // defined(USE_CUDA_MPI)
+   return false;
+-#endif // MPIX_CUDA_AWARE_SUPPORT
++#endif // MPIX_CUDA_AWARE_SUPPORT && !USE_CUDA_MPI
+ }
+ 
+ // Checking the input tensor's validity
+-- 
+2.17.2 (Apple Git-113)
+

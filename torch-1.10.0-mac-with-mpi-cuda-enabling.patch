@@ -1,7 +1,2598 @@
+From dbdfd4e79f1345bd947266086c00d9ca31bcce60 Mon Sep 17 00:00:00 2001
+From: Orlando Ding <xiandao.airs@gmail.com>
+Date: Sun, 14 Nov 2021 09:11:47 +0800
+Subject: [PATCH 1/6] orlando - for supporting torch on macOS 10.13.6
+
+---
+ aten/src/ATen/cuda/detail/LazyNVRTC.cpp       |   4 +
+ aten/src/ATen/native/ReduceOps.cpp            |   8 +
+ aten/src/ATen/native/cuda/EmbeddingBag.cu     |   3 +-
+ aten/src/ATen/test/CMakeLists.txt             |   2 +-
+ caffe2/CMakeLists.txt                         |  56 ++
+ cmake/public/cuda.cmake                       |   3 +-
+ modules/detectron/CMakeLists.txt              |   6 +-
+ test/cpp/api/CMakeLists.txt                   |   6 +-
+ tools/build_variables.bzl                     |   4 +-
+ torch/_C/_distributed_rpc.pyi                 |  31 +
+ torch/_C/_distributed_rpc_testing.pyi         |  66 +-
+ torch/csrc/distributed/rpc/init.cpp           |   3 +
+ torch/csrc/distributed/rpc/message.h          |  10 +-
+ .../distributed/rpc/process_group_agent.cpp   | 865 ++++++++++++++++++
+ .../distributed/rpc/process_group_agent.h     | 291 ++++++
+ .../testing/faulty_process_group_agent.cpp    | 154 ++++
+ .../rpc/testing/faulty_process_group_agent.h  | 102 +++
+ torch/csrc/distributed/rpc/testing/init.cpp   | 100 ++
+ torch/distributed/rpc/__init__.py             |   9 +-
+ torch/distributed/rpc/_testing/__init__.py    |   8 +-
+ .../_testing/faulty_agent_backend_registry.py | 197 ++--
+ torch/distributed/rpc/constants.py            |   8 +-
+ torch/distributed/rpc/options.py              | 263 +++---
+ 23 files changed, 1976 insertions(+), 223 deletions(-)
+ create mode 100644 torch/csrc/distributed/rpc/process_group_agent.cpp
+ create mode 100644 torch/csrc/distributed/rpc/process_group_agent.h
+ create mode 100644 torch/csrc/distributed/rpc/testing/faulty_process_group_agent.cpp
+ create mode 100644 torch/csrc/distributed/rpc/testing/faulty_process_group_agent.h
+
+diff --git a/aten/src/ATen/cuda/detail/LazyNVRTC.cpp b/aten/src/ATen/cuda/detail/LazyNVRTC.cpp
+index efdca84838..9d2a861948 100644
+--- a/aten/src/ATen/cuda/detail/LazyNVRTC.cpp
++++ b/aten/src/ATen/cuda/detail/LazyNVRTC.cpp
+@@ -13,6 +13,8 @@ namespace _stubs {
+ at::DynamicLibrary& getCUDALibrary() {
+ #if defined(_WIN32)
+   static at::DynamicLibrary lib("nvcuda.dll");
++#elif defined(__APPLE__) && defined(__MACH__)
++  static at::DynamicLibrary lib("libcuda.dylib");
+ #else
+   static at::DynamicLibrary lib("libcuda.so.1");
+ #endif
+@@ -63,6 +65,8 @@ static std::string getLibVersion() {
+ static std::string getLibName() {
+ #if defined(_WIN32)
+   return std::string("nvrtc64_") + getLibVersion() + "_0.dll";
++#elif defined(__APPLE__) && defined(__MACH__)
++  return std::string("libnvrtc.") + getLibVersion() + ".dylib";
+ #else
+   return std::string("libnvrtc.so.") + getLibVersion();
+ #endif
+diff --git a/aten/src/ATen/native/ReduceOps.cpp b/aten/src/ATen/native/ReduceOps.cpp
+index 3674a35dfb..f1d0e6c3ac 100644
+--- a/aten/src/ATen/native/ReduceOps.cpp
++++ b/aten/src/ATen/native/ReduceOps.cpp
+@@ -632,6 +632,14 @@ template<typename T>
+ inline typename std::enable_if<!std::is_integral<T>::value, bool>::type isnan_(T x) {
+   return std::isnan(x);
+ }
++#elif defined(__APPLE__) && defined(__MACH__)
++template<typename T>
++inline bool isnan_(T x) {
++  return std::isnan(x);
++}
++inline bool isnan_(const c10::BFloat16 x) {
++  return std::isnan(x.x);
++}
+ #else
+ template<typename T>
+ inline bool isnan_(T x) {
+diff --git a/aten/src/ATen/native/cuda/EmbeddingBag.cu b/aten/src/ATen/native/cuda/EmbeddingBag.cu
+index 8d1ef8b8fa..d2d7b23fff 100644
+--- a/aten/src/ATen/native/cuda/EmbeddingBag.cu
++++ b/aten/src/ATen/native/cuda/EmbeddingBag.cu
+@@ -176,7 +176,8 @@ Tensor embedding_bag_backward_cuda_sum_avg(
+   Tensor count;
+ 
+   AT_DISPATCH_INDEX_TYPES(indices.scalar_type(), "embedding_bag_backward_cuda_sum_avg", [&] () {
+-    auto range = at::arange(num_indices, indices.options());
++    //https://github.com/pytorch/pytorch/issues/42271
++    auto range = at::arange(c10::Scalar((int64_t)num_indices), indices.options());
+     int64_t nbits = cuda::cub::get_num_bits(num_weights);
+     cuda::cub::sort_pairs(
+       indices.data_ptr<index_t>(), sorted_indices.data_ptr<index_t>(),
+diff --git a/aten/src/ATen/test/CMakeLists.txt b/aten/src/ATen/test/CMakeLists.txt
+index ee6a9ee30f..90abe54e02 100644
+--- a/aten/src/ATen/test/CMakeLists.txt
++++ b/aten/src/ATen/test/CMakeLists.txt
+@@ -18,7 +18,7 @@ list(APPEND ATen_CPU_TEST_SRCS
+   ${CMAKE_CURRENT_SOURCE_DIR}/dlconvertor_test.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/native_test.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/scalar_tensor_test.cpp
+-  ${CMAKE_CURRENT_SOURCE_DIR}/test_parallel.cpp
++  # ${CMAKE_CURRENT_SOURCE_DIR}/test_parallel.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/undefined_tensor_test.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/verify_api_visibility.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/thread_init_test.cpp
+diff --git a/caffe2/CMakeLists.txt b/caffe2/CMakeLists.txt
+index 26210cb56a..5fbffeda04 100644
+--- a/caffe2/CMakeLists.txt
++++ b/caffe2/CMakeLists.txt
+@@ -345,6 +345,56 @@ endif()
+ 
+ 
+ if(NOT INTERN_BUILD_MOBILE OR NOT BUILD_CAFFE2_MOBILE)
++  if(USE_DISTRIBUTED)
++
++    # Define this target even if we're building without TensorPipe, to make life
++    # easier to other targets that depend on this. However, in that case, by not
++    # setting the USE_TENSORPIPE compile definition, this target will just end
++    # up being empty. Downstream targets should also add a #ifdef guard.
++    if(NOT WIN32)
++      add_library(process_group_agent
++        "${TORCH_SRC_DIR}/csrc/distributed/rpc/agent_utils.cpp"
++        "${TORCH_SRC_DIR}/csrc/distributed/rpc/agent_utils.h"
++        "${TORCH_SRC_DIR}/csrc/distributed/rpc/process_group_agent.cpp"
++        "${TORCH_SRC_DIR}/csrc/distributed/rpc/process_group_agent.h"
++      )
++      # target_link_libraries(process_group_agent PRIVATE torch c10d fmt::fmt-header-only)
++      # add_dependencies(process_group_agent torch c10d)
++      target_link_libraries(process_group_agent PRIVATE torch fmt::fmt-header-only)
++      add_dependencies(process_group_agent torch)
++
++      if(USE_TENSORPIPE)
++        add_library(tensorpipe_agent
++          "${TORCH_SRC_DIR}/csrc/distributed/rpc/agent_utils.cpp"
++          "${TORCH_SRC_DIR}/csrc/distributed/rpc/agent_utils.h"
++          "${TORCH_SRC_DIR}/csrc/distributed/rpc/macros.h"
++          "${TORCH_SRC_DIR}/csrc/distributed/rpc/tensorpipe_agent.cpp"
++          "${TORCH_SRC_DIR}/csrc/distributed/rpc/tensorpipe_agent.h"
++          "${TORCH_SRC_DIR}/csrc/distributed/rpc/tensorpipe_utils.cpp"
++          "${TORCH_SRC_DIR}/csrc/distributed/rpc/tensorpipe_utils.h"
++          )
++        # target_link_libraries(tensorpipe_agent PRIVATE torch c10d tensorpipe fmt::fmt-header-only)
++        # add_dependencies(tensorpipe_agent torch c10d)
++        target_link_libraries(tensorpipe_agent PRIVATE torch tensorpipe fmt::fmt-header-only)
++        add_dependencies(tensorpipe_agent torch)
++        if(USE_CUDA)
++          target_compile_definitions(tensorpipe_agent PUBLIC USE_CUDA)
++        endif()
++
++        if(USE_ROCM)
++          target_compile_definitions(tensorpipe_agent PRIVATE
++            USE_ROCM
++            __HIP_PLATFORM_HCC__
++          )
++        endif()
++
++        target_compile_definitions(tensorpipe_agent PUBLIC USE_TENSORPIPE)
++        target_link_libraries(tensorpipe_agent PRIVATE tensorpipe)
++        add_dependencies(tensorpipe_agent tensorpipe)
++      endif()
++    endif()
++  endif()
++  
+   set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
+ 
+   # Generate files
+@@ -1175,6 +1225,9 @@ endif()
+     ${PROJECT_BINARY_DIR}/TorchConfig.cmake
+     DESTINATION share/cmake/Torch)
+ 
++  # if(USE_DISTRIBUTED)
++  #   add_subdirectory(${TORCH_SRC_DIR}/lib/c10d lib_c10d)
++  # endif()
+ 
+   # ---[ Torch python bindings build
+   add_subdirectory(../torch torch)
+@@ -1909,6 +1962,9 @@ if(BUILD_PYTHON)
+   add_library(caffe2_pybind11_state MODULE ${Caffe2_CPU_PYTHON_SRCS})
+   if(USE_NUMPY)
+     target_compile_options(caffe2_pybind11_state PRIVATE "-DUSE_NUMPY")
++    # Orlando; refer to how to fix issue: ../caffe2/python/pybind_state.h:27:10: fatal error: 'numpy/arrayobject.h' file not found
++    find_package(Python3 REQUIRED COMPONENTS NumPy)
++    target_include_directories(caffe2_pybind11_state PRIVATE ${Python3_NumPy_INCLUDE_DIRS})
+   endif()
+   if(NOT MSVC)
+     set_target_properties(caffe2_pybind11_state PROPERTIES COMPILE_FLAGS "-fvisibility=hidden")
+diff --git a/cmake/public/cuda.cmake b/cmake/public/cuda.cmake
+index 7ba2bb6d4c..cde1cc0e54 100644
+--- a/cmake/public/cuda.cmake
++++ b/cmake/public/cuda.cmake
+@@ -38,7 +38,8 @@ endif()
+ message(STATUS "Caffe2: CUDA detected: " ${CUDA_VERSION})
+ message(STATUS "Caffe2: CUDA nvcc is: " ${CUDA_NVCC_EXECUTABLE})
+ message(STATUS "Caffe2: CUDA toolkit directory: " ${CUDA_TOOLKIT_ROOT_DIR})
+-if(CUDA_VERSION VERSION_LESS 10.2)
++if(CUDA_VERSION VERSION_LESS 10.1)
++#if(CUDA_VERSION VERSION_LESS 10.2)
+   message(FATAL_ERROR "PyTorch requires CUDA 10.2 or above.")
+ endif()
+ 
+diff --git a/modules/detectron/CMakeLists.txt b/modules/detectron/CMakeLists.txt
+index 8041e71d35..44d138c4c8 100644
+--- a/modules/detectron/CMakeLists.txt
++++ b/modules/detectron/CMakeLists.txt
+@@ -4,7 +4,11 @@ file(GLOB_RECURSE Detectron_HIP_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/*.hip)
+ 
+ if(BUILD_CAFFE2_OPS)
+   if(USE_OPENMP AND OPENMP_FOUND)
+-    Set(OpenMP_link ${OpenMP_CXX_LIBRARIES})
++    if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
++      Set(OpenMP_link -Xpreprocessor -fopenmp /Users/llv23/opt/miniconda3/lib/libomp.dylib /Users/llv23/opt/miniconda3/lib/libgomp.dylib)
++    else()
++      Set(OpenMP_link ${OpenMP_CXX_LIBRARIES})
++    endif()
+   endif()
+ 
+   # Note(ilijar): Since Detectron ops currently have no
+diff --git a/test/cpp/api/CMakeLists.txt b/test/cpp/api/CMakeLists.txt
+index f1fb4b6123..37051c1b94 100644
+--- a/test/cpp/api/CMakeLists.txt
++++ b/test/cpp/api/CMakeLists.txt
+@@ -51,7 +51,11 @@ if(USE_CUDA)
+ endif()
+ 
+ add_executable(test_api ${TORCH_API_TEST_SOURCES})
+-target_include_directories(test_api PRIVATE ${ATen_CPU_INCLUDE})
++if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
++  target_link_libraries(test_api PRIVATE torch gtest -Xpreprocessor -fopenmp /Users/llv23/opt/miniconda3/lib/libomp.dylib /Users/llv23/opt/miniconda3/lib/libgomp.dylib)
++else()
++  target_include_directories(test_api PRIVATE ${ATen_CPU_INCLUDE})
++endif()
+ target_link_libraries(test_api PRIVATE torch gtest)
+ 
+ if(USE_CUDA)
+diff --git a/tools/build_variables.bzl b/tools/build_variables.bzl
+index 4a1903ef21..313bc78dc0 100644
+--- a/tools/build_variables.bzl
++++ b/tools/build_variables.bzl
+@@ -387,7 +387,6 @@ libtorch_distributed_extra_sources = [
+     "torch/csrc/distributed/autograd/rpc_messages/rref_backward_resp.cpp",
+     "torch/csrc/distributed/c10d/HashStore.cpp",
+     "torch/csrc/distributed/c10d/ProcessGroupRoundRobin.cpp",
+-    "torch/csrc/distributed/rpc/agent_utils.cpp",
+     "torch/csrc/distributed/rpc/message.cpp",
+     "torch/csrc/distributed/rpc/profiler/remote_profiler_manager.cpp",
+     "torch/csrc/distributed/rpc/profiler/server_process_global_profiler.cpp",
+@@ -755,12 +754,15 @@ libtorch_python_distributed_core_sources = [
+ 
+ libtorch_python_distributed_sources = libtorch_python_distributed_core_sources + [
+     "torch/csrc/distributed/autograd/init.cpp",
++    "torch/csrc/distributed/rpc/agent_utils.cpp",
+     "torch/csrc/distributed/rpc/init.cpp",
++    "torch/csrc/distributed/rpc/process_group_agent.cpp",
+     "torch/csrc/distributed/rpc/py_rref.cpp",
+     "torch/csrc/distributed/rpc/python_functions.cpp",
+     "torch/csrc/distributed/rpc/python_rpc_handler.cpp",
+     "torch/csrc/distributed/rpc/request_callback_impl.cpp",
+     "torch/csrc/distributed/rpc/testing/init.cpp",
++    "torch/csrc/distributed/rpc/testing/faulty_process_group_agent.cpp",
+     "torch/csrc/distributed/rpc/unpickled_python_call.cpp",
+     "torch/csrc/distributed/rpc/unpickled_python_remote_call.cpp",
+     "torch/csrc/jit/runtime/register_distributed_ops.cpp",
+diff --git a/torch/_C/_distributed_rpc.pyi b/torch/_C/_distributed_rpc.pyi
+index 99fa5e7596..ca89502caa 100644
+--- a/torch/_C/_distributed_rpc.pyi
++++ b/torch/_C/_distributed_rpc.pyi
+@@ -65,6 +65,37 @@ class PyRRef:
+     def __repr__(self) -> str: ...
+     ...
+ 
++
++class ProcessGroupRpcBackendOptions(RpcBackendOptions):
++    num_send_recv_threads: int
++    def __init__(
++        self,
++        num_send_recv_threads: int,
++        rpc_timeout: float,
++        init_method: str
++    ): ...
++
++class ProcessGroupAgent(RpcAgent):
++    def __init__(
++        self,
++        store: Store,
++        worker_name: str,
++        pg: ProcessGroup,
++        numSendRecvThreads: int,
++        rpcTimeout: timedelta
++    ): ...
++    @overload
++    def get_worker_info(self) -> WorkerInfo: ...
++    @overload
++    def get_worker_info(self, workerName: str) -> WorkerInfo: ...
++    @overload
++    def get_worker_info(self, id: int) -> WorkerInfo: ...
++    def get_worker_infos(self) -> List[WorkerInfo]: ...
++    def _get_device_map(self, dst: WorkerInfo) -> Dict[torch.device, torch.device]: ...
++    def join(self): ...
++    def shutdown(self): ...
++    def sync(self): ...
++
+ class _TensorPipeRpcBackendOptionsBase(RpcBackendOptions):
+     num_worker_threads: int
+     device_maps: Dict[str, Dict[torch.device, torch.device]]
+diff --git a/torch/_C/_distributed_rpc_testing.pyi b/torch/_C/_distributed_rpc_testing.pyi
+index 66baf22df4..73188fac95 100644
+--- a/torch/_C/_distributed_rpc_testing.pyi
++++ b/torch/_C/_distributed_rpc_testing.pyi
+@@ -1,39 +1,77 @@
+ import torch
+ from ._distributed_c10d import ProcessGroup, Store
+-from ._distributed_rpc import (
+-    _TensorPipeRpcBackendOptionsBase,
+-    TensorPipeAgent,
+-    WorkerInfo,
+-)
++# from ._distributed_rpc import (
++#     _TensorPipeRpcBackendOptionsBase,
++#     TensorPipeAgent,
++#     WorkerInfo,
++# )
++from ._distributed_rpc import ProcessGroupAgent, ProcessGroupRpcBackendOptions, WorkerInfo
+ from typing import List, Dict, overload
+ from datetime import timedelta
+ 
+ # This module is defined in torch/csrc/distributed/rpc/testing/init.cpp
+ 
+-class FaultyTensorPipeRpcBackendOptions(_TensorPipeRpcBackendOptionsBase):
++# class FaultyTensorPipeRpcBackendOptions(_TensorPipeRpcBackendOptionsBase):
++#     def __init__(
++#         self,
++#         num_worker_threads: int,
++#         rpc_timeout: float,
++#         init_method: str,
++#         messages_to_fail: List[str],
++#         messages_to_delay: Dict[str, float],
++#         num_fail_sends: int,
++#     ): ...
++#     num_send_recv_threads: int
++#     messages_to_fail: List[str]
++#     messages_to_delay: Dict[str, float]
++#     num_fail_sends: int
++
++# class FaultyTensorPipeAgent(TensorPipeAgent):
++#     def __init__(
++#         self,
++#         store: Store,
++#         name: str,
++#         rank: int,
++#         world_size: int,
++#         process_group: ProcessGroup,
++#         options: FaultyTensorPipeRpcBackendOptions,
++#         reverse_device_maps: Dict[str, Dict[torch.device, torch.device]],
++#         devices: List[torch.device],
++#     ): ...
++
++class FaultyProcessGroupRpcBackendOptions(ProcessGroupRpcBackendOptions):
+     def __init__(
+         self,
+-        num_worker_threads: int,
++        num_send_recv_threads: int,
+         rpc_timeout: float,
+         init_method: str,
+         messages_to_fail: List[str],
+         messages_to_delay: Dict[str, float],
+-        num_fail_sends: int,
++        num_fail_sends: int
+     ): ...
+     num_send_recv_threads: int
+     messages_to_fail: List[str]
+     messages_to_delay: Dict[str, float]
+     num_fail_sends: int
+ 
+-class FaultyTensorPipeAgent(TensorPipeAgent):
++class FaultyProcessGroupAgent(ProcessGroupAgent):
+     def __init__(
+         self,
+         store: Store,
+         name: str,
+-        rank: int,
+-        world_size: int,
+         process_group: ProcessGroup,
+-        options: FaultyTensorPipeRpcBackendOptions,
+-        reverse_device_maps: Dict[str, Dict[torch.device, torch.device]],
+-        devices: List[torch.device],
++        num_send_recv_threads: int,
++        rpc_timeout: timedelta,
++        messages_to_fail: List[str],
++        messages_to_delay: Dict[str, float],
++        num_fail_sends: int
+     ): ...
++    def join(self): ...
++    def shutdown(self): ...
++    @overload
++    def get_worker_info(self) -> WorkerInfo: ...
++    @overload
++    def get_worker_info(self, workerName: str) -> WorkerInfo: ...
++    @overload
++    def get_worker_info(self, id: int) -> WorkerInfo: ...
++    def get_worker_infos(self) -> List[WorkerInfo]: ...
+diff --git a/torch/csrc/distributed/rpc/init.cpp b/torch/csrc/distributed/rpc/init.cpp
+index a1934b0e79..c5136394bc 100644
+--- a/torch/csrc/distributed/rpc/init.cpp
++++ b/torch/csrc/distributed/rpc/init.cpp
+@@ -1,5 +1,8 @@
+ #include <torch/csrc/python_headers.h>
+ 
++#if defined(__APPLE__) && defined(__MACH__)
++#include <torch/csrc/distributed/rpc/process_group_agent.h>
++#endif
+ #include <torch/csrc/distributed/rpc/profiler/remote_profiler_manager.h>
+ #include <torch/csrc/distributed/rpc/profiler/server_process_global_profiler.h>
+ #include <torch/csrc/distributed/rpc/py_rref.h>
+diff --git a/torch/csrc/distributed/rpc/message.h b/torch/csrc/distributed/rpc/message.h
+index 17a7808912..32f89f3828 100644
+--- a/torch/csrc/distributed/rpc/message.h
++++ b/torch/csrc/distributed/rpc/message.h
+@@ -119,19 +119,21 @@ class TORCH_API Message final : public torch::CustomClassHolder {
+       std::vector<torch::Tensor>&& tensors,
+       MessageType type);
+ 
++  friend c10::intrusive_ptr<Message>;
++
++ public:
++
+   Message(
+       std::vector<char>&& payload,
+       std::vector<torch::Tensor>&& tensors,
+       MessageType type,
+       int64_t id);
+-
+-  friend c10::intrusive_ptr<Message>;
+-
+- public:
++#if !defined(__APPLE__) && !defined(__MACH__)
+   Message(const Message& other) = delete;
+   Message(Message&& other) = delete;
+   Message& operator=(Message const& rhs) = delete;
+   Message& operator=(Message&& rhs) = delete;
++#endif
+ 
+   // Destructively retrieves the payload.
+   std::vector<char>&& movePayload() &&;
+diff --git a/torch/csrc/distributed/rpc/process_group_agent.cpp b/torch/csrc/distributed/rpc/process_group_agent.cpp
+new file mode 100644
+index 0000000000..a4eb115219
+--- /dev/null
++++ b/torch/csrc/distributed/rpc/process_group_agent.cpp
+@@ -0,0 +1,865 @@
++#include <torch/csrc/distributed/rpc/process_group_agent.h>
++
++#include <c10/util/C++17.h>
++#include <c10d/ProcessGroup.hpp>
++#include <fmt/format.h>
++#include <torch/csrc/distributed/rpc/agent_utils.h>
++#include <torch/csrc/distributed/rpc/utils.h>
++
++namespace torch {
++namespace distributed {
++namespace rpc {
++
++//////////////////////////  MessageCounter  /////////////////////////////////
++
++ProcessGroupAgent::MessageCounter::MessageCounter(int worldSize)
++    : counters_(worldSize) {}
++
++void ProcessGroupAgent::MessageCounter::increment(int dst) {
++  std::lock_guard<std::mutex> guard(mutex_);
++  ++counters_[dst];
++}
++
++std::vector<int64_t> ProcessGroupAgent::MessageCounter::snapshot() {
++  std::lock_guard<std::mutex> guard(mutex_);
++  return counters_;
++}
++
++//////////////////////////  MetricsTracker  /////////////////////////////////
++
++ProcessGroupAgent::AverageMetricsTracker::AverageMetricsTracker(
++    std::string key,
++    uint64_t currentSum,
++    uint64_t currentCount)
++    : key_(std::move(key)),
++      currentSum_(currentSum),
++      currentCount_(currentCount) {}
++
++void ProcessGroupAgent::AverageMetricsTracker::addData(uint64_t dataPoint) {
++  currentSum_ += dataPoint;
++  ++currentCount_;
++}
++
++double ProcessGroupAgent::AverageMetricsTracker::computeAverage() {
++  return currentCount_ == 0 ? 0 : currentSum_ / (double)currentCount_;
++}
++
++////////////////////////  ProcessGroupAgent  /////////////////////////////////
++
++using steady_clock_time_point =
++    std::chrono::time_point<std::chrono::steady_clock>;
++const steady_clock_time_point kInfiniteTimeoutTimePoint =
++    std::chrono::time_point<std::chrono::steady_clock>::max();
++const std::string kNumPendingRequests = "agent.num_pending_requests";
++const std::string kThreadPoolSize = "agent.thread_pool_size";
++const std::string kNumIdleThreads = "agent.num_idle_threads";
++const std::string kGilAverageWaitTime = "agent.gil_average_wait_time_us";
++const std::string kClientActiveCalls = "agent.client_active_calls";
++const std::string kServerActiveCalls = "agent.server_active_calls";
++const std::string kServerActiveAsyncCalls = "agent.server_active_async_calls";
++
++ProcessGroupAgent::ProcessGroupAgent(
++    const c10::intrusive_ptr<::c10d::Store>& store,
++    std::string workerName,
++    c10::intrusive_ptr<::c10d::ProcessGroup> pg,
++    int numSendRecvThreads,
++    std::chrono::milliseconds rpcTimeout,
++    std::unique_ptr<RequestCallback> cb)
++    : RpcAgent(
++          WorkerInfo(std::move(workerName), (int64_t)pg->getRank()),
++          std::move(cb),
++          rpcTimeout),
++      pg_(std::move(pg)),
++      sendCounts_(pg_->getSize()),
++      recvCounts_(pg_->getSize()),
++      nextId_(0),
++      sendMutexes_(pg_->getSize()),
++      threadPool_(numSendRecvThreads),
++      timeoutThreadEnabled_{false} {
++  // initialize metric info counters
++  metrics_.resize(ProcessGroupAgentMetrics::N_METRICS);
++  metrics_[ProcessGroupAgentMetrics::GIL_WAIT_TIME] =
++      std::make_unique<AverageMetricsTracker>(kGilAverageWaitTime);
++
++  nameMap_ = collectNames(
++      ::c10d::PrefixStore("names", store),
++      workerInfo_.id_,
++      workerInfo_.name_,
++      pg_->getSize());
++  auto workerRankIter = nameMap_.find(workerInfo_.name_);
++  TORCH_CHECK(
++      workerRankIter != nameMap_.end(),
++      "Failed to resolve worker "
++      "name ",
++      workerInfo_.name_,
++      " to a ProcessGroup rank.");
++  TORCH_CHECK(
++      pg_->getRank() == workerRankIter->second,
++      "Resolved worker rank ",
++      workerRankIter->second,
++      " does not match ProcessGroup rank ",
++      pg_->getRank());
++
++  // tmp vector to sort names in rank's order
++  const auto worldSize = pg_->getSize();
++  std::vector<std::string> tmpWorkerIds(worldSize);
++  for (auto& entry : nameMap_) {
++    tmpWorkerIds[entry.second] = entry.first;
++  }
++
++  allWorkerInfo_.reserve(worldSize);
++  for (worker_id_t rank = 0; rank < worldSize; ++rank) {
++    allWorkerInfo_.emplace_back(std::move(tmpWorkerIds[rank]), rank);
++  }
++}
++
++ProcessGroupAgent::~ProcessGroupAgent() {
++  if (rpcAgentRunning_) {
++    shutdown();
++  }
++}
++
++const WorkerInfo& ProcessGroupAgent::getWorkerInfo(
++    const std::string& workerName) const {
++  const auto idIter = nameMap_.find(workerName);
++  TORCH_CHECK(
++      idIter != nameMap_.end(), "Unknown destination worker ", workerName);
++
++  return allWorkerInfo_[idIter->second];
++}
++
++const WorkerInfo& ProcessGroupAgent::getWorkerInfo(worker_id_t id) const {
++  TORCH_CHECK(
++      // NOLINTNEXTLINE(clang-diagnostic-sign-compare)
++      id >= 0 && id < allWorkerInfo_.size(),
++      "Invalid destination: ",
++      id);
++  return allWorkerInfo_[id];
++}
++
++std::vector<WorkerInfo> ProcessGroupAgent::getWorkerInfos() const {
++  return allWorkerInfo_;
++}
++
++void ProcessGroupAgent::join(bool /* unused */) {
++  sync();
++  std::unique_lock<std::mutex> lock(futureMutex_);
++  futureCV_.wait(
++      lock, [this] { return futures_.empty() && futureTimeouts_.empty(); });
++  lock.unlock();
++  pg_->barrier()->wait();
++}
++
++bool ProcessGroupAgent::hasPendingMessage() {
++  const auto worldSize = pg_->getSize();
++  auto snapshot = std::make_unique<std::vector<int64_t>>();
++  snapshot->reserve(2 * worldSize);
++  auto recvSnapshot = recvCounts_.snapshot();
++  auto sendSnapshot = sendCounts_.snapshot();
++  snapshot->insert(
++      snapshot->end(),
++      std::make_move_iterator(recvSnapshot.begin()),
++      std::make_move_iterator(recvSnapshot.end()));
++  snapshot->insert(
++      snapshot->end(),
++      std::make_move_iterator(sendSnapshot.begin()),
++      std::make_move_iterator(sendSnapshot.end()));
++
++  auto snapshotData = snapshot->data();
++  auto deleteWhenDone = snapshot.release();
++  std::vector<torch::Tensor> inputSnapshot = {torch::from_blob(
++      snapshotData,
++      {2, worldSize},
++      [deleteWhenDone](void*) { delete deleteWhenDone; },
++      {torch::kInt64})};
++  // allgather both send and recv messages in one shot
++  std::vector<std::vector<torch::Tensor>> outputSnapshots(1);
++
++  for (int i = 0; i < worldSize; ++i) {
++    outputSnapshots[0].emplace_back(
++        torch::zeros({2, worldSize}, {torch::kInt64}));
++  }
++
++  pg_->allgather(outputSnapshots, inputSnapshot)->wait();
++
++  // loop through all send/recv pairs to make sure that all sent messages are
++  // processed.
++  const auto& peerCounts = outputSnapshots[0];
++  for (int from = 0; from < worldSize; ++from) {
++    for (int to = 0; to < worldSize; ++to) {
++      // peerCounts[x][0] is recv counts, and peerCounts[x][1] is send counts
++
++      const auto& sentCnt = peerCounts[from][1][to].data_ptr<int64_t>()[0];
++      const auto& recvCnt = peerCounts[to][0][from].data_ptr<int64_t>()[0];
++      // NB: we cannot throw an error when sentCnt < recvCnt here. Because, send
++      // and recv counts on different workers are read in a distributed manner.
++      // It is possible that the sender reads its send count before sending, but
++      // the receive reads its recv count after receiving. Hence, both > and <
++      // are valid states.
++      if (sentCnt != recvCnt) {
++        return true;
++      }
++    }
++  }
++  return false;
++}
++
++void ProcessGroupAgent::sync() {
++  // Block until all processes wants to sync.
++  pg_->barrier()->wait();
++  // block until all peers agree that all sent messages have been processed.
++  do {
++    // Finish all send/recv tasks in the thread pool
++    threadPool_.waitWorkComplete();
++    // As there could be nested RPC calls, or response callback could also
++    // trigger more messages to be sent, we need to wait for the thread pool
++    // again.
++  } while (hasPendingMessage());
++}
++
++void ProcessGroupAgent::startImpl() {
++  timeoutThreadEnabled_.store(true);
++  listenerThread_ = std::thread(&ProcessGroupAgent::listenLoop, this);
++  futureTimeoutThread_ =
++      std::thread(&ProcessGroupAgent::pollTimedOutRPCs, this);
++}
++
++void ProcessGroupAgent::shutdownImpl() {
++  LOG(INFO) << "Shutting down ProcessGroupAgent on rank " << pg_->getRank()
++            << ".";
++  {
++    std::unique_lock<std::mutex> lock(futureMutex_);
++    timeoutThreadEnabled_.store(false);
++  }
++  futureTimeoutCV_.notify_one();
++  futureTimeoutThread_.join();
++  // Abort listener thread to stop accepting new work. We need to interrupt the
++  // recvWork->wait() call the listener loop may be blocked in before joining
++  // the thread.
++  {
++    std::unique_lock<std::mutex> lock(recvWorkMutex_);
++    if (recvWork_) {
++      recvWork_->abort();
++    }
++  }
++  listenerThread_.join();
++  // Abort any pending sends to any destination rank that have not been
++  // completed.
++  {
++    std::lock_guard<std::mutex> lock(pendingSendMutex_);
++    for (auto& it : currentPendingSends_) {
++      const auto& pendingSends = it.second;
++      const auto dst = it.first;
++      for (const auto& send : pendingSends) {
++        if (!send->isCompleted()) {
++          LOG(INFO) << "Worker " << RpcAgent::getWorkerInfo().id_
++                    << " aborting pending send to destination rank " << dst;
++
++          send->abort();
++        }
++      }
++    }
++  }
++  // Note: calling threadPool_.waitWorkComplete() after listenerThread.join() so
++  // that we can finish any possible work enqueued into the thread pool, before
++  // python RPC handler is shutdown (see shutdown in rpc/api.py).
++  threadPool_.waitWorkComplete();
++}
++
++c10::intrusive_ptr<JitFuture> ProcessGroupAgent::send(
++    const WorkerInfo& to,
++    c10::intrusive_ptr<Message> message,
++    const float rpcTimeoutSeconds,
++    const std::unordered_map<c10::Device, c10::Device>& /* unused */) {
++  // Throw if we previously encountered an exception in ::listenLoop.
++  {
++    std::unique_lock<std::mutex> guard(listenLoopExceptionMutex_);
++    if (listenLoopException_) {
++      std::rethrow_exception(listenLoopException_);
++    }
++  }
++
++  if (!rpcAgentRunning_.load()) {
++    // We are trying to send but RPC has been shut down on this node. This can
++    // happen if we are in a shutdown sequence but background threads are still
++    // processing messages that result in send()s. Throw a descriptive error.
++    auto err = c10::str(
++        "Node ",
++        RpcAgent::getWorkerInfo().id_,
++        "tried to send() a message of type ",
++        message->type(),
++        " but RPC is no longer running on this node.");
++    throw std::runtime_error(err);
++  }
++  TORCH_CHECK(
++      to.id_ < (worker_id_t)pg_->getSize(),
++      "Destination rank is out of bound, got ",
++      to.id_,
++      ", but world size is ",
++      pg_->getRank());
++
++  auto requestId = nextId();
++  auto future = c10::make_intrusive<JitFuture>(at::AnyClassType::get());
++  if (message->isRequest()) {
++    // millisecond level precision of when request started.
++    auto futureStartTime = std::chrono::steady_clock::now();
++    // if passed in timeout is unset, then use the currently set default timeout
++    // for all RPCs.
++    auto timeout = rpcTimeoutSeconds == kUnsetRpcTimeout
++        ? getRpcTimeout()
++        : std::chrono::milliseconds(
++              static_cast<int>(rpcTimeoutSeconds * kSecToMsConversion));
++
++    // Prepare endTime from timeout. Set infinite timeout if
++    // specified.
++    steady_clock_time_point endTime = timeout.count() == 0
++        ? kInfiniteTimeoutTimePoint
++        : futureStartTime + timeout;
++    bool notifyThread = false;
++    {
++      std::lock_guard<std::mutex> lock{futureMutex_};
++      // Insert future into future map.
++      futures_.emplace(
++          std::piecewise_construct,
++          std::forward_as_tuple(requestId),
++          std::forward_as_tuple(FutureInfo(future, endTime, to.id_, timeout)));
++      // insert future into timeouts map to keep track of its timeout
++      auto& requestIds = futureTimeouts_[endTime];
++      requestIds.insert(requestId);
++      // Signal the watchdog to monitor future timeouts if this is the first
++      // future created or it has earlier end time than other futures in the
++      // map.
++      if (futureTimeouts_.begin()->first == endTime &&
++          (requestIds.size() == 1)) {
++        notifyThread = true;
++      }
++    }
++    if (notifyThread) {
++      // Notify the watchdog thread only after releasing the lock,
++      // so watchdog can acquire lock on waking up.
++      futureTimeoutCV_.notify_one();
++    }
++    message->setId(requestId);
++    ++clientActiveCalls_;
++  } else {
++    future->markCompleted(IValue());
++  }
++
++  // Sending to ourselves: bypass the send logic and enqueue directly
++  // to our receiving queue.
++  if (to.id_ == (worker_id_t)pg_->getRank()) {
++    sendToSelf(c10::intrusive_ptr<Message>(std::move(message)));
++    return future;
++  }
++
++  // NB: cannot directly pass ``to`` to the ``SendWork``, because it might no
++  // longer be alive when the ``SendWork`` is executed. For example, the
++  // application could query the ``WorkerInfo`` using name through the
++  // ``RpcAgent::getWorkerInfo`` API, and pass the ``WorkerInfo`` back here, so
++  // we have C++ -> Python -> C++. For an asynchronous RPC, the ``WorkerInfo``
++  // reference on Python side could die before ``SendWork`` uses it, and Pybind
++  // will not keep the Python reference alive even if it originally comes from
++  // the C++ land. Hence, we have to explicitly use the ``WorkerInfo`` in the
++  // C++ land.
++  enqueueSend(SendWork(allWorkerInfo_[to.id_], std::move(*message)));
++
++  return future;
++}
++
++void ProcessGroupAgent::handleSend(const SendWork& work) {
++  // NOLINTNEXTLINE(clang-diagnostic-pessimizing-move)
++  auto serializedPayload = std::make_unique<std::string>(std::move(
++      wireSerialize(work.message_.payload(), work.message_.tensors())));
++
++  std::vector<torch::Tensor> preamble = {torch::tensor(
++      {(int64_t)pg_->getRank(),
++       (int64_t)serializedPayload->length(),
++       (int64_t)work.message_.type(),
++       (int64_t)work.message_.id()},
++      {torch::kInt64})};
++
++  // ProcessGroup is not thread-safe when sending with the same tag,
++  // hence the lock
++  std::vector<c10::intrusive_ptr<c10d::ProcessGroup::Work>> pendingSends;
++  const auto dst = work.to_.id_;
++
++  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
++  auto serializedPayloadData = const_cast<char*>(serializedPayload->data());
++  auto serializedPayloadSize = serializedPayload->size();
++  std::string* deleteWhenDone = serializedPayload.release();
++  std::vector<torch::Tensor> payload = {torch::from_blob(
++      reinterpret_cast<void*>(serializedPayloadData),
++      serializedPayloadSize,
++      [deleteWhenDone](void*) { delete deleteWhenDone; },
++      {torch::kChar})};
++  pendingSends.reserve(2);
++
++  sendCounts_.increment(dst);
++
++  {
++    std::lock_guard<std::mutex> guard(sendMutexes_[dst]);
++    pendingSends.emplace_back(pg_->send(preamble, dst, dst /* channelTag */));
++    pendingSends.emplace_back(pg_->send(payload, dst, dst /* channelTag */));
++  }
++  // Write pendingSends to a global map so that they can be interrupted by
++  // ::shutdown().
++  {
++    std::lock_guard<std::mutex> pendingSendGuard(pendingSendMutex_);
++    for (auto& p : pendingSends) {
++      currentPendingSends_[dst].insert(p);
++    }
++  }
++
++  for (auto& pendingSend : pendingSends) {
++    if (!rpcAgentRunning_.load() || !pendingSend->wait()) {
++      // Send was interrupted or RPC is not running.
++      return;
++    }
++  }
++
++  // Erase the pending sends that we added since we have returned from wait.
++  {
++    std::lock_guard<std::mutex> pendingSendGuard(pendingSendMutex_);
++    // NB: We cannot just erase all of currentPendingSends[dst], since this
++    // might preemptively remove sends from other threads.
++    auto& set = currentPendingSends_[dst];
++    for (auto& p : pendingSends) {
++      set.erase(p);
++    }
++  }
++}
++
++// void ProcessGroupAgent::sendToSelf(Message&& message) {
++void ProcessGroupAgent::sendToSelf(c10::intrusive_ptr<Message> message) {
++  // NOLINTNEXTLINE(modernize-avoid-bind)
++  threadPool_.run(std::bind(
++      [this](const c10::intrusive_ptr<Message> message) {
++        // Unlike the other cases, need to add a tensor deleter, since the
++        // data outlives the scope of this function. It's shared_ptr<> due
++        // to c++11 lambda capture limitations with unique_ptr<>.
++        std::unique_ptr<std::string> payload;
++        try {
++          payload = std::make_unique<std::string>(
++              wireSerialize(message->payload(), message->tensors()));
++          // only increment sendCounts when the message is indeed added into
++          // local recv.
++          sendCounts_.increment(pg_->getRank());
++        } catch (std::exception& e) {
++          markFutureWithError(message->id(), e.what());
++          return;
++        }
++        const char* data = payload->data();
++        size_t len = payload->length();
++        std::string* delete_when_done = payload.release();
++        enqueueRecv(RecvWork(
++            getWorkerInfo(pg_->getRank()),
++            message->type(),
++            message->id(),
++            torch::from_blob(
++                (void*)data,
++                len,
++                [delete_when_done](void*) { delete delete_when_done; },
++                {torch::kChar})));
++      },
++      std::move(message)));
++}
++
++void ProcessGroupAgent::enqueueSend(SendWork work) {
++  // NB: this can be changed to use a native move capture when moved to C++14
++  // NOLINTNEXTLINE(modernize-avoid-bind)
++  threadPool_.run(std::bind(
++      [this](const SendWork& work) {
++        try {
++          handleSend(work);
++        } catch (std::exception& e) {
++          auto errorStr = c10::str(
++              "Encountered exception in ProcessGroupAgent::enqueueSend: ",
++              e.what(),
++              " on node: ",
++              RpcAgent::getWorkerInfo().id_);
++          auto exceptionMsg =
++              rpc::createExceptionResponse(errorStr, work.message_.id());
++          if (work.message_.isRequest()) {
++            // Mark the future with corresponding to this request with an error.
++            markFutureWithError(*exceptionMsg);
++          } else if (work.message_.isResponse()) {
++            // Try sending the error along.
++            handleSend(SendWork(work.to_, std::move(*exceptionMsg)));
++          }
++        }
++      },
++      std::move(work)));
++}
++
++bool ProcessGroupAgent::handleRecv(RecvWork& work) {
++  torch::Tensor& payload = work.payload_;
++  auto data = wireDeserialize(payload.storage().data(), payload.numel());
++  Message message(
++      std::move(data.first), std::move(data.second), work.type_, work.id_);
++  if (message.isRequest()) {
++    ++serverActiveCalls_;
++    c10::intrusive_ptr<JitFuture> futureResponse;
++    try {
++      futureResponse = cb_->operator()(message, {});
++    } catch (const std::exception& e) {
++      futureResponse = c10::make_intrusive<JitFuture>(at::AnyClassType::get());
++      futureResponse->setError(std::current_exception());
++    }
++    if (futureResponse->completed()) {
++      --serverActiveCalls_;
++      if (!futureResponse->hasError()) {
++        send(
++            work.from_,
++            c10::intrusive_ptr<Message>::make(std::move(*futureResponse->value().toCustomClass<Message>())));
++      } else {
++        send(
++            work.from_,
++            createExceptionResponse(
++                futureResponse->tryRetrieveErrorMessage(), message.id()));
++      }
++    } else {
++      ++serverActiveAsyncCalls_;
++      // Callback processing returned an incomplete future. Add sending the
++      // response as a callback which fires when the future completes.
++      auto fromId = work.from_.id_;
++      auto requestId = work.id_;
++      futureResponse->addCallback(
++          [this, fromId, requestId](JitFuture& futureResponse) {
++            --serverActiveCalls_;
++            --serverActiveAsyncCalls_;
++            if (!futureResponse.hasError()) {
++              send(
++                  getWorkerInfo(fromId),
++                  c10::intrusive_ptr<Message>::make(std::move(*futureResponse.value().toCustomClass<Message>())));
++            } else {
++              send(
++                  getWorkerInfo(fromId),
++                  createExceptionResponse(
++                      futureResponse.tryRetrieveErrorMessage(), requestId));
++            }
++          });
++    }
++  } else if (message.isResponse()) {
++    auto id = message.id();
++    c10::intrusive_ptr<JitFuture> jitFuture;
++    {
++      std::lock_guard<std::mutex> lock{futureMutex_};
++      const auto& futureInfo = futures_.find(id);
++      if (futureInfo == futures_.end()) {
++        // Received a completion for an already-processed future (such as one
++        // that timed out), drop the recv. By returning false, recvCounts will
++        // not be incremented, it will be incremented by the thread that
++        // determined that the future timed out.
++        return false;
++      }
++      // Use futureInfo before destructing it.
++      jitFuture = futureInfo->second.future_;
++      auto endTime = futureInfo->second.endTime_;
++      futures_.erase(id);
++      // look up the corresponding future by its time out and request
++      // ID, and remove it from the timeouts map
++      auto& futuresAtTime = futureTimeouts_[endTime];
++      auto it = futuresAtTime.find(id);
++      TORCH_INTERNAL_ASSERT(
++          it != futuresAtTime.end(),
++          "Error: could not find future in futureTimeouts map, race condition.");
++      futuresAtTime.erase(it);
++      if (futuresAtTime.empty()) {
++        // remove the key from futureTimeouts_
++        futureTimeouts_.erase(endTime);
++      }
++    }
++    futureCV_.notify_all();
++    --clientActiveCalls_;
++    if (message.type() == MessageType::EXCEPTION) {
++      jitFuture->setError(std::make_exception_ptr(std::runtime_error(
++          std::string(message.payload().begin(), message.payload().end()))));
++    } else {
++      jitFuture->markCompleted(
++          IValue(c10::make_intrusive<Message>(std::move(message))));
++    }
++  } else {
++    // TODO: pass the error back to the caller instead of crashing here.
++    TORCH_INTERNAL_ASSERT(false, "unrecognized message type ", message.type());
++  }
++  return true;
++}
++
++void ProcessGroupAgent::enqueueRecv(RecvWork work) {
++  // NOLINTNEXTLINE(modernize-avoid-bind)
++  threadPool_.run(std::bind(
++      [&](RecvWork& work) {
++        try {
++          // Only increment recvCounts if handleRecv() tells us to. We may not,
++          // i.e. if we process work corresponding to a future that has already
++          // been processed.
++          if (handleRecv(work)) {
++            recvCounts_.increment(work.from_.id_);
++          }
++        } catch (const std::exception& e) {
++          // Processing for this request/response failed. Log the details of the
++          // request.
++          auto fromId = work.from_.id_;
++          auto err = c10::str(
++              "Internal error while processing request of type ",
++              work.type_,
++              " on node ",
++              RpcAgent::getWorkerInfo().id_,
++              ", from node ",
++              fromId,
++              " : ",
++              e.what());
++          LOG(INFO) << err;
++          // Still increment so that this recv is recognized as non-oustanding
++          // during graceful shutdown.
++          recvCounts_.increment(work.from_.id_);
++        }
++      },
++      std::move(work)));
++}
++
++void ProcessGroupAgent::markFutureWithError(Message& message) {
++  TORCH_INTERNAL_ASSERT(
++      message.type() == MessageType::EXCEPTION,
++      "markFutureWithError should be only called with Message that has type Exception.");
++  markFutureWithError(
++      message.id(),
++      std::string(message.payload().begin(), message.payload().end()));
++}
++
++void ProcessGroupAgent::markFutureWithError(int64_t id, std::string errorMsg) {
++  c10::intrusive_ptr<JitFuture> jitFuture;
++  {
++    std::lock_guard<std::mutex> lock{futureMutex_};
++    const auto& futureInfo = futures_.find(id);
++
++    if (futureInfo == futures_.end()) {
++      // Did not find future in map - this can occur when the future has timed
++      // out and been processed accordingly.
++      return;
++    }
++    jitFuture = futureInfo->second.future_;
++    auto rpcEndTime = futureInfo->second.endTime_;
++    futures_.erase(id);
++    // look up the corresponding future by its time out and request ID,
++    // and remove it from the timeouts map
++    auto& futuresAtTime = futureTimeouts_[rpcEndTime];
++    auto it = futuresAtTime.find(id);
++    TORCH_INTERNAL_ASSERT(
++        it != futuresAtTime.end(),
++        "Error: could not find future in futureTimeouts map, race condition.");
++    futuresAtTime.erase(it);
++    if (futuresAtTime.empty()) {
++      // remove the key from futureTimeouts_
++      futureTimeouts_.erase(rpcEndTime);
++    }
++  }
++
++  --clientActiveCalls_;
++  jitFuture->setError(std::make_exception_ptr(std::runtime_error(errorMsg)));
++  futureCV_.notify_all();
++}
++
++void ProcessGroupAgent::listenLoop() {
++  try {
++    listenLoopInternal();
++  } catch (const std::exception& e) {
++    // Error occured in listenLoop(). Stop receiving thread and store
++    // exception to indicate that the RPC agent is in an unhealthy state and
++    // we should shutdown.
++    auto err = c10::str(
++        "Encountered exception in ProcessGroupAgent::listenLoop(): ",
++        e.what(),
++        " on worker ",
++        RpcAgent::getWorkerInfo().id_,
++        ". This means that the RPC agent is in an unhealthy state and unusable.");
++    LOG(ERROR) << err;
++    {
++      // Lock write to listenLoopException_ since ::send() reads from it.
++      std::lock_guard<std::mutex> guard(listenLoopExceptionMutex_);
++      listenLoopException_ = std::current_exception();
++    }
++  } catch (...) {
++    std::string unknownErrorMsg =
++        "Unknown exception occured in "
++        "ProcessGroupAgent::listenLoop. RPC Agent is in an unhealthy state and "
++        "unusable.";
++    LOG(ERROR) << unknownErrorMsg;
++    {
++      // Lock write to listenLoopException_ since ::send() reads from it.
++      std::lock_guard<std::mutex> guard(listenLoopExceptionMutex_);
++      listenLoopException_ =
++          std::make_exception_ptr(std::runtime_error(unknownErrorMsg));
++    }
++  }
++}
++
++void ProcessGroupAgent::listenLoopInternal() {
++  while (rpcAgentRunning_.load()) {
++    // rank, tensor size, message type
++    std::vector<torch::Tensor> preamble = {torch::empty({4}, {torch::kInt64})};
++    auto work = pg_->recvAnysource(preamble, pg_->getRank());
++    {
++      // Write class variable so it can be aborted by shutdown()
++      std::lock_guard<std::mutex> guard(recvWorkMutex_);
++      recvWork_ = work;
++    }
++
++    if (!rpcAgentRunning_.load() || !work->wait() /* aborted */) {
++      return;
++    }
++
++    int64_t* preamble_items = preamble.front().storage().data<int64_t>();
++
++    auto srcRank = preamble_items[0];
++    auto size = preamble_items[1];
++    MessageType type = MessageType(preamble_items[2]);
++    int64_t id = preamble_items[3];
++
++    std::vector<torch::Tensor> tensors = {torch::empty({size}, {torch::kChar})};
++    work = pg_->recv(tensors, srcRank, pg_->getRank());
++    {
++      // Write class variable so it can be aborted by shutdown()
++      std::lock_guard<std::mutex> guard(recvWorkMutex_);
++      recvWork_ = work;
++    }
++
++    if (!rpcAgentRunning_.load() || !work->wait() /* aborted */) {
++      return;
++    }
++
++    enqueueRecv(
++        RecvWork(allWorkerInfo_[srcRank], type, id, std::move(tensors[0])));
++  }
++}
++
++void ProcessGroupAgent::pollTimedOutRPCs() {
++  while (timeoutThreadEnabled_.load()) {
++    std::unique_lock<std::mutex> lock{futureMutex_};
++    steady_clock_time_point minEndTime;
++    // Estimate amount of time the first future will time out in, and sleep
++    // for that long.
++    // if there are no futures or the first future's RPC timeout is set to 0
++    // (meaning no timeout), then sleep for a set "infinity" time.
++    if (futureTimeouts_.empty()) {
++      minEndTime = kInfiniteTimeoutTimePoint;
++    } else {
++      minEndTime = futureTimeouts_.begin()->first;
++    }
++
++    auto shouldUpdateMinEndTimePredicate = [&, this]() -> bool {
++      // Notice, whoever modifies `timeoutThreadEnabled_`
++      // must acquire a lock on `futureMutex_`.
++      // Otherwise, this predicate could deadlock.
++      // If during evaluating the predicate, `::shutdown()` is called, then
++      // the predicate missed the notification before it started waiting
++      // on the cond var.
++      if (!timeoutThreadEnabled_.load()) {
++        return true;
++      }
++      steady_clock_time_point minEndTimeInMap = kInfiniteTimeoutTimePoint;
++      if (futureTimeouts_.empty()) {
++        minEndTimeInMap = kInfiniteTimeoutTimePoint;
++      } else {
++        minEndTimeInMap = futureTimeouts_.begin()->first;
++      }
++      return minEndTimeInMap < minEndTime;
++    };
++
++    bool shouldUpdateMinEndTime = true;
++    if (minEndTime == kInfiniteTimeoutTimePoint) {
++      futureTimeoutCV_.wait(lock, shouldUpdateMinEndTimePredicate);
++    } else {
++      shouldUpdateMinEndTime = futureTimeoutCV_.wait_until(
++          lock, minEndTime, shouldUpdateMinEndTimePredicate);
++    }
++    if (shouldUpdateMinEndTime) {
++      continue;
++    }
++
++    const auto timedOutFutures = processTimedOutFutures();
++    lock.unlock();
++    futureCV_.notify_all();
++
++    for (const auto& timedOutFuture : timedOutFutures) {
++      auto errStr =
++          fmt::format(kRpcTimeoutErrorStr, timedOutFuture.timeout_.count());
++      auto err = makeRPCError(errStr, RPCErrorType::TIMEOUT);
++
++      if (!timedOutFuture.future_->hasError()) {
++        --clientActiveCalls_;
++        timedOutFuture.future_->setError(
++            std::make_exception_ptr(std::runtime_error(err)));
++        // The future timed out and will not be processed by handleRecv(), even
++        // if we eventually get a response. In order to keep track of all
++        // send/recv pairs, we increment the count here.
++        const int dst = timedOutFuture.dstRank_;
++        recvCounts_.increment(dst);
++      }
++    }
++  }
++}
++
++const std::vector<ProcessGroupAgent::FutureInfo> ProcessGroupAgent::
++    processTimedOutFutures() {
++  std::vector<FutureInfo> timedOutFutures;
++  for (auto it = futureTimeouts_.begin(); it != futureTimeouts_.end();
++       /* intentional no increment */) {
++    const auto& endTime = it->first;
++    if (std::chrono::steady_clock::now() < endTime) {
++      // Since the futureTimeouts_ map is ordered by timeout, we don't need
++      // to check the remaining futures.
++      break;
++    } else {
++      const auto& futureIDs = it->second;
++      for (const auto& futureID : futureIDs) {
++        auto futureIt = futures_.find(futureID);
++        TORCH_INTERNAL_ASSERT(
++            futureIt != futures_.end(),
++            "Race Condition - Expected future does not exist in map");
++        const auto futInfo = futureIt->second;
++        timedOutFutures.push_back(futInfo);
++        futures_.erase(futureID);
++      }
++      it = futureTimeouts_.erase(it);
++    }
++  }
++  return timedOutFutures;
++}
++
++std::unordered_map<std::string, std::string> ProcessGroupAgent::getMetrics() {
++  std::unordered_map<std::string, std::string> metrics;
++  {
++    std::unique_lock<std::mutex> lock(futureMutex_);
++    auto futuresSize = futures_.size();
++    lock.unlock();
++    metrics[kNumPendingRequests] = c10::to_string(futuresSize);
++  }
++  metrics[kThreadPoolSize] = c10::to_string(threadPool_.size());
++  metrics[kNumIdleThreads] = c10::to_string(threadPool_.numAvailable());
++  metrics[kClientActiveCalls] = c10::to_string(clientActiveCalls_.load());
++  metrics[kServerActiveCalls] = c10::to_string(serverActiveCalls_.load());
++  metrics[kServerActiveAsyncCalls] =
++      c10::to_string(serverActiveAsyncCalls_.load());
++  if (isGILProfilingEnabled()) {
++    // Add time-series based metrics, just GIL wait times for now.
++    {
++      std::unique_lock<std::mutex> lock(metricsMutex_);
++      auto avgGilWaitTime = metrics_[GIL_WAIT_TIME]->computeAverage();
++      lock.unlock();
++      metrics[kGilAverageWaitTime] = c10::to_string(avgGilWaitTime);
++    }
++  }
++  return metrics;
++}
++
++void ProcessGroupAgent::addGilWaitTime(
++    const std::chrono::microseconds gilWaitTime) {
++  std::lock_guard<std::mutex> lock(metricsMutex_);
++  metrics_[ProcessGroupAgentMetrics::GIL_WAIT_TIME]->addData(
++      gilWaitTime.count());
++}
++
++} // namespace rpc
++} // namespace distributed
++} // namespace torch
+diff --git a/torch/csrc/distributed/rpc/process_group_agent.h b/torch/csrc/distributed/rpc/process_group_agent.h
+new file mode 100644
+index 0000000000..aaaae748f7
+--- /dev/null
++++ b/torch/csrc/distributed/rpc/process_group_agent.h
+@@ -0,0 +1,291 @@
++#pragma once
++
++#include <c10/core/thread_pool.h>
++#include <c10d/PrefixStore.hpp>
++#include <c10d/ProcessGroup.hpp>
++#include <torch/csrc/distributed/rpc/request_callback.h>
++#include <torch/csrc/distributed/rpc/rpc_agent.h>
++
++#include <atomic>
++#include <thread>
++
++namespace torch {
++namespace distributed {
++namespace rpc {
++
++constexpr auto kDefaultNumSendRecvThreads = 4;
++
++struct ProcessGroupRpcBackendOptions : public RpcBackendOptions {
++  ProcessGroupRpcBackendOptions(
++      int num_send_recv_threads,
++      float rpc_timeout,
++      std::string init_method)
++      : RpcBackendOptions(rpc_timeout, init_method),
++        numSendRecvThreads(num_send_recv_threads) {
++    TORCH_CHECK(
++        num_send_recv_threads > 0,
++        "Cannot create ProcessGroup RPC backend with ",
++        num_send_recv_threads,
++        " threads in the thread-pool.");
++  }
++
++  int numSendRecvThreads;
++};
++
++// SendWork and RecvWork will be put into a task queue, and later picked up by
++// worker threads from the same ThreadPool.
++struct SendWork {
++  SendWork(const WorkerInfo& to, Message&& message)
++      : to_(to), message_(message) {}
++
++  const WorkerInfo& to_;
++  Message message_;
++};
++
++// SendWork wraps a Message and RecvWork wraps a Tensor. The difference here is
++// to allow us to run serialization/deserialization in the worker threads.
++struct RecvWork {
++  RecvWork(
++      const WorkerInfo& from,
++      MessageType type,
++      int64_t id,
++      torch::Tensor&& payload)
++      : from_(from), type_(type), id_(id), payload_(payload) {}
++
++  const WorkerInfo& from_;
++  const MessageType type_;
++  const int64_t id_;
++  torch::Tensor payload_;
++};
++
++class TORCH_API ProcessGroupAgent : public RpcAgent {
++ public:
++  ProcessGroupAgent(
++      const c10::intrusive_ptr<::c10d::Store>& store,
++      std::string workerName,
++      c10::intrusive_ptr<::c10d::ProcessGroup> pg,
++      int numSendRecvThreads,
++      std::chrono::milliseconds rpcTimeout,
++      std::unique_ptr<RequestCallback> cb);
++
++  const WorkerInfo& getWorkerInfo(const std::string& workerName) const override;
++
++  const WorkerInfo& getWorkerInfo(worker_id_t id) const override;
++
++  std::vector<WorkerInfo> getWorkerInfos() const override;
++
++  void join(bool shutdown = false) override;
++
++  void sync() override;
++
++  void startImpl() override;
++
++  void shutdownImpl() override;
++
++  ~ProcessGroupAgent() override;
++
++  std::unordered_map<std::string, std::string> getMetrics() override;
++
++ protected:
++  // This method wraps the destination information and the message into a
++  // SendWork object, and put the SendWork into a queue. Another thread will
++  // consume SendWork from the queue and send it out.
++  c10::intrusive_ptr<JitFuture> send(
++      const WorkerInfo& to,
++      c10::intrusive_ptr<Message> message,
++      const float rpcTimeoutSeconds = kUnsetRpcTimeout,
++      const std::unordered_map<c10::Device, c10::Device>& deviceMap = {})
++      override;
++
++  // put SendWork into a queue and notify the worker thread
++  virtual void enqueueSend(SendWork work);
++  // Bypass handleSend() logic and send a message to self rank
++  // virtual void sendToSelf(Message&& message);
++  virtual void sendToSelf(c10::intrusive_ptr<Message> message);
++
++ private:
++  class MessageCounter {
++   public:
++    explicit MessageCounter(int worldSize);
++    void increment(int dst);
++    std::vector<int64_t> snapshot();
++
++   private:
++    std::vector<int64_t> counters_;
++    std::mutex mutex_;
++  };
++
++  // TODO: this class should inherit from a MetricsTracker, and can be extended
++  // to track num_sends, recvs, average size of messages, etc.
++  struct AverageMetricsTracker {
++    std::string key_;
++    uint64_t currentSum_;
++    uint64_t currentCount_;
++
++    explicit AverageMetricsTracker(
++        std::string key,
++        uint64_t currentSum = 0,
++        uint64_t currentCount = 0);
++
++    void addData(uint64_t dataPoint);
++    double computeAverage();
++  };
++
++  // The FutureInfo struct stores a shared_ptr to the future, as well as
++  // additional information to manage timeouts and destination information,
++  // which is needed for termination detection.
++  struct FutureInfo {
++    c10::intrusive_ptr<JitFuture> future_;
++    steady_clock_time_point endTime_;
++    int dstRank_;
++    std::chrono::milliseconds timeout_;
++    FutureInfo(
++        c10::intrusive_ptr<JitFuture> future,
++        const steady_clock_time_point& endTime,
++        int dstRank,
++        const std::chrono::milliseconds timeout)
++        : future_(std::move(future)),
++          endTime_(endTime),
++          dstRank_(dstRank),
++          timeout_(timeout) {}
++    FutureInfo() = delete;
++  };
++
++  // handle a SendWork request. This serializes the payload inside the work
++  // object, and sends the message to the receiver using the underlying
++  // ProcessGroup.
++  void handleSend(const SendWork& work);
++  // put RecvWork into a queue and notify the worker thread
++  void enqueueRecv(RecvWork work);
++  // handle a RecvWork request. Return true if we should increment recvCounts,
++  // false if not (i.e. if the RPC timed out and we are getting a result after
++  // the timeout). This ensures that the messages accounted for in
++  // hasPendingMessage() are tallied properly during a graceful shutdown.
++  bool handleRecv(RecvWork& work);
++  // Loop that receives and processes messages
++  void listenLoopInternal();
++  // Calls listenLoopInternal and handles errors such as timeouts on the
++  // process group.
++  void listenLoop();
++  // exception_pointer correspnding to an exception raised in listenLoop (if
++  // there is one), and lock to guard access.
++  std::exception_ptr listenLoopException_;
++  std::mutex listenLoopExceptionMutex_;
++  // poll for timed out RPCs
++  void pollTimedOutRPCs();
++  // process timed out futures
++  const std::vector<FutureInfo> processTimedOutFutures();
++  // compute the remaining time for an RPC, given its end time.
++  const std::chrono::milliseconds getRPCRemainingTime(
++      const std::chrono::milliseconds& rpcEndTime) const;
++
++  // a helper function to mark a future in the futures_ map with a message. The
++  // future is marked with the passed in message, and then removed from the
++  // futures_ map. It is also removed from the futureTimeouts_ map since these
++  // maps are kept in sync.
++  void markFutureWithError(Message& message);
++  void markFutureWithError(int64_t id, std::string errorMsg);
++
++  // Note [Termination Detection]
++  // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
++  //
++  // RpcAgent implementations must properly detect termination. Otherwise, it
++  // would result in message loss, RRef leak, or process hang. It is not
++  // sufficient to just wait for the thread pool to finish processing all tasks
++  // after all processes hit the join function. There could be nested rpc/remote
++  // calls, meaning that an empty task queue in the thread pool does not mean
++  // there will be no tasks added in the future. Moreover, in the listenLoop,
++  // there is a period of time when the message has been received but not yet
++  // inserted into the thread pool, which also suggests that the empty task
++  // queue is not a good indicator for termination.
++  //
++  // To detect termination, each ProcessGroupAgent maintains a sent message
++  // counter and a received message counter. The sent message counter is
++  // incremented whenever a message is sent, and the receive message counter is
++  // only incremented when a message has been processed. During termination, all
++  // ProcessGroupAgent instances run an allgather to collect counters from all
++  // peers, which means that all agents will have a consistent view on the
++  // message count snapshot. They would only terminate if all sent/received
++  // message counters match.
++  bool hasPendingMessage();
++
++  int64_t nextId() {
++    return ++nextId_;
++  }
++
++  c10::intrusive_ptr<::c10d::ProcessGroup> pg_;
++  // worker name -> rank
++  std::unordered_map<std::string, worker_id_t> nameMap_;
++  std::vector<WorkerInfo> allWorkerInfo_;
++  // record the number of messages sent to and received from each peer. The recv
++  // counter is only marked after the message is processed. Join uses allgather
++  // to collect all counts from all peers, uses these counters to detect global
++  // termination and only exit when all sent messages are processed.
++  MessageCounter sendCounts_;
++  MessageCounter recvCounts_;
++
++  std::atomic<int64_t> nextId_;
++  // one mutex per ProcessGroup rank, as ProcessGroup::send is not thread-safe
++  // when using the same tag.
++  std::vector<std::mutex> sendMutexes_;
++  std::thread listenerThread_;
++  // A thread to poll existing futures and check for timed out ones.
++  std::thread futureTimeoutThread_;
++  // Lock and shared ptr to currently pending work, set in listenloop() and
++  // interruptible in shutdown().
++  std::mutex recvWorkMutex_;
++  c10::intrusive_ptr<c10d::ProcessGroup::Work> recvWork_;
++  // Map of dst rank to current oustanding sends that we are waiting on. In the
++  // case of a call to ::shutdown() while we are still waiting on these sends,
++  // the pending sends contained in this map will be aborted, allowing the
++  // waiting thread to be unblocked.
++  std::unordered_map<
++      worker_id_t,
++      std::set<c10::intrusive_ptr<c10d::ProcessGroup::Work>>>
++      currentPendingSends_;
++  // Lock to serialize access to the above map.
++  std::mutex pendingSendMutex_;
++  // A threadPool that processing both SendWork and RecvWork. There are two
++  // motivations for adding a ThreadPool:
++  // (1) RPC serialization/deserialization and processing can be expensive,
++  //     hence using multiple threads to speed it up.
++  // (2) The current RPC API does not support asynchronous UDFs, e.g., UDFs can
++  //     not yield in the middle of execution to wait for IO, and resume the IO
++  //     is done. This would result in deadlocks when we have nested RPC calls.
++  //     NB: Ideally, this should be addressed by supporting asynchronous UDF.
++  //         This is just a temporary solution for (2).
++  ThreadPool threadPool_;
++  // Atomic to indicate whether the timeout thread is enabled.
++  std::atomic<bool> timeoutThreadEnabled_;
++  // Mapping of request id to FutureInfo struct.
++  std::unordered_map<int64_t, FutureInfo> futures_;
++  // A map to keep track of when futures time out. The map is keyed by the time
++  // (millisecond level precision) the future will expire. This is so that timed
++  // out futures can be efficiently cleaned up, and we can quickly exit if we
++  // find a future that has not timed out. The values correspond to an
++  // unordered_set of future ids that started at that time. This map must be
++  // kept in sync with the above futures_ map.
++  std::map<steady_clock_time_point, std::unordered_set<int64_t>>
++      futureTimeouts_;
++  mutable std::mutex futureMutex_;
++  mutable std::condition_variable futureCV_;
++  // CV to wake up watchdog thread that watches for timed out futures.
++  std::condition_variable futureTimeoutCV_;
++  // Metrics tracked for ProcessGroupAgent.
++  enum ProcessGroupAgentMetrics {
++    GIL_WAIT_TIME = 0,
++
++    N_METRICS,
++  };
++  std::mutex metricsMutex_;
++  std::vector<std::unique_ptr<AverageMetricsTracker>> metrics_;
++  void addGilWaitTime(const std::chrono::microseconds gilWaitTime) override;
++
++  std::atomic<int32_t> clientActiveCalls_{0};
++  std::atomic<int32_t> serverActiveCalls_{0};
++  std::atomic<int32_t> serverActiveAsyncCalls_{0};
++};
++
++} // namespace rpc
++} // namespace distributed
++} // namespace torch
+diff --git a/torch/csrc/distributed/rpc/testing/faulty_process_group_agent.cpp b/torch/csrc/distributed/rpc/testing/faulty_process_group_agent.cpp
+new file mode 100644
+index 0000000000..69d0a44b64
+--- /dev/null
++++ b/torch/csrc/distributed/rpc/testing/faulty_process_group_agent.cpp
+@@ -0,0 +1,154 @@
++#include <torch/csrc/distributed/rpc/request_callback_impl.h>
++#include <torch/csrc/distributed/rpc/testing/faulty_process_group_agent.h>
++#include <torch/csrc/distributed/rpc/utils.h>
++
++namespace torch {
++namespace distributed {
++namespace rpc {
++
++std::string fromVec(const std::vector<char>& vec) {
++  return std::string(vec.begin(), vec.end());
++}
++
++FaultyProcessGroupAgent::FaultyProcessGroupAgent(
++    const c10::intrusive_ptr<::c10d::Store>& store,
++    std::string workerName,
++    c10::intrusive_ptr<::c10d::ProcessGroup> pg,
++    int numSendRecvThreads,
++    std::chrono::milliseconds rpcTimeout,
++    const std::vector<std::string>& messagesToFail,
++    const std::unordered_map<std::string, float>& messageTypesToDelay,
++    int failNumSends)
++    : ProcessGroupAgent(
++          store,
++          std::move(workerName),
++          std::move(pg),
++          numSendRecvThreads,
++          rpcTimeout,
++          std::make_unique<RequestCallbackImpl>()),
++      failNumSends_(failNumSends),
++      messageTypesToFail_(parseMessagesToFailInput(messagesToFail)),
++      messageTypesToDelay_(parseMessagesToDelay(messageTypesToDelay)) {}
++
++std::vector<MessageType> FaultyProcessGroupAgent::parseMessagesToFailInput(
++    const std::vector<std::string>& messagesToFail) const {
++  // Since we can only pass strings corresponding to the Message Types from the
++  // python tests, we must parse the list of strings and resolve the actual
++  // types. We will then check this list of types in the send function to
++  // determine whether we should fail or not.
++  std::vector<MessageType> messageTypesToFail;
++  messageTypesToFail.reserve(messagesToFail.size());
++  for (const auto& msgString : messagesToFail) {
++    messageTypesToFail.push_back(messageStringToType(msgString));
++  }
++  return messageTypesToFail;
++}
++
++std::unordered_map<MessageType, float, std::hash<int>> FaultyProcessGroupAgent::
++    parseMessagesToDelay(const std::unordered_map<std::string, float>&
++                             messageTypesToDelay) const {
++  std::unordered_map<MessageType, float, std::hash<int>> delayMessages;
++  for (const auto& messagePair : messageTypesToDelay) {
++    float delay = messagePair.second;
++    TORCH_CHECK(
++        delay >= 0,
++        "Delays passed to FaultyProcessGroupAgent must be non-negative.")
++    delayMessages.insert({messageStringToType(messagePair.first), delay});
++  }
++  return delayMessages;
++}
++
++c10::intrusive_ptr<JitFuture> FaultyProcessGroupAgent::send(
++    const WorkerInfo& to,
++    // Message&& message,
++    c10::intrusive_ptr<Message> message,
++    const float rpcTimeoutSeconds,
++    const std::unordered_map<c10::Device, c10::Device>& /* unused */) {
++  // We only fail control messages that have been specified by the test case.
++  // For all other messages, we just send them without any failures.
++  if (!shouldFailMessage(message->type())) {
++    return ProcessGroupAgent::send(to, std::move(message), rpcTimeoutSeconds);
++  }
++  // This send function checks the failMessageCountMap_ to check whether
++  // we must fail the next send. If the send must be failed, we set an error
++  // on the returned future immediately and increment the counter in the map,
++  // otherwise we just call the ProcessGroupAgent send.
++  const auto key = fromVec(message->payload());
++  std::unique_lock<std::mutex> lock(failMapMutex_);
++  auto it = failMessageCountMap_.find(key);
++  if (it == failMessageCountMap_.end()) {
++    failMessageCountMap_[key] = 0;
++  }
++  if (failMessageCountMap_[key] < failNumSends_) {
++    failMessageCountMap_[key]++;
++    lock.unlock();
++    auto jitFuture = c10::make_intrusive<JitFuture>(at::AnyClassType::get());
++    jitFuture->setError(std::make_exception_ptr(std::runtime_error(makeRPCError(
++        c10::str("Send attempt failed intentionally for ", key),
++        RPCErrorType::INTENTIONAL_FAILURE))));
++    return jitFuture;
++  } else {
++    lock.unlock();
++    return ProcessGroupAgent::send(to, std::move(message), rpcTimeoutSeconds);
++  }
++}
++
++void FaultyProcessGroupAgent::enqueueSend(SendWork work) {
++  float msgDelay = getDelayForMessage(work.message_.type());
++  if (msgDelay != 0) {
++    // Sleep for the specified delay for the message.
++    std::this_thread::sleep_for(std::chrono::milliseconds(
++        static_cast<int>(msgDelay * kSecToMsConversion)));
++  }
++  ProcessGroupAgent::enqueueSend(std::move(work));
++}
++
++// void FaultyProcessGroupAgent::sendToSelf(Message&& message) {
++void FaultyProcessGroupAgent::sendToSelf(c10::intrusive_ptr<Message> message) {
++  float msgDelay = getDelayForMessage(message->type());
++  if (msgDelay != 0) {
++    // Sleep for the specified delay for the message.
++    std::this_thread::sleep_for(std::chrono::milliseconds(
++        static_cast<int>(msgDelay * kSecToMsConversion)));
++  }
++  ProcessGroupAgent::sendToSelf(std::move(message));
++}
++
++bool FaultyProcessGroupAgent::shouldFailMessage(MessageType type) const {
++  // Return true if the input message type is in the messageTypesToFail_ list
++  return (
++      std::find(messageTypesToFail_.begin(), messageTypesToFail_.end(), type) !=
++      messageTypesToFail_.end());
++}
++
++float FaultyProcessGroupAgent::getDelayForMessage(MessageType type) const {
++  const auto& it = messageTypesToDelay_.find(type);
++  return it == messageTypesToDelay_.end() ? 0 : it->second;
++}
++
++MessageType FaultyProcessGroupAgent::messageStringToType(
++    const std::string& messageString) const {
++  // Lazily constructed map that returns string to message type mapping
++  static std::unordered_map<std::string, MessageType> msgMap = {
++      {"RREF_FORK_REQUEST", MessageType::RREF_FORK_REQUEST},
++      {"RREF_CHILD_ACCEPT", MessageType::RREF_CHILD_ACCEPT},
++      {"RREF_USER_DELETE", MessageType::RREF_USER_DELETE},
++      {"CLEANUP_AUTOGRAD_CONTEXT_REQ",
++       MessageType::CLEANUP_AUTOGRAD_CONTEXT_REQ},
++      {"PYTHON_REMOTE_CALL", MessageType::PYTHON_REMOTE_CALL},
++      {"SCRIPT_REMOTE_CALL", MessageType::SCRIPT_REMOTE_CALL},
++      {"PYTHON_CALL", MessageType::PYTHON_CALL},
++      {"SCRIPT_CALL", MessageType::SCRIPT_CALL},
++      {"PYTHON_RREF_FETCH_CALL", MessageType::PYTHON_RREF_FETCH_CALL},
++      {"SCRIPT_RREF_FETCH_CALL", MessageType::SCRIPT_RREF_FETCH_CALL}};
++  const auto& it = msgMap.find(messageString);
++  TORCH_CHECK(
++      it != msgMap.end(),
++      "No mapping to rpc::MessageType exists for ",
++      messageString);
++  return it->second;
++}
++
++} // namespace rpc
++} // namespace distributed
++} // namespace torch
+diff --git a/torch/csrc/distributed/rpc/testing/faulty_process_group_agent.h b/torch/csrc/distributed/rpc/testing/faulty_process_group_agent.h
+new file mode 100644
+index 0000000000..585c3c87ed
+--- /dev/null
++++ b/torch/csrc/distributed/rpc/testing/faulty_process_group_agent.h
+@@ -0,0 +1,102 @@
++#pragma once
++
++#include <torch/csrc/distributed/rpc/message.h>
++#if defined(__APPLE__) && defined(__MACH__)
++#include <torch/csrc/distributed/rpc/process_group_agent.h>
++#endif
++
++namespace torch {
++namespace distributed {
++namespace rpc {
++
++struct FaultyProcessGroupRpcBackendOptions
++    : public ProcessGroupRpcBackendOptions {
++  FaultyProcessGroupRpcBackendOptions(
++      int num_send_recv_threads,
++      float rpc_timeout,
++      std::string init_method,
++      std::vector<std::string> messages_to_fail,
++      std::unordered_map<std::string, float> messages_to_delay,
++      int num_fail_sends = 0)
++      : ProcessGroupRpcBackendOptions(
++            num_send_recv_threads,
++            rpc_timeout,
++            std::move(init_method)),
++        messagesToFail(std::move(messages_to_fail)),
++        messagesToDelay(std::move(messages_to_delay)),
++        numFailSends(num_fail_sends) {
++    TORCH_CHECK(numFailSends >= 0, "numFailSends should be non-negative");
++  }
++
++  std::vector<std::string> messagesToFail;
++  std::unordered_map<std::string, float> messagesToDelay;
++  int numFailSends;
++};
++
++class FaultyProcessGroupAgent : public ProcessGroupAgent {
++ public:
++  FaultyProcessGroupAgent(
++      const c10::intrusive_ptr<::c10d::Store>& store,
++      std::string workerName,
++      c10::intrusive_ptr<c10d::ProcessGroup> pg,
++      int numSendRecvThreads,
++      std::chrono::milliseconds rpcTimeout,
++      const std::vector<std::string>& messagesToFail,
++      const std::unordered_map<std::string, float>& messageTypesToDelay,
++      int failNumSends = 0);
++
++  // Faulty send function for this class.
++  c10::intrusive_ptr<JitFuture> send(
++      const WorkerInfo& to,
++    //   Message&& message,
++      c10::intrusive_ptr<Message> message,
++      const float rpcTimeoutSeconds = torch::distributed::rpc::kUnsetRpcTimeout,
++      const std::unordered_map<c10::Device, c10::Device>& deviceMap = {})
++      override;
++
++ protected:
++  // This function checks the messageTypesToFail_ to determine whether to use
++  // the faulty send or not.
++  virtual bool shouldFailMessage(MessageType type) const;
++
++ private:
++  // Overrides ProcessGroupAgent's enqueueSend to inject delays.
++  void enqueueSend(SendWork work) override;
++  // Override ProcessGroupAgent's sendToSelf to inject delays.
++  // void sendToSelf(Message&& message) override;
++  void sendToSelf(c10::intrusive_ptr<Message> message) override;
++  // This function parses the list of strings passed in by the python tests and
++  // resolves the Message Types that must use the faulty send.
++  std::vector<MessageType> parseMessagesToFailInput(
++      const std::vector<std::string>& messagesToFail) const;
++
++  // Returns amount of time in seconds to delay sending of the given message
++  // type.
++  float getDelayForMessage(MessageType type) const;
++
++  // Parse message types that we should inject arbitrary delays for.
++  std::unordered_map<MessageType, float, std::hash<int>> parseMessagesToDelay(
++      const std::unordered_map<std::string, float>& messageTypesToDelay) const;
++
++  // Number of sends to intentionally fail before allowing one to succeed.
++  const int failNumSends_;
++
++  // Vector of the MessageTypes that we must use the faulty send for. This is
++  // parsed based on a list of strings passed in by the python tests.
++  const std::vector<MessageType> messageTypesToFail_;
++
++  // Mapping of message types to amount we should delay send for in the ::send()
++  // function.
++  std::unordered_map<MessageType, float, std::hash<int>> messageTypesToDelay_;
++
++  // Map to track the number of sends we've failed for each RPC.
++  std::unordered_map<std::string, int> failMessageCountMap_;
++
++  // Mutex to guard failMessageCountMap_
++  std::mutex failMapMutex_;
++
++  MessageType messageStringToType(const std::string& messageString) const;
++};
++} // namespace rpc
++} // namespace distributed
++} // namespace torch
+diff --git a/torch/csrc/distributed/rpc/testing/init.cpp b/torch/csrc/distributed/rpc/testing/init.cpp
+index 0eca2a63d1..90f8fa35a4 100644
+--- a/torch/csrc/distributed/rpc/testing/init.cpp
++++ b/torch/csrc/distributed/rpc/testing/init.cpp
+@@ -1,9 +1,13 @@
+ #include <torch/csrc/python_headers.h>
+ 
++#if defined(__APPLE__) && defined(__MACH__)
++#include <torch/csrc/distributed/rpc/process_group_agent.h>
++#endif
+ #include <torch/csrc/distributed/rpc/request_callback_impl.h>
+ #include <torch/csrc/distributed/rpc/rpc_agent.h>
+ #include <torch/csrc/distributed/rpc/tensorpipe_agent.h>
+ #include <torch/csrc/distributed/rpc/testing/faulty_tensorpipe_agent.h>
++#include <torch/csrc/distributed/rpc/testing/faulty_process_group_agent.h>
+ #include <torch/csrc/utils/pybind.h>
+ 
+ #include <pybind11/chrono.h>
+@@ -34,6 +38,7 @@ PyObject* faulty_agent_init(PyObject* _unused, PyObject* noargs) {
+   // Import the rpc_module so we can subclass TensorPipeAgent
+   py::module rpc_module = py::module::import("torch.distributed.rpc");
+ 
++#ifdef USE_TENSORPIPE
+   shared_ptr_class_<FaultyTensorPipeRpcBackendOptions>(
+       module,
+       "FaultyTensorPipeRpcBackendOptions",
+@@ -127,6 +132,101 @@ PyObject* faulty_agent_init(PyObject* _unused, PyObject* noargs) {
+           py::call_guard<py::gil_scoped_release>());
+ 
+   Py_RETURN_TRUE;
++#elif defined(__APPLE__) && defined(__MACH__)
++  shared_ptr_class_<FaultyProcessGroupRpcBackendOptions>(
++      module,
++      "FaultyProcessGroupRpcBackendOptions",
++      rpc_module.attr("ProcessGroupRpcBackendOptions"))
++      .def(
++          py::init<
++              int,
++              float,
++              std::string,
++              std::vector<std::string>,
++              std::unordered_map<std::string, float>,
++              int>(),
++          py::arg("num_send_recv_threads"),
++          py::arg("rpc_timeout"),
++          py::arg("init_method"),
++          py::arg("messages_to_fail"),
++          py::arg("messages_to_delay"),
++          py::arg("num_fail_sends"))
++      .def_readwrite(
++          "num_send_recv_threads",
++          &ProcessGroupRpcBackendOptions::numSendRecvThreads)
++      .def_readwrite(
++          "messages_to_fail",
++          &FaultyProcessGroupRpcBackendOptions::messagesToFail)
++      .def_readwrite(
++          "messages_to_delay",
++          &FaultyProcessGroupRpcBackendOptions::messagesToDelay)
++      .def_readwrite(
++          "num_fail_sends", &FaultyProcessGroupRpcBackendOptions::numFailSends);
++
++  shared_ptr_class_<FaultyProcessGroupAgent>(
++      module, "FaultyProcessGroupAgent", rpc_module.attr("ProcessGroupAgent"))
++      .def(
++          py::init([](const c10::intrusive_ptr<::c10d::Store> store,
++                      std::string name,
++                      c10::intrusive_ptr<::c10d::ProcessGroup> process_group,
++                      int num_send_recv_threads,
++                      std::chrono::milliseconds rpc_timeout,
++                      const std::vector<std::string>& messages_to_fail,
++                      const std::unordered_map<std::string, float>&
++                          messages_to_delay,
++                      int failNumSends) {
++            return std::shared_ptr<FaultyProcessGroupAgent>(
++                new FaultyProcessGroupAgent(
++                    store,
++                    std::move(name),
++                    process_group,
++                    num_send_recv_threads,
++                    rpc_timeout,
++                    messages_to_fail,
++                    messages_to_delay,
++                    failNumSends),
++                impl::destroy_without_gil<FaultyProcessGroupAgent>);
++          }),
++          py::arg("store"),
++          py::arg("name"),
++          py::arg("process_group"),
++          py::arg("num_send_recv_threads"),
++          py::arg("rpc_timeout"),
++          py::arg("messages_to_fail"),
++          py::arg("messages_to_delay"),
++          py::arg("failNumSends"))
++      .def(
++          "join",
++          &ProcessGroupAgent::join,
++          py::call_guard<py::gil_scoped_release>(),
++          py::arg("shutdown") = false)
++      .def(
++          "shutdown",
++          &ProcessGroupAgent::shutdown,
++          py::call_guard<py::gil_scoped_release>())
++      .def(
++          "get_worker_info",
++          (const WorkerInfo& (ProcessGroupAgent::*)(void) const) &
++              RpcAgent::getWorkerInfo,
++          py::call_guard<py::gil_scoped_release>())
++      .def(
++          "get_worker_info",
++          (const WorkerInfo& (ProcessGroupAgent::*)(const std::string&) const) &
++              ProcessGroupAgent::getWorkerInfo,
++          py::call_guard<py::gil_scoped_release>())
++      .def(
++          "get_worker_info",
++          (const WorkerInfo& (ProcessGroupAgent::*)(worker_id_t id) const) &
++              ProcessGroupAgent::getWorkerInfo,
++          py::call_guard<py::gil_scoped_release>())
++      .def(
++          "get_worker_infos",
++          (std::vector<WorkerInfo>(ProcessGroupAgent::*)() const) &
++              ProcessGroupAgent::getWorkerInfos,
++          py::call_guard<py::gil_scoped_release>());
++
++  Py_RETURN_TRUE;
++#endif
+ }
+ 
+ } // namespace
+diff --git a/torch/distributed/rpc/__init__.py b/torch/distributed/rpc/__init__.py
+index 42ed41f00b..60cea9e877 100644
+--- a/torch/distributed/rpc/__init__.py
++++ b/torch/distributed/rpc/__init__.py
+@@ -48,14 +48,14 @@ if is_available():
+         get_rpc_timeout,
+         enable_gil_profiling,
+         RpcBackendOptions,
+-        _TensorPipeRpcBackendOptionsBase,
++        # _TensorPipeRpcBackendOptionsBase,
+         RpcAgent,
+         PyRRef,
+-        TensorPipeAgent,
++        # TensorPipeAgent,
+         RemoteProfilerManager,
+         WorkerInfo,
+         _DEFAULT_INIT_METHOD,
+-        _DEFAULT_NUM_WORKER_THREADS,
++        # _DEFAULT_NUM_WORKER_THREADS,
+         _UNSET_RPC_TIMEOUT,
+         _DEFAULT_RPC_TIMEOUT_SEC,
+     )  # noqa: F401
+@@ -67,7 +67,8 @@ if is_available():
+     import torch.distributed.autograd as dist_autograd
+ 
+     from .backend_registry import BackendType
+-    from .options import TensorPipeRpcBackendOptions  # noqa: F401
++    ## For not using USE_TENSORPIPE for torch-1.10.0 hotfix on macOS
++    # from .options import TensorPipeRpcBackendOptions  # noqa: F401
+     from .server_process_global_profiler import (
+         _server_process_global_profile,
+     )
+diff --git a/torch/distributed/rpc/_testing/__init__.py b/torch/distributed/rpc/_testing/__init__.py
+index 5755b99c75..5a4470cfb1 100644
+--- a/torch/distributed/rpc/_testing/__init__.py
++++ b/torch/distributed/rpc/_testing/__init__.py
+@@ -12,7 +12,11 @@ if is_available() and not torch._C._faulty_agent_init():
+ if is_available():
+     # Registers FAULTY_TENSORPIPE RPC backend.
+     from . import faulty_agent_backend_registry
++    # from torch._C._distributed_rpc_testing import (
++    #     FaultyTensorPipeRpcBackendOptions,
++    #     FaultyTensorPipeAgent,
++    # )
+     from torch._C._distributed_rpc_testing import (
+-        FaultyTensorPipeRpcBackendOptions,
+-        FaultyTensorPipeAgent,
++        FaultyProcessGroupRpcBackendOptions,
++        FaultyProcessGroupAgent,
+     )
+diff --git a/torch/distributed/rpc/_testing/faulty_agent_backend_registry.py b/torch/distributed/rpc/_testing/faulty_agent_backend_registry.py
+index 43c7f725c0..00e4cd61f1 100644
+--- a/torch/distributed/rpc/_testing/faulty_agent_backend_registry.py
++++ b/torch/distributed/rpc/_testing/faulty_agent_backend_registry.py
+@@ -2,89 +2,166 @@
+ 
+ import torch.distributed as dist
+ import torch.distributed.rpc as rpc
++import torch.distributed.distributed_c10d as dc10d
+ from torch.distributed.rpc import constants as rpc_constants
+ 
+-def _init_process_group(store, rank, world_size):
+-    # Initialize ProcessGroup.
+-    process_group_timeout = rpc_constants.DEFAULT_PROCESS_GROUP_TIMEOUT
+-
+-    # We're using a bunch of private APIs here since `new_group` requires the
+-    # default group to be initialized.
+-    group = dist.ProcessGroupGloo(store, rank, world_size, process_group_timeout)
+-
+-    assert group is not None, "Failed to initialize default ProcessGroup."
+-
+-    if (rank != -1) and (rank != group.rank()):
+-        raise RuntimeError(
+-            "rank argument {} doesn't match pg rank {}".format(rank, group.rank())
+-        )
+-    if (world_size != -1) and (world_size != group.size()):
+-        raise RuntimeError(
+-            "world_size argument {} doesn't match pg size {}".format(
+-                world_size, group.size()
+-            )
+-        )
+-    return group
+-
+-
+-def _faulty_tensorpipe_construct_rpc_backend_options_handler(
++from datetime import timedelta
++
++# def _init_process_group(store, rank, world_size):
++#     # Initialize ProcessGroup.
++#     process_group_timeout = rpc_constants.DEFAULT_PROCESS_GROUP_TIMEOUT
++
++#     # We're using a bunch of private APIs here since `new_group` requires the
++#     # default group to be initialized.
++#     group = dist.ProcessGroupGloo(store, rank, world_size, process_group_timeout)
++
++#     assert group is not None, "Failed to initialize default ProcessGroup."
++
++#     if (rank != -1) and (rank != group.rank()):
++#         raise RuntimeError(
++#             "rank argument {} doesn't match pg rank {}".format(rank, group.rank())
++#         )
++#     if (world_size != -1) and (world_size != group.size()):
++#         raise RuntimeError(
++#             "world_size argument {} doesn't match pg size {}".format(
++#                 world_size, group.size()
++#             )
++#         )
++#     return group
++
++
++# def _faulty_tensorpipe_construct_rpc_backend_options_handler(
++#     rpc_timeout,
++#     init_method,
++#     num_worker_threads,
++#     messages_to_fail,
++#     messages_to_delay,
++#     num_fail_sends,
++#     **kwargs
++# ):
++#     from . import FaultyTensorPipeRpcBackendOptions
++
++#     return FaultyTensorPipeRpcBackendOptions(
++#         num_worker_threads=num_worker_threads,
++#         rpc_timeout=rpc_timeout,
++#         init_method=init_method,
++#         messages_to_fail=messages_to_fail,
++#         messages_to_delay=messages_to_delay,
++#         num_fail_sends=num_fail_sends,
++#     )
++
++
++# def _faulty_tensorpipe_init_backend_handler(
++#     store, name, rank, world_size, rpc_backend_options
++# ):
++#     from . import FaultyTensorPipeAgent
++#     from . import FaultyTensorPipeRpcBackendOptions
++#     from torch.distributed.rpc import api
++
++#     if not isinstance(store, dist.Store):
++#         raise TypeError("`store` must be a c10d::Store. {}".format(store))
++
++#     if not isinstance(
++#         rpc_backend_options, FaultyTensorPipeRpcBackendOptions
++#     ):
++#         raise TypeError(
++#             "`rpc_backend_options` must be a `FaultyTensorPipeRpcBackendOptions`. {}".format(
++#                 rpc_backend_options
++#             )
++#         )
++
++#     group = _init_process_group(store, rank, world_size)
++#     agent = FaultyTensorPipeAgent(
++#         store,
++#         name,
++#         rank,
++#         world_size,
++#         group,
++#         rpc_backend_options,
++#         {},  # reverse_device_map
++#         [],  # devices
++#     )
++#     api._init_rpc_states(agent)
++
++#     return agent
++
++# rpc.backend_registry.register_backend(
++#     "FAULTY_PROCESS_GROUP",
++#     _faulty_process_group_construct_rpc_backend_options_handler,
++#     _faulty_process_group_init_backend_handler,
++# )
++
++def _faulty_process_group_construct_rpc_backend_options_handler(
+     rpc_timeout,
+     init_method,
+-    num_worker_threads,
++    num_send_recv_threads,
+     messages_to_fail,
+     messages_to_delay,
+     num_fail_sends,
+     **kwargs
+ ):
+-    from . import FaultyTensorPipeRpcBackendOptions
++    from . import FaultyProcessGroupRpcBackendOptions
+ 
+-    return FaultyTensorPipeRpcBackendOptions(
+-        num_worker_threads=num_worker_threads,
++    return FaultyProcessGroupRpcBackendOptions(
+         rpc_timeout=rpc_timeout,
+         init_method=init_method,
++        num_send_recv_threads=num_send_recv_threads,
+         messages_to_fail=messages_to_fail,
+         messages_to_delay=messages_to_delay,
+         num_fail_sends=num_fail_sends,
+     )
+-
+-
+-def _faulty_tensorpipe_init_backend_handler(
++    
++def _faulty_process_group_init_backend_handler(
+     store, name, rank, world_size, rpc_backend_options
+ ):
+-    from . import FaultyTensorPipeAgent
+-    from . import FaultyTensorPipeRpcBackendOptions
+-    from torch.distributed.rpc import api
+-
+-    if not isinstance(store, dist.Store):
+-        raise TypeError("`store` must be a c10d::Store. {}".format(store))
+-
+-    if not isinstance(
+-        rpc_backend_options, FaultyTensorPipeRpcBackendOptions
+-    ):
+-        raise TypeError(
+-            "`rpc_backend_options` must be a `FaultyTensorPipeRpcBackendOptions`. {}".format(
+-                rpc_backend_options
+-            )
++    from . import FaultyProcessGroupAgent
++
++    if dist.is_initialized():
++        raise RuntimeError(
++            "Process group must not be initialized before init_rpc."
+         )
+ 
+-    group = _init_process_group(store, rank, world_size)
+-    agent = FaultyTensorPipeAgent(
+-        store,
+-        name,
+-        rank,
+-        world_size,
+-        group,
+-        rpc_backend_options,
+-        {},  # reverse_device_map
+-        [],  # devices
++    process_group_timeout = rpc_constants.DEFAULT_PROCESS_GROUP_TIMEOUT
++
++    dist.init_process_group(
++        backend=dist.Backend.GLOO,
++        store=store,
++        rank=rank,
++        world_size=world_size,
++        timeout=process_group_timeout,
+     )
+-    api._init_rpc_states(agent)
+ 
+-    return agent
++    try:
++        group = dc10d._get_default_group()
++        assert group is not None, "Failed to initialize default ProcessGroup."
+ 
++        if (rank != -1) and (rank != group.rank()):
++            raise RuntimeError(
++                "rank argument {} doesn't match pg rank {}".format(rank, group.rank())
++            )
++        if (world_size != -1) and (world_size != group.size()):
++            raise RuntimeError(
++                "world_size argument {} doesn't match pg size {}".format(
++                    world_size, group.size()
++                )
++            )
++
++        return FaultyProcessGroupAgent(
++            store,
++            name,
++            group,
++            rpc_backend_options.num_send_recv_threads,
++            timedelta(seconds=rpc_backend_options.rpc_timeout),
++            rpc_backend_options.messages_to_fail,
++            rpc_backend_options.messages_to_delay,
++            rpc_backend_options.num_fail_sends,
++        )
++    except Exception as ex:
++        dist.destroy_process_group()
++        raise ex
+ 
+ rpc.backend_registry.register_backend(
+-    "FAULTY_TENSORPIPE",
+-    _faulty_tensorpipe_construct_rpc_backend_options_handler,
+-    _faulty_tensorpipe_init_backend_handler,
++    "FAULTY_PROCESS_GROUP",
++    _faulty_process_group_construct_rpc_backend_options_handler,
++    _faulty_process_group_init_backend_handler,
+ )
+diff --git a/torch/distributed/rpc/constants.py b/torch/distributed/rpc/constants.py
+index 1ec79b0091..de2ce1fd5e 100644
+--- a/torch/distributed/rpc/constants.py
++++ b/torch/distributed/rpc/constants.py
+@@ -2,7 +2,8 @@ from datetime import timedelta
+ 
+ from torch._C._distributed_rpc import (
+     _DEFAULT_INIT_METHOD,
+-    _DEFAULT_NUM_WORKER_THREADS,
++    ## For not using USE_TENSORPIPE for torch-1.9.1 hotfix on macOS
++    # _DEFAULT_NUM_WORKER_THREADS,
+     _DEFAULT_RPC_TIMEOUT_SEC,
+     _UNSET_RPC_TIMEOUT,
+ )
+@@ -14,7 +15,10 @@ DEFAULT_INIT_METHOD: str = _DEFAULT_INIT_METHOD
+ DEFAULT_SHUTDOWN_TIMEOUT: float = 5.0
+ 
+ # For TensorPipeAgent.
+-DEFAULT_NUM_WORKER_THREADS: int = _DEFAULT_NUM_WORKER_THREADS
++## For not using USE_TENSORPIPE for torch-1.10.0 hotfix on macOS
++# DEFAULT_NUM_WORKER_THREADS: int = _DEFAULT_NUM_WORKER_THREADS
++DEFAULT_NUM_WORKER_THREADS: int = 16
++
+ # Ensure that we don't time out when there are long periods of time without
+ # any operations against the underlying ProcessGroup.
+ DEFAULT_PROCESS_GROUP_TIMEOUT: timedelta = timedelta(milliseconds=2 ** 31 - 1)
+diff --git a/torch/distributed/rpc/options.py b/torch/distributed/rpc/options.py
+index 0c32a57731..a603909d19 100644
+--- a/torch/distributed/rpc/options.py
++++ b/torch/distributed/rpc/options.py
+@@ -1,4 +1,5 @@
+-from torch._C._distributed_rpc import _TensorPipeRpcBackendOptionsBase
++## For not using USE_TENSORPIPE for torch-1.10.0 hotfix on macOS
++# from torch._C._distributed_rpc import _TensorPipeRpcBackendOptionsBase
+ from . import constants as rpc_contants
+ 
+ import torch
+@@ -40,133 +41,133 @@ def _to_device_list(devices: List[DeviceType]) -> List[torch.device]:
+ 
+ 
+ 
+-class TensorPipeRpcBackendOptions(_TensorPipeRpcBackendOptionsBase):
+-    r"""
+-    The backend options for
+-    :class:`~torch.distributed.rpc.TensorPipeAgent`, derived from
+-    :class:`~torch.distributed.rpc.RpcBackendOptions`.
+-
+-    Args:
+-        num_worker_threads (int, optional): The number of threads in the
+-            thread-pool used by
+-            :class:`~torch.distributed.rpc.TensorPipeAgent` to execute
+-            requests (default: 16).
+-        rpc_timeout (float, optional): The default timeout, in seconds,
+-            for RPC requests (default: 60 seconds). If the RPC has not
+-            completed in this timeframe, an exception indicating so will
+-            be raised. Callers can override this timeout for individual
+-            RPCs in :meth:`~torch.distributed.rpc.rpc_sync` and
+-            :meth:`~torch.distributed.rpc.rpc_async` if necessary.
+-        init_method (str, optional): The URL to initialize the distributed
+-            store used for rendezvous. It takes any value accepted for the
+-            same argument of :meth:`~torch.distributed.init_process_group`
+-            (default: ``env://``).
+-        device_maps (Dict[str, Dict], optional): Device placement mappings from
+-            this worker to the callee. Key is the callee worker name and value
+-            the dictionary (``Dict`` of ``int``, ``str``, or ``torch.device``)
+-            that maps this worker's devices to the callee worker's devices.
+-            (default: ``None``)
+-        devices (List[int, str, or ``torch.device``], optional): all local
+-            CUDA devices used by RPC agent. By Default, it will be initialized
+-            to all local devices from its own ``device_maps`` and corresponding
+-            devices from its peers' ``device_maps``. When processing CUDA RPC
+-            requests, the agent will properly synchronize CUDA streams for
+-            all devices in this ``List``.
+-    """
+-    def __init__(
+-        self,
+-        *,
+-        num_worker_threads: int = rpc_contants.DEFAULT_NUM_WORKER_THREADS,
+-        rpc_timeout: float = rpc_contants.DEFAULT_RPC_TIMEOUT_SEC,
+-        init_method: str = rpc_contants.DEFAULT_INIT_METHOD,
+-        device_maps: Optional[Dict[str, Dict[DeviceType, DeviceType]]] = None,
+-        devices: Optional[List[DeviceType]] = None,
+-        _transports: List = None,
+-        _channels: List = None,
+-    ):
+-        full_device_maps = (
+-            {} if device_maps is None else
+-            {k : _to_device_map(v) for k, v in device_maps.items()}
+-        )
+-        full_device_list = (
+-            [] if devices is None else
+-            _to_device_list(devices)
+-        )
+-        super().__init__(
+-            num_worker_threads,
+-            _transports,
+-            _channels,
+-            rpc_timeout,
+-            init_method,
+-            full_device_maps,
+-            full_device_list,
+-        )
+-
+-    def set_device_map(self, to: str, device_map: Dict[DeviceType, DeviceType]):
+-        r"""
+-        Set device mapping between each RPC caller and callee pair. This
+-        function can be called multiple times to incrementally add
+-        device placement configurations.
+-
+-        Args:
+-            worker_name (str): Callee name.
+-            device_map (Dict of int, str, or torch.device): Device placement
+-                mappings from this worker to the callee. This map must be
+-                invertible.
+-
+-        Example::
+-            >>> # both workers
+-            >>> def add(x, y):
+-            >>>     print(x)  # tensor([1., 1.], device='cuda:1')
+-            >>>     return x + y, (x + y).to(2)
+-            >>>
+-            >>> # on worker 0
+-            >>> options = TensorPipeRpcBackendOptions(
+-            >>>     num_worker_threads=8,
+-            >>>     device_maps={"worker1": {0: 1}}
+-            >>>     # maps worker0's cuda:0 to worker1's cuda:1
+-            >>> )
+-            >>> options.set_device_map("worker1", {1: 2})
+-            >>> # maps worker0's cuda:1 to worker1's cuda:2
+-            >>>
+-            >>> rpc.init_rpc(
+-            >>>     "worker0",
+-            >>>     rank=0,
+-            >>>     world_size=2,
+-            >>>     backend=rpc.BackendType.TENSORPIPE,
+-            >>>     rpc_backend_options=options
+-            >>> )
+-            >>>
+-            >>> x = torch.ones(2)
+-            >>> rets = rpc.rpc_sync("worker1", add, args=(x.to(0), 1))
+-            >>> # The first argument will be moved to cuda:1 on worker1. When
+-            >>> # sending the return value back, it will follow the invert of
+-            >>> # the device map, and hence will be moved back to cuda:0 and
+-            >>> # cuda:1 on worker0
+-            >>> print(rets[0])  # tensor([2., 2.], device='cuda:0')
+-            >>> print(rets[1])  # tensor([2., 2.], device='cuda:1')
+-        """
+-        full_device_map = _to_device_map(device_map)
+-        curr_device_maps = super().device_maps
+-
+-        if to in curr_device_maps:
+-            for k, v in full_device_map.items():
+-                if k in curr_device_maps[to] and v != curr_device_maps[to][k]:
+-                    raise ValueError(
+-                        "`set_device_map` only supports 1-to-1 mapping, trying"
+-                        f" to map {k} to {v} and {curr_device_maps[to][k]}"
+-                    )
+-
+-        super()._set_device_map(to, full_device_map)
+-
+-    def set_devices(self, devices: List[DeviceType]):
+-        r"""
+-        Set local devices used by the TensorPipe RPC agent. When processing
+-        CUDA RPC requests, the TensorPipe RPC agent will properly synchronize
+-        CUDA streams for all devices in this ``List``.
+-
+-        Args:
+-            devices (List of int, str, or torch.device): local devices used by
+-                the TensorPipe RPC agent.
+-        """
+-        self.devices = _to_device_list(devices)
++# class TensorPipeRpcBackendOptions(_TensorPipeRpcBackendOptionsBase):
++#     r"""
++#     The backend options for
++#     :class:`~torch.distributed.rpc.TensorPipeAgent`, derived from
++#     :class:`~torch.distributed.rpc.RpcBackendOptions`.
++
++#     Args:
++#         num_worker_threads (int, optional): The number of threads in the
++#             thread-pool used by
++#             :class:`~torch.distributed.rpc.TensorPipeAgent` to execute
++#             requests (default: 16).
++#         rpc_timeout (float, optional): The default timeout, in seconds,
++#             for RPC requests (default: 60 seconds). If the RPC has not
++#             completed in this timeframe, an exception indicating so will
++#             be raised. Callers can override this timeout for individual
++#             RPCs in :meth:`~torch.distributed.rpc.rpc_sync` and
++#             :meth:`~torch.distributed.rpc.rpc_async` if necessary.
++#         init_method (str, optional): The URL to initialize the distributed
++#             store used for rendezvous. It takes any value accepted for the
++#             same argument of :meth:`~torch.distributed.init_process_group`
++#             (default: ``env://``).
++#         device_maps (Dict[str, Dict], optional): Device placement mappings from
++#             this worker to the callee. Key is the callee worker name and value
++#             the dictionary (``Dict`` of ``int``, ``str``, or ``torch.device``)
++#             that maps this worker's devices to the callee worker's devices.
++#             (default: ``None``)
++#         devices (List[int, str, or ``torch.device``], optional): all local
++#             CUDA devices used by RPC agent. By Default, it will be initialized
++#             to all local devices from its own ``device_maps`` and corresponding
++#             devices from its peers' ``device_maps``. When processing CUDA RPC
++#             requests, the agent will properly synchronize CUDA streams for
++#             all devices in this ``List``.
++#     """
++#     def __init__(
++#         self,
++#         *,
++#         num_worker_threads: int = rpc_contants.DEFAULT_NUM_WORKER_THREADS,
++#         rpc_timeout: float = rpc_contants.DEFAULT_RPC_TIMEOUT_SEC,
++#         init_method: str = rpc_contants.DEFAULT_INIT_METHOD,
++#         device_maps: Optional[Dict[str, Dict[DeviceType, DeviceType]]] = None,
++#         devices: Optional[List[DeviceType]] = None,
++#         _transports: List = None,
++#         _channels: List = None,
++#     ):
++#         full_device_maps = (
++#             {} if device_maps is None else
++#             {k : _to_device_map(v) for k, v in device_maps.items()}
++#         )
++#         full_device_list = (
++#             [] if devices is None else
++#             _to_device_list(devices)
++#         )
++#         super().__init__(
++#             num_worker_threads,
++#             _transports,
++#             _channels,
++#             rpc_timeout,
++#             init_method,
++#             full_device_maps,
++#             full_device_list,
++#         )
++
++#     def set_device_map(self, to: str, device_map: Dict[DeviceType, DeviceType]):
++#         r"""
++#         Set device mapping between each RPC caller and callee pair. This
++#         function can be called multiple times to incrementally add
++#         device placement configurations.
++
++#         Args:
++#             worker_name (str): Callee name.
++#             device_map (Dict of int, str, or torch.device): Device placement
++#                 mappings from this worker to the callee. This map must be
++#                 invertible.
++
++#         Example::
++#             >>> # both workers
++#             >>> def add(x, y):
++#             >>>     print(x)  # tensor([1., 1.], device='cuda:1')
++#             >>>     return x + y, (x + y).to(2)
++#             >>>
++#             >>> # on worker 0
++#             >>> options = TensorPipeRpcBackendOptions(
++#             >>>     num_worker_threads=8,
++#             >>>     device_maps={"worker1": {0: 1}}
++#             >>>     # maps worker0's cuda:0 to worker1's cuda:1
++#             >>> )
++#             >>> options.set_device_map("worker1", {1: 2})
++#             >>> # maps worker0's cuda:1 to worker1's cuda:2
++#             >>>
++#             >>> rpc.init_rpc(
++#             >>>     "worker0",
++#             >>>     rank=0,
++#             >>>     world_size=2,
++#             >>>     backend=rpc.BackendType.TENSORPIPE,
++#             >>>     rpc_backend_options=options
++#             >>> )
++#             >>>
++#             >>> x = torch.ones(2)
++#             >>> rets = rpc.rpc_sync("worker1", add, args=(x.to(0), 1))
++#             >>> # The first argument will be moved to cuda:1 on worker1. When
++#             >>> # sending the return value back, it will follow the invert of
++#             >>> # the device map, and hence will be moved back to cuda:0 and
++#             >>> # cuda:1 on worker0
++#             >>> print(rets[0])  # tensor([2., 2.], device='cuda:0')
++#             >>> print(rets[1])  # tensor([2., 2.], device='cuda:1')
++#         """
++#         full_device_map = _to_device_map(device_map)
++#         curr_device_maps = super().device_maps
++
++#         if to in curr_device_maps:
++#             for k, v in full_device_map.items():
++#                 if k in curr_device_maps[to] and v != curr_device_maps[to][k]:
++#                     raise ValueError(
++#                         "`set_device_map` only supports 1-to-1 mapping, trying"
++#                         f" to map {k} to {v} and {curr_device_maps[to][k]}"
++#                     )
++
++#         super()._set_device_map(to, full_device_map)
++
++#     def set_devices(self, devices: List[DeviceType]):
++#         r"""
++#         Set local devices used by the TensorPipe RPC agent. When processing
++#         CUDA RPC requests, the TensorPipe RPC agent will properly synchronize
++#         CUDA streams for all devices in this ``List``.
++
++#         Args:
++#             devices (List of int, str, or torch.device): local devices used by
++#                 the TensorPipe RPC agent.
++#         """
++#         self.devices = _to_device_list(devices)
+-- 
+2.17.2 (Apple Git-113)
+
+
 From 353678bcaa0fc8cbe3d6c5f14af45351bb54d019 Mon Sep 17 00:00:00 2001
 From: Orlando Ding <xiandao.airs@gmail.com>
 Date: Sun, 14 Nov 2021 09:25:24 +0800
-Subject: [PATCH 1/4] orlando - for updates of implementation
+Subject: [PATCH 2/6] orlando - for updates of implementation
 
 ---
  README.md              |   88 +-
@@ -2719,7 +5310,7 @@ index 0000000000..2fff904b8e
 From 413ff5960e19acddb8cd29e8b0855a1a28bacd2b Mon Sep 17 00:00:00 2001
 From: Orlando Ding <xiandao.airs@gmail.com>
 Date: Sun, 14 Nov 2021 09:31:50 +0800
-Subject: [PATCH 2/4] orlando - for fixing descritpion issue
+Subject: [PATCH 3/6] orlando - for fixing descritpion issue
 
 ---
  README.md | 1 +
@@ -2744,7 +5335,7 @@ index 54b0ebb060..2f58a3de36 100644
 From 92e9e72e0f82ce50b75ad6054a4841982ea3b56a Mon Sep 17 00:00:00 2001
 From: Orlando Ding <xiandao.airs@gmail.com>
 Date: Sun, 14 Nov 2021 12:25:46 +0800
-Subject: [PATCH 3/4] orlando - for fixing issue of macOS
+Subject: [PATCH 4/6] orlando - for fixing issue of macOS
 
 ---
  README.md | 30 +++++++++++++++++++++++++++---
@@ -2799,7 +5390,7 @@ index 2f58a3de36..c0350f6506 100644
 From 557caad8ee1f9175ef38c9feec55b183658fcc8b Mon Sep 17 00:00:00 2001
 From: Orlando Ding <xiandao.airs@gmail.com>
 Date: Sun, 14 Nov 2021 12:31:32 +0800
-Subject: [PATCH 4/4] orlando - for describing base branch
+Subject: [PATCH 5/6] orlando - for describing base branch
 
 ---
  README.md | 1 +
@@ -2817,6 +5408,276 @@ index c0350f6506..4c07c7aa9e 100644
  - To be specific, [torch_distributed_macOS_test](https://github.com/llv22/torch_distributed_macOS_test) isn't all working after migration to torch 1.10.0, which is still under investigation.  
  
  1. torch_distributed_macOS_test/run.py: working
+-- 
+2.17.2 (Apple Git-113)
+
+
+From b8b729a1c6adb93e943721a3d09bc8deb5d1ecac Mon Sep 17 00:00:00 2001
+From: Orlando Ding <xiandao.airs@gmail.com>
+Date: Mon, 15 Nov 2021 08:52:15 +0800
+Subject: [PATCH 6/6] orlando - for fixing issue of cuda-mpi
+
+---
+ CMakeLists.txt                                |  3 ++
+ README.md                                     | 28 +++++++++++++++++-
+ caffe2/CMakeLists.txt                         |  4 +++
+ caffe2/core/macros.h.in                       |  2 ++
+ caffe2/mpi/mpi_ops_gpu.cc                     | 26 ++++++++++++++++-
+ cmake/Dependencies.cmake                      | 29 +++++++++++++++++--
+ cmake/Summary.cmake                           |  1 +
+ .../csrc/distributed/c10d/ProcessGroupMPI.cpp | 18 ++++++++----
+ 8 files changed, 102 insertions(+), 9 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 0c11507838..5a0eb517c8 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -294,6 +294,9 @@ option(USE_DISTRIBUTED "Use distributed" ON)
+ cmake_dependent_option(
+     USE_MPI "Use MPI for Caffe2. Only available if USE_DISTRIBUTED is on." ON
+     "USE_DISTRIBUTED" OFF)
++cmake_dependent_option(
++    USE_CUDA_MPI "Force CUDA-Aware MPI for Caffe2. Only available if USE_DISTRIBUTED and USE_MPI is on." OFF
++    "USE_DISTRIBUTED AND USE_MPI" OFF)
+ cmake_dependent_option(
+     USE_GLOO "Use Gloo. Only available if USE_DISTRIBUTED is on." ON
+     "USE_DISTRIBUTED" OFF)
+diff --git a/README.md b/README.md
+index 4c07c7aa9e..b257a8d8f3 100644
+--- a/README.md
++++ b/README.md
+@@ -1,5 +1,6 @@
+ <!-- markdownlint-disable MD033 -->
+ <!-- markdownlint-disable MD004 -->
++<!-- markdownlint-disable MD029 -->
+ # pytorch 1.10.0 on macOS
+ 
+ --------------------------------------------------------------------------------
+@@ -29,6 +30,25 @@ Traceback (most recent call last):
+ RuntimeError: CUDA tensor detected and the MPI used doesn't have CUDA-aware MPI support
+ ```
+ 
++Analysis:
++
++- Line 47 of torch/csrc/distributed/c10d/ProcessGroupMPI.cpp and Line 1351 of caffe2/CMakeLists.txt
++  How-to-fix:
++  1) [Build with mpi+cuda](https://github.com/Stonesjtu/pytorch-learning/blob/master/build-with-mpi.md)
++  2) Check libraries in local file system
++
++  ```bash
++  cat /usr/local/opt/open-mpi/include/mpi-ext.h
++  ls /usr/local/opt/open-mpi/lib/libopen-rte.dylib
++  ```
++
++  3) [Build with enabling mpi-cuda enabling](https://github.com/pytorch/pytorch/issues/45745)
++
++  ```bash
++  Building with USE_CUDA_AWARE_MPI=ON USE_DISTRIBUTED=ON USE_MPI=ON
++  Refer to patch: https://github.com/pytorch/pytorch/pull/48030/files/76b9720e161dc0b166ff9c4ef111812cdd9133cf
++  ```
++
+ 5. torch_distributed_macOS_test/dist_tuto.pth/gloo.py: working
+ 6. torch_distributed_macOS_test/dist_tuto.pth/ptp.py: working, also refer to [pytorch distribution issue](https://github.com/pytorch/pytorch/issues/25463) and [distribution example](https://medium.com/@cresclux/example-on-torch-distributed-gather-7b5921092cbc)
+ 7. torch_distributed_macOS_test/dist_tuto.pth/train_dist.py: working
+@@ -44,6 +64,7 @@ The system environment as follow:
+ ```bash
+ --   USE_DISTRIBUTED       : ON
+ --     USE_MPI               : ON
++--     USE_CUDA_MPI          : ON
+ --     USE_GLOO              : ON
+ --     USE_GLOO_WITH_OPENSSL : OFF
+ --     USE_TENSORPIPE        : OFF
+@@ -54,8 +75,13 @@ How to extract patch, refer to <https://stackoverflow.com/questions/52884437/git
+ ```bash 
+ git format-patch cc1dde0dd^..6de6d4b06 --stdout > foo.patch # cc1dde0dd is not included
+ ```
++Consolidating [torch-1.10.0-mac.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v1.10.0-built/torch-1.10.0-mac.patch) and [torch-1.9.1-mpi-cuda-enabling.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v1.9.1-fixed/torch-1.9.1-mpi-cuda-enabling.patch) into the whole patch by
++
++```bash
++git format-patch -2 --stdout > torch-1.9.1-mac-with-mpi-cuda-enabling.patch
++```
+ 
+-The code patch is consolidated into [torch-1.10.0-mac.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v1.10.0-fixed/torch-1.10.0-mac.patch)
++refer to <https://www.ivankristianto.com/create-patch-files-from-multiple-commits-in-git/>
+ 
+ --------------------------------------------------------------------------------
+ ![PyTorch Logo](https://github.com/pytorch/pytorch/blob/master/docs/source/_static/img/pytorch-logo-dark.png)
+diff --git a/caffe2/CMakeLists.txt b/caffe2/CMakeLists.txt
+index 5fbffeda04..ac0525235c 100644
+--- a/caffe2/CMakeLists.txt
++++ b/caffe2/CMakeLists.txt
+@@ -1347,6 +1347,10 @@ if(USE_DISTRIBUTED)
+   endif()
+   if(USE_MPI AND USE_C10D_MPI)
+     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
++      if(USE_CUDA_MPI)
++        message(STATUS "Setting DUSE_CUDA_MPI==1 for compiling ${TORCH_SRC_DIR}/csrc/distributed/c10d/ProcessGroupMPI.cpp")
++        add_definitions(-DUSE_CUDA_MPI=1)
++      endif()
+       set_source_files_properties(
+         "${TORCH_SRC_DIR}/csrc/distributed/c10d/ProcessGroupMPI.cpp"
+         PROPERTIES COMPILE_FLAGS -Wno-deprecated-declarations)
+diff --git a/caffe2/core/macros.h.in b/caffe2/core/macros.h.in
+index bd9a447b87..4db4b1aef9 100644
+--- a/caffe2/core/macros.h.in
++++ b/caffe2/core/macros.h.in
+@@ -25,6 +25,7 @@ static_assert(
+ 
+ #cmakedefine CAFFE2_BUILD_SHARED_LIBS
+ #cmakedefine CAFFE2_FORCE_FALLBACK_CUDA_MPI
++#cmakedefine CAFFE2_USE_CUDA_MPI
+ #cmakedefine CAFFE2_HAS_MKL_DNN
+ #cmakedefine CAFFE2_HAS_MKL_SGEMM_PACK
+ #cmakedefine CAFFE2_PERF_WITH_AVX
+@@ -62,6 +63,7 @@ static_assert(
+   {"CUDNN_VERSION", "${CUDNN_VERSION}"}, \
+   {"USE_NCCL", "${USE_NCCL}"}, \
+   {"USE_MPI", "${USE_MPI}"}, \
++  {"USE_CUDA_MPI", "${USE_CUDA_MPI}"}, \
+   {"USE_GFLAGS", "${USE_GFLAGS}"}, \
+   {"USE_GLOG", "${USE_GLOG}"}, \
+   {"USE_GLOO", "${USE_GLOI}"}, \
+diff --git a/caffe2/mpi/mpi_ops_gpu.cc b/caffe2/mpi/mpi_ops_gpu.cc
+index 5a16bfa201..dad5dad790 100644
+--- a/caffe2/mpi/mpi_ops_gpu.cc
++++ b/caffe2/mpi/mpi_ops_gpu.cc
+@@ -35,7 +35,23 @@ namespace caffe2 {
+ #define CAFFE2_HAS_CUDA_MPI_ALLREDUCE 0
+ #endif // CAFFE2_OMPI_VERSION >= 10805
+ #endif // CAFFE2_OMPI_VERSION >= 2000
+-#else // !OPEN_MPI
++#elif MVAPICH2_NUMVERSION // !OPEN_MPI
++#define CAFFE2_MV2_VERSION MVAPICH2_NUMVERSION
++#if CAFFE2_MV2_VERSION >= 20305300
++#include "mpi-ext.h"
++#if MPIX_CUDA_AWARE_SUPPORT
++#define CAFFE2_HAS_CUDA_MPI_BASICS 1
++#define CAFFE2_HAS_CUDA_MPI_ALLREDUCE 1
++#endif // MPIX_CUDA_AWARE_SUPPORT
++#else //CAFFE2_MV2_VERSION >= 235
++// In the case of MVAPICH2-GDR before 2.3.5, we don't have compile-time flags
++// // to figure out if CUDA is supported; as a result, we will assume that the
++// // user has built MVAPICH2-GDR with CUDA support.
++#define CAFFE2_HAS_CUDA_MPI_BASICS 1
++#define CAFFE2_HAS_CUDA_MPI_ALLREDUCE 1
++#endif //CAFFE2_MV2_VERSION >= 235
++#else // !OPEN_MPI && !MVAPICH_GDR
++//
+ // We have not really tested against other MPI environments, so let's go for a
+ // safe path and basically say we don't have cuda-aware functions.
+ #define CAFFE2_HAS_CUDA_MPI_BASICS 0
+@@ -50,6 +66,14 @@ namespace caffe2 {
+ #define CAFFE2_HAS_CUDA_MPI_ALLREDUCE 0
+ #endif // CAFFE2_FORCE_FALLBACK_CUDA_MPI
+ 
++// We allow a macro to force using CUDA functions
++#ifdef CAFFE2_USE_CUDA_MPI
++#undef CAFFE2_HAS_CUDA_MPI_BASICS
++#undef CAFFE2_HAS_CUDA_MPI_ALLREDUCE
++#define CAFFE2_HAS_CUDA_MPI_BASICS 1
++#define CAFFE2_HAS_CUDA_MPI_ALLREDUCE 1
++#endif // CAFFE2_FORCE_CUDA_MPI
++
+ REGISTER_CUDA_OPERATOR(
+     MPICreateCommonWorld,
+     MPICreateCommonWorldOp<CUDAContext>);
+diff --git a/cmake/Dependencies.cmake b/cmake/Dependencies.cmake
+index ca560288a4..28c9a25644 100644
+--- a/cmake/Dependencies.cmake
++++ b/cmake/Dependencies.cmake
+@@ -1078,9 +1078,34 @@ if(USE_MPI)
+       if(_output MATCHES "smcuda")
+         message(STATUS "Found OpenMPI with CUDA support built.")
+       else()
+-        message(WARNING "OpenMPI found, but it is not built with CUDA support.")
+-        set(CAFFE2_FORCE_FALLBACK_CUDA_MPI 1)
++        if(USE_CUDA_MPI)
++          if(USE_CUDA)
++            message(WARNING "OpenMPI with CUDA support not found, but forcing anyway.")
++          else()
++            message(WARNING "Force building for OpenMPI with CUDA.")
++          endif()
++          set(CAFFE2_USE_CUDA_MPI 1)
++        else()
++          message(WARNING "OpenMPI found, but it is not built with CUDA support.")
++          set(CAFFE2_FORCE_FALLBACK_CUDA_MPI 1)
++        endif()
+       endif()
++    else()
++      find_program(MV2_INFO NAMES mpiname HINTS ${MPI_CXX_LIBRARIES}/../bin)
++      if(MV2_INFO)
++          execute_process(COMMAND ${MV2_INFO} "-a" OUTPUT_VARIABLE _output)
++          if(_output MATCHES "enable-cuda")
++              message(STATUS "Found MVAPICH2 with CUDA support built.")
++          else()
++              if(USE_CUDA_MPI)
++                  message(WARNING "MVAPICH2 with CUDA support not found, but forcing anyway.")
++                  set(CAFFE2_USE_CUDA_MPI 1)
++              else()
++                  message(WARNING "MVAPICH2 found, but it is not built with CUDA SUPPORT.")
++                  set(CAFFE2_FORCE_FALLBACK_CUDA_MPI 1)
++              endif()
++          endif()
++      endif()   
+     endif()
+   else()
+     message(WARNING "Not compiling with MPI. Suppress this warning with -DUSE_MPI=OFF")
+diff --git a/cmake/Summary.cmake b/cmake/Summary.cmake
+index 6d021536c1..0971b62413 100644
+--- a/cmake/Summary.cmake
++++ b/cmake/Summary.cmake
+@@ -171,6 +171,7 @@ function(caffe2_print_configuration_summary)
+   message(STATUS "  USE_DISTRIBUTED       : ${USE_DISTRIBUTED}")
+   if(${USE_DISTRIBUTED})
+     message(STATUS "    USE_MPI               : ${USE_MPI}")
++    message(STATUS "    USE_CUDA_MPI          : ${USE_CUDA_MPI}")
+     message(STATUS "    USE_GLOO              : ${USE_GLOO}")
+     message(STATUS "    USE_GLOO_WITH_OPENSSL : ${USE_GLOO_WITH_OPENSSL}")
+     message(STATUS "    USE_TENSORPIPE        : ${USE_TENSORPIPE}")
+diff --git a/torch/csrc/distributed/c10d/ProcessGroupMPI.cpp b/torch/csrc/distributed/c10d/ProcessGroupMPI.cpp
+index b75f4417e8..ea66dbc374 100644
+--- a/torch/csrc/distributed/c10d/ProcessGroupMPI.cpp
++++ b/torch/csrc/distributed/c10d/ProcessGroupMPI.cpp
+@@ -9,7 +9,13 @@
+ #include <c10/core/DeviceGuard.h>
+ #include <c10/util/irange.h>
+ 
+-#if defined(OPEN_MPI) && OPEN_MPI
++// #if defined(OPEN_MPI) && OPEN_MPI
++#ifndef OPEN_MPI
++#define OPEN_MPI 0
++#endif
++//Build flag USE_CUDA_MPI forces CUDA-Aware MPI support and removes run-time checks. 
++//USE_CUDA_MPI is meant for older MPI libraries that don't support MPIX_Query_cuda_support()
++#if (OPEN_MPI || (defined(MVAPICH2_NUMVERSION) && (MVAPICH2_NUMVERSION >= 20205300))) && !USE_CUDA_MPI
+ #include <mpi-ext.h> // Needed for CUDA-aware check
+ #endif
+ 
+@@ -47,18 +53,20 @@ std::map<at::ScalarType, MPI_Datatype> mpiDatatype = {
+ };
+ 
+ // Checking CUDA-aware MPI support, currently we only support CUDA aware
+-// MPI ops through Open MPI
++// MPI ops through Open MPI and MVAPICH2-GDR
+ bool cudaAwareMpiCheck() {
+ // Run time check
+-#if defined(MPIX_CUDA_AWARE_SUPPORT)
++#if !defined(USE_CUDA_MPI) && defined(MPIX_CUDA_AWARE_SUPPORT)
+   if (MPIX_Query_cuda_support() == 1) {
+     return true;
+   } else {
+     return false;
+   }
+-#else // !defined(MPIX_CUDA_AWARE_SUPPORT)
++#elif defined(USE_CUDA_MPI)
++  return true;
++#else // defined(USE_CUDA_MPI)
+   return false;
+-#endif // MPIX_CUDA_AWARE_SUPPORT
++#endif // MPIX_CUDA_AWARE_SUPPORT && !USE_CUDA_MPI
+ }
+ 
+ // Checking the input tensor's validity
 -- 
 2.17.2 (Apple Git-113)
 

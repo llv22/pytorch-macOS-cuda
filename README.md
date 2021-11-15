@@ -75,13 +75,17 @@ How to extract patch, refer to <https://stackoverflow.com/questions/52884437/git
 ```bash 
 git format-patch cc1dde0dd^..6de6d4b06 --stdout > foo.patch # cc1dde0dd is not included
 ```
-Consolidating [torch-1.10.0-mac.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v1.10.0-built/torch-1.10.0-mac.patch) and [torch-1.9.1-mpi-cuda-enabling.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v1.9.1-fixed/torch-1.9.1-mpi-cuda-enabling.patch) into the whole patch by
+
+Consolidating [torch-1.10.0-mac.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v1.10.0-built/torch-1.10.0-mac.patch) and [torch-1.10.0-mpi-cuda-enabling.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v1.10.0-built/torch-1.10.0-mpi-cuda-enabling.patch) into the whole patch by
 
 ```bash
-git format-patch -2 --stdout > torch-1.9.1-mac-with-mpi-cuda-enabling.patch
+git format-patch dbdfd4e79..557caad8e --stdout > torch-1.10.0-mac.patch # dbdfd4e79 is the earliest commit "orlando - for supporting torch on macOS 10.13.6", 557caad8e is the last commit of "orlando - for describing base branch"
+git format-patch -1 --stdout > torch-1.10.0-mpi-cuda-enabling.patch
+git format-patch -6 --stdout > torch-1.10.0-mac-with-mpi-cuda-enabling.patch
 ```
 
-refer to <https://www.ivankristianto.com/create-patch-files-from-multiple-commits-in-git/>
+If you want to use an all-in-one patch, please use [torch-1.10.0-mac-with-mpi-cuda-enabling.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v1.10.0-built/torch-1.10.0-mac-with-mpi-cuda-enabling.patch)  
+About how to create patch with multiple commits, refer to <https://www.ivankristianto.com/create-patch-files-from-multiple-commits-in-git/>
 
 --------------------------------------------------------------------------------
 ![PyTorch Logo](https://github.com/pytorch/pytorch/blob/master/docs/source/_static/img/pytorch-logo-dark.png)
