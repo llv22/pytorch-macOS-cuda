@@ -1,6 +1,15 @@
-![PyTorch Logo](https://github.com/pytorch/pytorch/blob/master/docs/source/_static/img/pytorch-logo-dark.png)
+<!-- markdownlint-disable MD033 -->
+<!-- markdownlint-disable MD004 -->
+<!-- markdownlint-disable MD029 -->
+# pytorch 1.10.0 on macOS12.01 with CPU model
 
 --------------------------------------------------------------------------------
+Applied for https://github.com/pytorch/pytorch/pull/65655/commits/2350f7f9f8f0434fb83e20d0d7026ed654900a70#diff-9c178448e460990432e2f6bac62daacb2180994e9668df0b603f6c3010664862 on macOS 12.0.1
+
+--------------------------------------------------------------------------------
+
+![PyTorch Logo](https://github.com/pytorch/pytorch/blob/master/docs/source/_static/img/pytorch-logo-dark.png)
+
 
 PyTorch is a Python package that provides two high-level features:
 - Tensor computation (like NumPy) with strong GPU acceleration
