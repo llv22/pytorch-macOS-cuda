@@ -1,9 +1,14 @@
+/*
+* issue refer to https://gist.github.com/malfet/47e9a88b3e97f6ddabd8f85544c063d5 and solution is given out in https://github.com/pytorch/pytorch/pull/65655/commits/2350f7f9f8f0434fb83e20d0d7026ed654900a70
+*/
 #include <ATen/ATen.h>
 
 #include <ATen/Dispatch.h>
 #include <ATen/Parallel.h>
 #include <ATen/native/Pool.h>
 #include <ATen/native/cpu/utils.h>
+
+#include <c10/util/Optional.h>
 
 namespace at { namespace native {
 
@@ -50,9 +55,7 @@ void cpu_max_unpool(
   int64_t input_image_size = numel / channels;
   int64_t output_image_size = output.numel() / channels;
 
-  bool has_error = false;
-  int64_t error_index = 0;
-
+  std::atomic<c10::optional<int64_t>> optional_error_index;
   // parallel on dim N, C, D, H, W: [channels, input_image_size]
   at::parallel_for(0, numel, 0, [&](int64_t begin, int64_t end) {
     int64_t c = 0;
@@ -64,11 +67,7 @@ void cpu_max_unpool(
 
       int64_t maxp = indices_data[i];
       if (maxp < 0 || maxp >= output_image_size) {
-        #pragma omp critical
-        {
-          has_error = true;
-          error_index = maxp;
-        }
+        optional_error_index = maxp;
       } else {
         output_ptr[maxp] = input_data[i];
       }
@@ -78,14 +77,14 @@ void cpu_max_unpool(
     }
   });
 
-  if (has_error) {
+  if (auto error_index = optional_error_index.load()) {
     if (is_3d) {
-      AT_ERROR("Found an invalid max index: ", error_index,
+      AT_ERROR("Found an invalid max index: ", error_index.value(),
           " (output volumes are of size ", output_depth,
           "x", output_height, "x", output_width);
       (void)error_index;
     } else {
-      AT_ERROR("Found an invalid max index: ", error_index,
+      AT_ERROR("Found an invalid max index: ", error_index.value(),
           " (output volumes are of size ", output_height,
           "x", output_width);
       (void)error_index;
@@ -120,9 +119,7 @@ void cpu_max_unpool_channels_last(
   int64_t input_image_size = input_height * input_width;
   int64_t output_image_size = output_height * output_width;
 
-  bool has_error = false;
-  int64_t error_index = 0;
-
+  std::atomic<c10::optional<int64_t>> optional_error_index;
   // parallel on dim N, H, W
   at::parallel_for(0, nbatch * input_image_size, 0, [&](int64_t begin, int64_t end) {
     int64_t n = 0;
@@ -138,11 +135,7 @@ void cpu_max_unpool_channels_last(
       for (int64_t c = 0; c < channels; c++) {
         int64_t maxp = indices_ptr[c];
         if (maxp < 0 || maxp >= output_image_size) {
-          #pragma omp critical
-          {
-            has_error = true;
-            error_index = maxp;
-          }
+          optional_error_index = maxp;
         } else {
           output_ptr[maxp * channels + c] = input_ptr[c];
         }
@@ -153,8 +146,8 @@ void cpu_max_unpool_channels_last(
     }
   });
 
-  if (has_error) {
-    AT_ERROR("Found an invalid max index: ", error_index,
+  if (auto error_index = optional_error_index.load()) {
+    AT_ERROR("Found an invalid max index: ", error_index.value(),
         " (output volumes are of size ", output_height,
         "x", output_width);
     (void)error_index;
@@ -198,9 +191,7 @@ void cpu_max_unpool_backward(
   int64_t input_image_size = numel / channels;
   int64_t output_image_size = grad_output.numel() / channels;
 
-  bool has_error = false;
-  int64_t error_index = 0;
-
+  std::atomic<c10::optional<int64_t>> optional_error_index;
   // parallel on dim N, C, D, H, W
   at::parallel_for(0, numel, 0, [&](int64_t begin, int64_t end) {
     int64_t c = 0;
@@ -212,11 +203,7 @@ void cpu_max_unpool_backward(
 
       int64_t maxp = indices_data[i];
       if (maxp < 0 || maxp >= output_image_size) {
-        #pragma omp critical
-        {
-          has_error = true;
-          error_index = maxp;
-        }
+        optional_error_index = maxp;
       } else {
         grad_input_data[i] = grad_output_ptr[maxp];
       }
@@ -226,15 +213,15 @@ void cpu_max_unpool_backward(
     }
   });
 
-  if (has_error) {
+  if (auto error_index = optional_error_index.load()) {
     if (is_3d) {
-      AT_ERROR("invalid max index ", error_index,
+      AT_ERROR("invalid max index ", error_index.value(),
           ", odepth= ", output_depth,
           ", owidth= ", output_width,
           ", oheight= ", output_height);
       (void)error_index;
     } else {
-      AT_ERROR("invalid max index ", error_index,
+      AT_ERROR("invalid max index ", error_index.value(),
           ", owidth= ", output_width,
           ", oheight= ", output_height);
       (void)error_index;
@@ -269,9 +256,7 @@ void cpu_max_unpool_backward_channels_last(
   int64_t input_image_size = input_height * input_width;
   int64_t output_image_size = output_height * output_width;
 
-  bool has_error = false;
-  int64_t error_index = 0;
-
+  std::atomic<c10::optional<int64_t>> optional_error_index;
   // parallel on dim N, H, W
   at::parallel_for(0, nbatch * input_image_size, 0, [&](int64_t begin, int64_t end) {
     int64_t n = 0;
@@ -286,11 +271,7 @@ void cpu_max_unpool_backward_channels_last(
       for (int64_t c = 0; c < channels; c++) {
         int64_t maxp = indices_ptr[c];
         if (maxp < 0 || maxp >= output_image_size) {
-          #pragma omp critical
-          {
-            has_error = true;
-            error_index = maxp;
-          }
+          optional_error_index = maxp;
         } else {
           grad_input_ptr[c] = grad_output_ptr[maxp * channels + c];
         }
@@ -301,8 +282,8 @@ void cpu_max_unpool_backward_channels_last(
     }
   });
 
-  if (has_error) {
-    AT_ERROR("invalid max index ", error_index,
+  if (auto error_index = optional_error_index.load()) {
+    AT_ERROR("invalid max index ", error_index.value(),
         ", owidth= ", output_width,
         ", oheight= ", output_height);
     (void)error_index;
