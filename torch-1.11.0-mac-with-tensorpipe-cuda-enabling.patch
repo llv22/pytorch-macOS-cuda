@@ -1,0 +1,284 @@
+From 62e0954a0462fb7ee42b6c2dc3b4932427cb5714 Mon Sep 17 00:00:00 2001
+From: Orlando Ding <xiandao.airs@gmail.com>
+Date: Sun, 8 May 2022 17:47:25 +0800
+Subject: [PATCH 1/2] orlando - for enabling torch gpu on macOS for 1.11.0
+
+---
+ .gitmodules                                   |  3 ++-
+ aten/src/ATen/native/ReduceOps.cpp            |  8 ++++++++
+ .../ATen/native/cpu/AdaptiveMaxPoolKernel.cpp | 19 +++++++++++++++++--
+ aten/src/ATen/native/cpu/MaxPoolKernel.cpp    | 14 ++++++++++++++
+ aten/src/ATen/native/cuda/EmbeddingBag.cu     |  3 ++-
+ cmake/public/cuda.cmake                       |  4 ++--
+ test/cpp/api/CMakeLists.txt                   |  3 ++-
+ third_party/tensorpipe                        |  2 +-
+ 8 files changed, 48 insertions(+), 8 deletions(-)
+
+diff --git a/.gitmodules b/.gitmodules
+index 9c9373ef72..f8bc29a955 100644
+--- a/.gitmodules
++++ b/.gitmodules
+@@ -129,7 +129,8 @@
+ [submodule "third_party/tensorpipe"]
+     ignore = dirty
+     path = third_party/tensorpipe
+-    url = https://github.com/pytorch/tensorpipe.git
++    branch = torch-1.11.0
++    url = https://github.com/llv22/tensorpipe-macos-cuda.git
+ [submodule "third_party/cudnn_frontend"]
+ 	path = third_party/cudnn_frontend
+ 	url = https://github.com/NVIDIA/cudnn-frontend.git
+diff --git a/aten/src/ATen/native/ReduceOps.cpp b/aten/src/ATen/native/ReduceOps.cpp
+index 38eafedbee..d9adc7970b 100644
+--- a/aten/src/ATen/native/ReduceOps.cpp
++++ b/aten/src/ATen/native/ReduceOps.cpp
+@@ -613,6 +613,14 @@ template<typename T>
+ inline typename std::enable_if<!std::is_integral<T>::value, bool>::type isnan_(T x) {
+   return std::isnan(x);
+ }
++#elif defined(__APPLE__) && defined(__MACH__)
++template<typename T>
++inline bool isnan_(T x) {
++  return std::isnan(x);
++}
++inline bool isnan_(const c10::BFloat16 x) {
++  return std::isnan(x.x);
++}
+ #else
+ template<typename T>
+ inline bool isnan_(T x) {
+diff --git a/aten/src/ATen/native/cpu/AdaptiveMaxPoolKernel.cpp b/aten/src/ATen/native/cpu/AdaptiveMaxPoolKernel.cpp
+index 1de76289bf..06471bc17a 100644
+--- a/aten/src/ATen/native/cpu/AdaptiveMaxPoolKernel.cpp
++++ b/aten/src/ATen/native/cpu/AdaptiveMaxPoolKernel.cpp
+@@ -11,6 +11,17 @@ namespace at { namespace native {
+ 
+ namespace {
+ 
++#if defined(__APPLE__) && defined(__MACH__)
++template<typename T>
++inline bool isnan_(T x) {
++  return std::isnan(x);
++  }
++inline bool isnan_(const c10::BFloat16 x) {
++  return std::isnan(x.x);
++}
++#endif
++
++
+ template <typename scalar_t, typename accscalar_t>
+ void cpu_adaptive_max_pool(
+     const Tensor& output_,
+@@ -55,8 +66,12 @@ void cpu_adaptive_max_pool(
+             for (int64_t iw = iw0; iw < iw1; iw ++) {
+               int64_t index = ih * input_width + iw;
+               scalar_t val = input_ptr[index];
+-              if ((val > maxval) || std::isnan(val)) {
+-                maxval = val;
++#if defined(__APPLE__) && defined(__MACH__)
++          if ((val > maxval) || isnan_(val)) {
++#else
++          if ((val > maxval) || std::isnan(val)) {
++#endif
++		maxval = val;
+                 maxindex = index;
+               }
+             }
+diff --git a/aten/src/ATen/native/cpu/MaxPoolKernel.cpp b/aten/src/ATen/native/cpu/MaxPoolKernel.cpp
+index e81601b987..61b7f0538c 100644
+--- a/aten/src/ATen/native/cpu/MaxPoolKernel.cpp
++++ b/aten/src/ATen/native/cpu/MaxPoolKernel.cpp
+@@ -11,6 +11,16 @@ namespace at { namespace native {
+ 
+ namespace {
+ 
++#if defined(__APPLE__) && defined(__MACH__)
++template<typename T>
++inline bool isnan_(T x) {
++  return std::isnan(x);
++  }
++inline bool isnan_(const c10::BFloat16 x) {
++  return std::isnan(x.x);
++}
++#endif
++
+ template <typename scalar_t, typename accscalar_t>
+ void cpu_max_pool(
+     const Tensor& output_,
+@@ -62,7 +72,11 @@ void cpu_max_pool(
+         for (int64_t iw = iw0; iw < iw1; iw += dilationW) {
+           int64_t index = ih * input_width + iw;
+           accscalar_t val = accscalar_t(input_ptr[index]);
++#if defined(__APPLE__) && defined(__MACH__)
++          if ((val > maxval) || isnan_(val)) {
++#else
+           if ((val > maxval) || std::isnan(val)) {
++#endif
+             maxval = val;
+             maxindex = index;
+           }
+diff --git a/aten/src/ATen/native/cuda/EmbeddingBag.cu b/aten/src/ATen/native/cuda/EmbeddingBag.cu
+index 7f0efa7cd6..185b001475 100644
+--- a/aten/src/ATen/native/cuda/EmbeddingBag.cu
++++ b/aten/src/ATen/native/cuda/EmbeddingBag.cu
+@@ -171,7 +171,8 @@ Tensor embedding_bag_backward_cuda_sum_avg(
+   Tensor count;
+ 
+   AT_DISPATCH_INDEX_TYPES(indices.scalar_type(), "embedding_bag_backward_cuda_sum_avg", [&] () {
+-    auto range = at::arange(num_indices, indices.options());
++    //https://github.com/pytorch/pytorch/issues/42271
++    auto range = at::arange(c10::Scalar((int64_t)num_indices), indices.options());
+     // int64_t nbits = cuda::cub::get_num_bits(num_weights);
+     cuda::cub::radix_sort_pairs(
+       indices.data_ptr<index_t>(), sorted_indices.data_ptr<index_t>(),
+diff --git a/cmake/public/cuda.cmake b/cmake/public/cuda.cmake
+index 30d3b52d48..2b0fe47c63 100644
+--- a/cmake/public/cuda.cmake
++++ b/cmake/public/cuda.cmake
+@@ -45,8 +45,8 @@ set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+ message(STATUS "Caffe2: CUDA detected: " ${CUDA_VERSION})
+ message(STATUS "Caffe2: CUDA nvcc is: " ${CUDA_NVCC_EXECUTABLE})
+ message(STATUS "Caffe2: CUDA toolkit directory: " ${CUDA_TOOLKIT_ROOT_DIR})
+-if(CUDA_VERSION VERSION_LESS 10.2)
+-  message(FATAL_ERROR "PyTorch requires CUDA 10.2 or above.")
++if(CUDA_VERSION VERSION_LESS 10.1)
++  message(FATAL_ERROR "PyTorch requires CUDA 10.1 or above.")
+ endif()
+ 
+ if(CUDA_FOUND)
+diff --git a/test/cpp/api/CMakeLists.txt b/test/cpp/api/CMakeLists.txt
+index 373895a0ce..e6d3751a8d 100644
+--- a/test/cpp/api/CMakeLists.txt
++++ b/test/cpp/api/CMakeLists.txt
+@@ -62,7 +62,8 @@ if(USE_CUDA)
+     ${CUDA_LIBRARIES}
+     ${CUDA_NVRTC_LIB}
+     ${CUDA_CUDA_LIB}
+-    ${TORCH_CUDA_LIBRARIES})
++    ${TORCH_CUDA_LIBRARIES}
++    /usr/local/lib/libomp.dylib)
+ 
+   target_compile_definitions(test_api PRIVATE "USE_CUDA")
+ endif()
+diff --git a/third_party/tensorpipe b/third_party/tensorpipe
+index 52791a2fd2..cd5f2bba2b 160000
+--- a/third_party/tensorpipe
++++ b/third_party/tensorpipe
+@@ -1 +1 @@
+-Subproject commit 52791a2fd214b2a9dc5759d36725909c1daa7f2e
++Subproject commit cd5f2bba2be25f189ecac56a4b0fbded4540a092
+-- 
+2.17.2 (Apple Git-113)
+
+
+From 3821a78f0c5aca4df6fdea0085656693fb77d66e Mon Sep 17 00:00:00 2001
+From: Orlando Ding <xiandao.airs@gmail.com>
+Date: Sun, 8 May 2022 17:52:34 +0800
+Subject: [PATCH 2/2] orlando - for updates of readme.md
+
+---
+ README.md | 84 ++++++++++++++++++++++++++++++++++++++-----------------
+ 1 file changed, 58 insertions(+), 26 deletions(-)
+
+diff --git a/README.md b/README.md
+index 88a77f04b3..e6f72c2397 100644
+--- a/README.md
++++ b/README.md
+@@ -1,3 +1,34 @@
++<!-- markdownlint-disable MD033 -->
++<!-- markdownlint-disable MD004 -->
++<!-- markdownlint-disable MD029 -->
++# pytorch 1.11.0 with Nvidia GPU on macOS
++
++--------------------------------------------------------------------------------
++As officially Pytorch doesn't support for macOS cuda, I used this repository to build pytorch on macOS cuda. **This branch 1.9.1-fixed branch is the current stable branch**. Currently MPI+CUDA is still disabled, an ensuing investigation will start later. My gut feeling is that it has been caused by CMakeList.txt setting, which doesn't set MPI and CUDA setting appropriately simultaneously.
++
++- macOS 10.13.6, cuda 10.1, cudnn 7.6.5 (cuda and cudnn is the last official version which Nvidia released to support macOS)
++- [NCCL on macOS 2.9.6.1](https://github.com/llv22/nccl-osx) and [test suite](https://github.com/llv22/nccl-tests-macOS-cuda)
++- Xcode 10.1, libuv 1.2.6
++- magma 2.6 built on macOS, providing by [cloned magma repository from The University of Tennessee, Knoxville](https://github.com/llv22/magma-macOS)
++- support distributed options with TENSORPIPE, which has been fixed via [Orlando's tensorpipe](https://github.com/llv22/tensorpipe-macos-cuda/tree/torch-1.11.0)
++
++```bash
++--   USE_DISTRIBUTED       : ON
++--     USE_MPI               : ON
++--     USE_GLOO              : ON
++--     USE_TENSORPIPE        : ON
++```
++
++Consolidating [torch-1.11.0-mac.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v1.9.1-fixed/torch-1.9.1-mac.patch) by
++
++```bash
++git format-patch -2 --stdout > torch-1.9.1-mac-with-mpi-cuda-enabling.patch
++```
++
++refer to <https://www.ivankristianto.com/create-patch-files-from-multiple-commits-in-git/>
++
++--------------------------------------------------------------------------------
++
+ ![PyTorch Logo](https://github.com/pytorch/pytorch/blob/master/docs/source/_static/img/pytorch-logo-dark.png)
+ 
+ --------------------------------------------------------------------------------
+@@ -10,32 +41,33 @@ You can reuse your favorite Python packages such as NumPy, SciPy, and Cython to
+ 
+ <!-- toc -->
+ 
+-- [More About PyTorch](#more-about-pytorch)
+-  - [A GPU-Ready Tensor Library](#a-gpu-ready-tensor-library)
+-  - [Dynamic Neural Networks: Tape-Based Autograd](#dynamic-neural-networks-tape-based-autograd)
+-  - [Python First](#python-first)
+-  - [Imperative Experiences](#imperative-experiences)
+-  - [Fast and Lean](#fast-and-lean)
+-  - [Extensions Without Pain](#extensions-without-pain)
+-- [Installation](#installation)
+-  - [Binaries](#binaries)
+-    - [NVIDIA Jetson Platforms](#nvidia-jetson-platforms)
+-  - [From Source](#from-source)
+-    - [Install Dependencies](#install-dependencies)
+-    - [Get the PyTorch Source](#get-the-pytorch-source)
+-    - [Install PyTorch](#install-pytorch)
+-      - [Adjust Build Options (Optional)](#adjust-build-options-optional)
+-  - [Docker Image](#docker-image)
+-    - [Using pre-built images](#using-pre-built-images)
+-    - [Building the image yourself](#building-the-image-yourself)
+-  - [Building the Documentation](#building-the-documentation)
+-  - [Previous Versions](#previous-versions)
+-- [Getting Started](#getting-started)
+-- [Resources](#resources)
+-- [Communication](#communication)
+-- [Releases and Contributing](#releases-and-contributing)
+-- [The Team](#the-team)
+-- [License](#license)
++- [pytorch 1.11.0 with Nvidia GPU on macOS](#pytorch-1110-with-nvidia-gpu-on-macos)
++  - [More About PyTorch](#more-about-pytorch)
++    - [A GPU-Ready Tensor Library](#a-gpu-ready-tensor-library)
++    - [Dynamic Neural Networks: Tape-Based Autograd](#dynamic-neural-networks-tape-based-autograd)
++    - [Python First](#python-first)
++    - [Imperative Experiences](#imperative-experiences)
++    - [Fast and Lean](#fast-and-lean)
++    - [Extensions Without Pain](#extensions-without-pain)
++  - [Installation](#installation)
++    - [Binaries](#binaries)
++      - [NVIDIA Jetson Platforms](#nvidia-jetson-platforms)
++    - [From Source](#from-source)
++      - [Install Dependencies](#install-dependencies)
++      - [Get the PyTorch Source](#get-the-pytorch-source)
++      - [Install PyTorch](#install-pytorch)
++        - [Adjust Build Options (Optional)](#adjust-build-options-optional)
++    - [Docker Image](#docker-image)
++      - [Using pre-built images](#using-pre-built-images)
++      - [Building the image yourself](#building-the-image-yourself)
++    - [Building the Documentation](#building-the-documentation)
++    - [Previous Versions](#previous-versions)
++  - [Getting Started](#getting-started)
++  - [Resources](#resources)
++  - [Communication](#communication)
++  - [Releases and Contributing](#releases-and-contributing)
++  - [The Team](#the-team)
++  - [License](#license)
+ 
+ <!-- tocstop -->
+ 
+-- 
+2.17.2 (Apple Git-113)
+

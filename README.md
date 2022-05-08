@@ -22,7 +22,7 @@ As officially Pytorch doesn't support for macOS cuda, I used this repository to 
 Consolidating [torch-1.11.0-mac.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v1.9.1-fixed/torch-1.9.1-mac.patch) by
 
 ```bash
-git format-patch -2 --stdout > torch-1.9.1-mac-with-mpi-cuda-enabling.patch
+git format-patch -2 --stdout > torch-1.11.0-mac-with-tensorpipe-cuda-enabling.patch
 ```
 
 refer to <https://www.ivankristianto.com/create-patch-files-from-multiple-commits-in-git/>
