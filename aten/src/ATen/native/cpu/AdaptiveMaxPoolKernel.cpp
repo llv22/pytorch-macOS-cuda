@@ -11,6 +11,17 @@ namespace at { namespace native {
 
 namespace {
 
+#if defined(__APPLE__) && defined(__MACH__)
+template<typename T>
+inline bool isnan_(T x) {
+  return std::isnan(x);
+  }
+inline bool isnan_(const c10::BFloat16 x) {
+  return std::isnan(x.x);
+}
+#endif
+
+
 template <typename scalar_t, typename accscalar_t>
 void cpu_adaptive_max_pool(
     const Tensor& output_,
@@ -55,8 +66,12 @@ void cpu_adaptive_max_pool(
             for (int64_t iw = iw0; iw < iw1; iw ++) {
               int64_t index = ih * input_width + iw;
               scalar_t val = input_ptr[index];
-              if ((val > maxval) || std::isnan(val)) {
-                maxval = val;
+#if defined(__APPLE__) && defined(__MACH__)
+          if ((val > maxval) || isnan_(val)) {
+#else
+          if ((val > maxval) || std::isnan(val)) {
+#endif
+		maxval = val;
                 maxindex = index;
               }
             }
