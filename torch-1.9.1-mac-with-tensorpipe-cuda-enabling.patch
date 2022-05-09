@@ -1,0 +1,143 @@
+From 7e173e763828f5a2db8105251dede4c38edfca17 Mon Sep 17 00:00:00 2001
+From: Orlando Ding <xiandao.airs@gmail.com>
+Date: Tue, 10 May 2022 07:18:10 +0800
+Subject: [PATCH 1/2] orlando - for fixing tensorpipe on pytorch 1.9.1
+
+---
+ .gitmodules                        | 3 ++-
+ aten/src/ATen/CMakeLists.txt       | 7 +++++++
+ aten/src/ATen/native/ReduceOps.cpp | 8 ++++++++
+ caffe2/CMakeLists.txt              | 2 +-
+ test/cpp/api/CMakeLists.txt        | 3 ++-
+ third_party/tensorpipe             | 2 +-
+ 6 files changed, 21 insertions(+), 4 deletions(-)
+
+diff --git a/.gitmodules b/.gitmodules
+index 08868cba71..b74d1eaa3d 100644
+--- a/.gitmodules
++++ b/.gitmodules
+@@ -129,7 +129,8 @@
+ [submodule "third_party/tensorpipe"]
+     ignore = dirty
+     path = third_party/tensorpipe
+-    url = https://github.com/pytorch/tensorpipe.git
++    branch = torch-1.9.1
++    url = https://github.com/llv22/tensorpipe-macos-cuda.git
+ [submodule "third_party/kineto"]
+     path = third_party/kineto
+     url = https://github.com/pytorch/kineto
+diff --git a/aten/src/ATen/CMakeLists.txt b/aten/src/ATen/CMakeLists.txt
+index baf9666f11..0aaf515d60 100644
+--- a/aten/src/ATen/CMakeLists.txt
++++ b/aten/src/ATen/CMakeLists.txt
+@@ -208,6 +208,11 @@ if(USE_TBB)
+   list(APPEND ATen_CPU_DEPENDENCY_LIBS tbb)
+ endif()
+ 
++if(USE_OPENMP)
++  message("ATen is compiled with OPEN_MP (/usr/local/lib/libomp.dylib)")
++  list(APPEND ATen_CPU_DEPENDENCY_LIBS /usr/local/lib/libomp.dylib)
++endif()
++
+ if(BLAS_FOUND)
+   if($ENV{TH_BINARY_BUILD})
+     message(STATUS "TH_BINARY_BUILD detected. Enabling special linkage.")
+@@ -354,6 +359,7 @@ if(USE_CUDA AND NOT USE_ROCM)
+       ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcufft_static_nocallback.a
+       ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcusolver_static.a
+       ${CUDA_TOOLKIT_ROOT_DIR}/lib64/liblapack_static.a     # needed for libcusolver_static
++      /usr/local/lib/libomp.dylib # test parallel for symbol _omp_in_parallel
+       )
+   else()
+     list(APPEND ATen_CUDA_DEPENDENCY_LIBS
+@@ -361,6 +367,7 @@ if(USE_CUDA AND NOT USE_ROCM)
+       ${CUDA_cusparse_LIBRARY}
+       ${CUDA_curand_LIBRARY}
+       ${CUDA_cusolver_LIBRARY}
++      /usr/local/lib/libomp.dylib # test parallel for symbol _omp_in_parallel
+       )
+   endif()
+ 
+diff --git a/aten/src/ATen/native/ReduceOps.cpp b/aten/src/ATen/native/ReduceOps.cpp
+index 111a9c7bd8..36f3070fb5 100644
+--- a/aten/src/ATen/native/ReduceOps.cpp
++++ b/aten/src/ATen/native/ReduceOps.cpp
+@@ -427,6 +427,14 @@ template<typename T>
+ inline typename std::enable_if<!std::is_integral<T>::value, bool>::type isnan_(T x) {
+   return std::isnan(x);
+ }
++#elif defined(__APPLE__) && defined(__MACH__)
++   template<typename T>
++   inline bool isnan_(T x) {
++     return std::isnan(x);
++   }
++   inline bool isnan_(const c10::BFloat16 x) {
++     return std::isnan(x.x);
++   }
+ #else
+ template<typename T>
+ inline bool isnan_(T x) {
+diff --git a/caffe2/CMakeLists.txt b/caffe2/CMakeLists.txt
+index 50ebb224ce..219d5724fc 100644
+--- a/caffe2/CMakeLists.txt
++++ b/caffe2/CMakeLists.txt
+@@ -96,7 +96,7 @@ if(INTERN_BUILD_ATEN_OPS)
+   list(APPEND Caffe2_HIP_INCLUDE ${ATen_HIP_INCLUDE})
+   list(APPEND Caffe2_VULKAN_INCLUDE ${ATen_VULKAN_INCLUDE})
+   list(APPEND Caffe2_DEPENDENCY_LIBS ${ATen_CPU_DEPENDENCY_LIBS})
+-  list(APPEND Caffe2_CUDA_DEPENDENCY_LIBS ${ATen_CUDA_DEPENDENCY_LIBS})
++  list(APPEND Caffe2_CUDA_DEPENDENCY_LIBS ${ATen_CUDA_DEPENDENCY_LIBS} /usr/local/lib/libomp.dylib)
+   list(APPEND Caffe2_HIP_DEPENDENCY_LIBS ${ATen_HIP_DEPENDENCY_LIBS})
+   list(APPEND Caffe2_DEPENDENCY_INCLUDE ${ATen_THIRD_PARTY_INCLUDE})
+ endif()
+diff --git a/test/cpp/api/CMakeLists.txt b/test/cpp/api/CMakeLists.txt
+index ebc3dd5192..687b4d59e0 100644
+--- a/test/cpp/api/CMakeLists.txt
++++ b/test/cpp/api/CMakeLists.txt
+@@ -53,7 +53,8 @@ if(USE_CUDA)
+     ${CUDA_LIBRARIES}
+     ${CUDA_NVRTC_LIB}
+     ${CUDA_CUDA_LIB}
+-    ${TORCH_CUDA_LIBRARIES})
++    ${TORCH_CUDA_LIBRARIES}
++     /usr/local/lib/libomp.dylib)
+ 
+   target_compile_definitions(test_api PRIVATE "USE_CUDA")
+ endif()
+diff --git a/third_party/tensorpipe b/third_party/tensorpipe
+index 05e4c890d4..232136c311 160000
+--- a/third_party/tensorpipe
++++ b/third_party/tensorpipe
+@@ -1 +1 @@
+-Subproject commit 05e4c890d4bd5f8ac9a4ba8f3c21e2eba3f66eda
++Subproject commit 232136c3118c7b2c8071e8248dc1173899de58dd
+-- 
+2.17.2 (Apple Git-113)
+
+
+From 96c5a2254d2cb6c5cdbf0befbe394b71da2d2f9c Mon Sep 17 00:00:00 2001
+From: Orlando Ding <xiandao.airs@gmail.com>
+Date: Tue, 10 May 2022 07:19:19 +0800
+Subject: [PATCH 2/2] orlando - for fixing issues
+
+---
+ .gitignore | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/.gitignore b/.gitignore
+index e6200865d3..d2b9fb0c76 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -304,3 +304,8 @@ bazel-*
+ 
+ # core dump files
+ core.*
++
++# additional folders
++third_party/cudnn_frontend/
++third_party/flatbuffers/
++third_party/pocketfft/
+\ No newline at end of file
+-- 
+2.17.2 (Apple Git-113)
+
