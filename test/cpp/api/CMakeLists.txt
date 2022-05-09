@@ -53,7 +53,8 @@ if(USE_CUDA)
     ${CUDA_LIBRARIES}
     ${CUDA_NVRTC_LIB}
     ${CUDA_CUDA_LIB}
-    ${TORCH_CUDA_LIBRARIES})
+    ${TORCH_CUDA_LIBRARIES}
+     /usr/local/lib/libomp.dylib)
 
   target_compile_definitions(test_api PRIVATE "USE_CUDA")
 endif()
