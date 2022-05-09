@@ -4,7 +4,7 @@
 # pytorch 1.11.0 with Nvidia GPU on macOS
 
 --------------------------------------------------------------------------------
-As officially Pytorch doesn't support for macOS cuda, I used this repository to build pytorch on macOS cuda. **This branch 1.9.1-fixed branch is the current stable branch**. Currently MPI+CUDA is still disabled, an ensuing investigation will start later. My gut feeling is that it has been caused by CMakeList.txt setting, which doesn't set MPI and CUDA setting appropriately simultaneously.
+As officially Pytorch doesn't support for macOS cuda, I used this repository to build pytorch on macOS cuda. **This branch 1.9.1-tensorpipe-fixed branch is the current stable branch**. Currently MPI+CUDA is still disabled, an ensuing investigation will start later. My gut feeling is that it has been caused by CMakeList.txt setting, which doesn't set MPI and CUDA setting appropriately simultaneously.
 
 - macOS 10.13.6, cuda 10.1, cudnn 7.6.5 (cuda and cudnn is the last official version which Nvidia released to support macOS)
 - [NCCL on macOS 2.9.6.1](https://github.com/llv22/nccl-osx) and [test suite](https://github.com/llv22/nccl-tests-macOS-cuda)
@@ -19,7 +19,7 @@ As officially Pytorch doesn't support for macOS cuda, I used this repository to 
 --     USE_TENSORPIPE        : ON
 ```
 
-Consolidating [torch-1.11.0-mac.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v1.9.1-fixed/torch-1.9.1-mac.patch) by
+Consolidating [torch-1.11.0-mac.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v1.11.0-tensorpipe-fixed/torch-1.11.0-mac-with-tensorpipe-cuda-enabling.patch) by
 
 ```bash
 git format-patch -2 --stdout > torch-1.11.0-mac-with-tensorpipe-cuda-enabling.patch
