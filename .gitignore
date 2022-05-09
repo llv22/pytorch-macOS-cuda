@@ -304,3 +304,8 @@ bazel-*
 
 # core dump files
 core.*
+
+# additional folders
+third_party/cudnn_frontend/
+third_party/flatbuffers/
+third_party/pocketfft/
