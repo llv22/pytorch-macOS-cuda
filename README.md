@@ -15,6 +15,7 @@ As officially Pytorch doesn't support for macOS cuda, I used this repository to 
 ```bash
 --   USE_DISTRIBUTED       : ON
 --     USE_MPI               : ON
+--     USE_CUDA_MPI          : ON
 --     USE_GLOO              : ON
 --     USE_TENSORPIPE        : ON
 ```
