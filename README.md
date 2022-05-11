@@ -1,7 +1,7 @@
 <!-- markdownlint-disable MD033 -->
 <!-- markdownlint-disable MD004 -->
 <!-- markdownlint-disable MD029 -->
-# pytorch 1.9.1 with Nvidia GPU on macOS
+# pytorch 1.9.1 with tensorpipe + USE_CUDA_MPI for Nvidia GPU on macOS
 
 --------------------------------------------------------------------------------
 As officially Pytorch doesn't support for macOS cuda, I used this repository to build pytorch on macOS cuda. **This branch 1.9.1-tensorpipe-fixed branch is the current stable branch**. Currently MPI+CUDA is still disabled, an ensuing investigation will start later. My gut feeling is that it has been caused by CMakeList.txt setting, which doesn't set MPI and CUDA setting appropriately simultaneously.
@@ -19,10 +19,23 @@ As officially Pytorch doesn't support for macOS cuda, I used this repository to 
 --     USE_TENSORPIPE        : ON
 ```
 
+1. Enablement of tensorpipe
 Consolidating [torch-1.9.1-mac-with-tensorpipe-cuda-enabling.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v1.9.1-tensorpipe-fixed/torch-1.9.1-mac-with-tensorpipe-cuda-enabling.patch) by
 
 ```bash
 git format-patch -2 --stdout > torch-1.9.1-mac-with-tensorpipe-cuda-enabling.patch
+```
+
+2. Enablement of USE_CUDA_MPI
+
+```bash
+git format-patch -1 --stdout > torch-1.9.1-mac-with-cuda-mpi-enabling.patch
+```
+
+3. Enablement of tensorpipe and USE_CUDA_MPI
+
+```bash
+git format-patch -4 --stdout > torch-1.9.1-mac-with-tensorpipe-cuda-mpi-enabling.patch
 ```
 
 refer to <https://www.ivankristianto.com/create-patch-files-from-multiple-commits-in-git/>
@@ -41,7 +54,7 @@ You can reuse your favorite Python packages such as NumPy, SciPy, and Cython to 
 
 <!-- toc -->
 
-- [pytorch 1.9.1 with Nvidia GPU on macOS](#pytorch-191-with-nvidia-gpu-on-macos)
+- [pytorch 1.9.1 with tensorpipe + USE_CUDA_MPI for Nvidia GPU on macOS](#pytorch-191-with-tensorpipe--use_cuda_mpi-for-nvidia-gpu-on-macos)
   - [More About PyTorch](#more-about-pytorch)
     - [A GPU-Ready Tensor Library](#a-gpu-ready-tensor-library)
     - [Dynamic Neural Networks: Tape-Based Autograd](#dynamic-neural-networks-tape-based-autograd)

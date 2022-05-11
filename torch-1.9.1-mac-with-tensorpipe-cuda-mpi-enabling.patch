@@ -1,0 +1,728 @@
+From 7e173e763828f5a2db8105251dede4c38edfca17 Mon Sep 17 00:00:00 2001
+From: Orlando Ding <xiandao.airs@gmail.com>
+Date: Tue, 10 May 2022 07:18:10 +0800
+Subject: [PATCH 1/4] orlando - for fixing tensorpipe on pytorch 1.9.1
+
+---
+ .gitmodules                        | 3 ++-
+ aten/src/ATen/CMakeLists.txt       | 7 +++++++
+ aten/src/ATen/native/ReduceOps.cpp | 8 ++++++++
+ caffe2/CMakeLists.txt              | 2 +-
+ test/cpp/api/CMakeLists.txt        | 3 ++-
+ third_party/tensorpipe             | 2 +-
+ 6 files changed, 21 insertions(+), 4 deletions(-)
+
+diff --git a/.gitmodules b/.gitmodules
+index 08868cba71..b74d1eaa3d 100644
+--- a/.gitmodules
++++ b/.gitmodules
+@@ -129,7 +129,8 @@
+ [submodule "third_party/tensorpipe"]
+     ignore = dirty
+     path = third_party/tensorpipe
+-    url = https://github.com/pytorch/tensorpipe.git
++    branch = torch-1.9.1
++    url = https://github.com/llv22/tensorpipe-macos-cuda.git
+ [submodule "third_party/kineto"]
+     path = third_party/kineto
+     url = https://github.com/pytorch/kineto
+diff --git a/aten/src/ATen/CMakeLists.txt b/aten/src/ATen/CMakeLists.txt
+index baf9666f11..0aaf515d60 100644
+--- a/aten/src/ATen/CMakeLists.txt
++++ b/aten/src/ATen/CMakeLists.txt
+@@ -208,6 +208,11 @@ if(USE_TBB)
+   list(APPEND ATen_CPU_DEPENDENCY_LIBS tbb)
+ endif()
+ 
++if(USE_OPENMP)
++  message("ATen is compiled with OPEN_MP (/usr/local/lib/libomp.dylib)")
++  list(APPEND ATen_CPU_DEPENDENCY_LIBS /usr/local/lib/libomp.dylib)
++endif()
++
+ if(BLAS_FOUND)
+   if($ENV{TH_BINARY_BUILD})
+     message(STATUS "TH_BINARY_BUILD detected. Enabling special linkage.")
+@@ -354,6 +359,7 @@ if(USE_CUDA AND NOT USE_ROCM)
+       ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcufft_static_nocallback.a
+       ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcusolver_static.a
+       ${CUDA_TOOLKIT_ROOT_DIR}/lib64/liblapack_static.a     # needed for libcusolver_static
++      /usr/local/lib/libomp.dylib # test parallel for symbol _omp_in_parallel
+       )
+   else()
+     list(APPEND ATen_CUDA_DEPENDENCY_LIBS
+@@ -361,6 +367,7 @@ if(USE_CUDA AND NOT USE_ROCM)
+       ${CUDA_cusparse_LIBRARY}
+       ${CUDA_curand_LIBRARY}
+       ${CUDA_cusolver_LIBRARY}
++      /usr/local/lib/libomp.dylib # test parallel for symbol _omp_in_parallel
+       )
+   endif()
+ 
+diff --git a/aten/src/ATen/native/ReduceOps.cpp b/aten/src/ATen/native/ReduceOps.cpp
+index 111a9c7bd8..36f3070fb5 100644
+--- a/aten/src/ATen/native/ReduceOps.cpp
++++ b/aten/src/ATen/native/ReduceOps.cpp
+@@ -427,6 +427,14 @@ template<typename T>
+ inline typename std::enable_if<!std::is_integral<T>::value, bool>::type isnan_(T x) {
+   return std::isnan(x);
+ }
++#elif defined(__APPLE__) && defined(__MACH__)
++   template<typename T>
++   inline bool isnan_(T x) {
++     return std::isnan(x);
++   }
++   inline bool isnan_(const c10::BFloat16 x) {
++     return std::isnan(x.x);
++   }
+ #else
+ template<typename T>
+ inline bool isnan_(T x) {
+diff --git a/caffe2/CMakeLists.txt b/caffe2/CMakeLists.txt
+index 50ebb224ce..219d5724fc 100644
+--- a/caffe2/CMakeLists.txt
++++ b/caffe2/CMakeLists.txt
+@@ -96,7 +96,7 @@ if(INTERN_BUILD_ATEN_OPS)
+   list(APPEND Caffe2_HIP_INCLUDE ${ATen_HIP_INCLUDE})
+   list(APPEND Caffe2_VULKAN_INCLUDE ${ATen_VULKAN_INCLUDE})
+   list(APPEND Caffe2_DEPENDENCY_LIBS ${ATen_CPU_DEPENDENCY_LIBS})
+-  list(APPEND Caffe2_CUDA_DEPENDENCY_LIBS ${ATen_CUDA_DEPENDENCY_LIBS})
++  list(APPEND Caffe2_CUDA_DEPENDENCY_LIBS ${ATen_CUDA_DEPENDENCY_LIBS} /usr/local/lib/libomp.dylib)
+   list(APPEND Caffe2_HIP_DEPENDENCY_LIBS ${ATen_HIP_DEPENDENCY_LIBS})
+   list(APPEND Caffe2_DEPENDENCY_INCLUDE ${ATen_THIRD_PARTY_INCLUDE})
+ endif()
+diff --git a/test/cpp/api/CMakeLists.txt b/test/cpp/api/CMakeLists.txt
+index ebc3dd5192..687b4d59e0 100644
+--- a/test/cpp/api/CMakeLists.txt
++++ b/test/cpp/api/CMakeLists.txt
+@@ -53,7 +53,8 @@ if(USE_CUDA)
+     ${CUDA_LIBRARIES}
+     ${CUDA_NVRTC_LIB}
+     ${CUDA_CUDA_LIB}
+-    ${TORCH_CUDA_LIBRARIES})
++    ${TORCH_CUDA_LIBRARIES}
++     /usr/local/lib/libomp.dylib)
+ 
+   target_compile_definitions(test_api PRIVATE "USE_CUDA")
+ endif()
+diff --git a/third_party/tensorpipe b/third_party/tensorpipe
+index 05e4c890d4..232136c311 160000
+--- a/third_party/tensorpipe
++++ b/third_party/tensorpipe
+@@ -1 +1 @@
+-Subproject commit 05e4c890d4bd5f8ac9a4ba8f3c21e2eba3f66eda
++Subproject commit 232136c3118c7b2c8071e8248dc1173899de58dd
+-- 
+2.17.2 (Apple Git-113)
+
+
+From 96c5a2254d2cb6c5cdbf0befbe394b71da2d2f9c Mon Sep 17 00:00:00 2001
+From: Orlando Ding <xiandao.airs@gmail.com>
+Date: Tue, 10 May 2022 07:19:19 +0800
+Subject: [PATCH 2/4] orlando - for fixing issues
+
+---
+ .gitignore | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/.gitignore b/.gitignore
+index e6200865d3..d2b9fb0c76 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -304,3 +304,8 @@ bazel-*
+ 
+ # core dump files
+ core.*
++
++# additional folders
++third_party/cudnn_frontend/
++third_party/flatbuffers/
++third_party/pocketfft/
+\ No newline at end of file
+-- 
+2.17.2 (Apple Git-113)
+
+
+From 6fd1c4bd30f6410d1665bb2d0d41047668e772d6 Mon Sep 17 00:00:00 2001
+From: Orlando Ding <xiandao.airs@gmail.com>
+Date: Tue, 10 May 2022 07:35:14 +0800
+Subject: [PATCH 3/4] orlando - for adding patch and updates of readme.md
+
+---
+ README.md                                     |  84 ++++++----
+ ....1-mac-with-tensorpipe-cuda-enabling.patch | 143 ++++++++++++++++++
+ 2 files changed, 201 insertions(+), 26 deletions(-)
+ create mode 100644 torch-1.9.1-mac-with-tensorpipe-cuda-enabling.patch
+
+diff --git a/README.md b/README.md
+index 0827c8c4e7..a3e8821859 100644
+--- a/README.md
++++ b/README.md
+@@ -1,3 +1,34 @@
++<!-- markdownlint-disable MD033 -->
++<!-- markdownlint-disable MD004 -->
++<!-- markdownlint-disable MD029 -->
++# pytorch 1.9.1 with Nvidia GPU on macOS
++
++--------------------------------------------------------------------------------
++As officially Pytorch doesn't support for macOS cuda, I used this repository to build pytorch on macOS cuda. **This branch 1.9.1-tensorpipe-fixed branch is the current stable branch**. Currently MPI+CUDA is still disabled, an ensuing investigation will start later. My gut feeling is that it has been caused by CMakeList.txt setting, which doesn't set MPI and CUDA setting appropriately simultaneously.
++
++- macOS 10.13.6, cuda 10.1, cudnn 7.6.5 (cuda and cudnn is the last official version which Nvidia released to support macOS)
++- [NCCL on macOS 2.9.6.1](https://github.com/llv22/nccl-osx) and [test suite](https://github.com/llv22/nccl-tests-macOS-cuda)
++- Xcode 10.1, libuv 1.2.6
++- magma 2.6 built on macOS, providing by [cloned magma repository from The University of Tennessee, Knoxville](https://github.com/llv22/magma-macOS)
++- support distributed options with TENSORPIPE, which has been fixed via [Orlando's tensorpipe](https://github.com/llv22/tensorpipe-macos-cuda/tree/torch-1.9.1)
++
++```bash
++--   USE_DISTRIBUTED       : ON
++--     USE_MPI               : ON
++--     USE_GLOO              : ON
++--     USE_TENSORPIPE        : ON
++```
++
++Consolidating [torch-1.9.1-mac-with-tensorpipe-cuda-enabling.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v1.9.1-tensorpipe-fixed/torch-1.9.1-mac-with-tensorpipe-cuda-enabling.patch) by
++
++```bash
++git format-patch -2 --stdout > torch-1.9.1-mac-with-tensorpipe-cuda-enabling.patch
++```
++
++refer to <https://www.ivankristianto.com/create-patch-files-from-multiple-commits-in-git/>
++
++--------------------------------------------------------------------------------
++
+ ![PyTorch Logo](https://github.com/pytorch/pytorch/blob/master/docs/source/_static/img/pytorch-logo-dark.png)
+ 
+ --------------------------------------------------------------------------------
+@@ -10,32 +41,33 @@ You can reuse your favorite Python packages such as NumPy, SciPy, and Cython to
+ 
+ <!-- toc -->
+ 
+-- [More About PyTorch](#more-about-pytorch)
+-  - [A GPU-Ready Tensor Library](#a-gpu-ready-tensor-library)
+-  - [Dynamic Neural Networks: Tape-Based Autograd](#dynamic-neural-networks-tape-based-autograd)
+-  - [Python First](#python-first)
+-  - [Imperative Experiences](#imperative-experiences)
+-  - [Fast and Lean](#fast-and-lean)
+-  - [Extensions Without Pain](#extensions-without-pain)
+-- [Installation](#installation)
+-  - [Binaries](#binaries)
+-    - [NVIDIA Jetson Platforms](#nvidia-jetson-platforms)
+-  - [From Source](#from-source)
+-    - [Install Dependencies](#install-dependencies)
+-    - [Get the PyTorch Source](#get-the-pytorch-source)
+-    - [Install PyTorch](#install-pytorch)
+-      - [Adjust Build Options (Optional)](#adjust-build-options-optional)
+-  - [Docker Image](#docker-image)
+-    - [Using pre-built images](#using-pre-built-images)
+-    - [Building the image yourself](#building-the-image-yourself)
+-  - [Building the Documentation](#building-the-documentation)
+-  - [Previous Versions](#previous-versions)
+-- [Getting Started](#getting-started)
+-- [Resources](#resources)
+-- [Communication](#communication)
+-- [Releases and Contributing](#releases-and-contributing)
+-- [The Team](#the-team)
+-- [License](#license)
++- [pytorch 1.9.1 with Nvidia GPU on macOS](#pytorch-191-with-nvidia-gpu-on-macos)
++  - [More About PyTorch](#more-about-pytorch)
++    - [A GPU-Ready Tensor Library](#a-gpu-ready-tensor-library)
++    - [Dynamic Neural Networks: Tape-Based Autograd](#dynamic-neural-networks-tape-based-autograd)
++    - [Python First](#python-first)
++    - [Imperative Experiences](#imperative-experiences)
++    - [Fast and Lean](#fast-and-lean)
++    - [Extensions Without Pain](#extensions-without-pain)
++  - [Installation](#installation)
++    - [Binaries](#binaries)
++      - [NVIDIA Jetson Platforms](#nvidia-jetson-platforms)
++    - [From Source](#from-source)
++      - [Install Dependencies](#install-dependencies)
++      - [Get the PyTorch Source](#get-the-pytorch-source)
++      - [Install PyTorch](#install-pytorch)
++        - [Adjust Build Options (Optional)](#adjust-build-options-optional)
++    - [Docker Image](#docker-image)
++      - [Using pre-built images](#using-pre-built-images)
++      - [Building the image yourself](#building-the-image-yourself)
++    - [Building the Documentation](#building-the-documentation)
++    - [Previous Versions](#previous-versions)
++  - [Getting Started](#getting-started)
++  - [Resources](#resources)
++  - [Communication](#communication)
++  - [Releases and Contributing](#releases-and-contributing)
++  - [The Team](#the-team)
++  - [License](#license)
+ 
+ <!-- tocstop -->
+ 
+diff --git a/torch-1.9.1-mac-with-tensorpipe-cuda-enabling.patch b/torch-1.9.1-mac-with-tensorpipe-cuda-enabling.patch
+new file mode 100644
+index 0000000000..4343df7d98
+--- /dev/null
++++ b/torch-1.9.1-mac-with-tensorpipe-cuda-enabling.patch
+@@ -0,0 +1,143 @@
++From 7e173e763828f5a2db8105251dede4c38edfca17 Mon Sep 17 00:00:00 2001
++From: Orlando Ding <xiandao.airs@gmail.com>
++Date: Tue, 10 May 2022 07:18:10 +0800
++Subject: [PATCH 1/2] orlando - for fixing tensorpipe on pytorch 1.9.1
++
++---
++ .gitmodules                        | 3 ++-
++ aten/src/ATen/CMakeLists.txt       | 7 +++++++
++ aten/src/ATen/native/ReduceOps.cpp | 8 ++++++++
++ caffe2/CMakeLists.txt              | 2 +-
++ test/cpp/api/CMakeLists.txt        | 3 ++-
++ third_party/tensorpipe             | 2 +-
++ 6 files changed, 21 insertions(+), 4 deletions(-)
++
++diff --git a/.gitmodules b/.gitmodules
++index 08868cba71..b74d1eaa3d 100644
++--- a/.gitmodules
+++++ b/.gitmodules
++@@ -129,7 +129,8 @@
++ [submodule "third_party/tensorpipe"]
++     ignore = dirty
++     path = third_party/tensorpipe
++-    url = https://github.com/pytorch/tensorpipe.git
+++    branch = torch-1.9.1
+++    url = https://github.com/llv22/tensorpipe-macos-cuda.git
++ [submodule "third_party/kineto"]
++     path = third_party/kineto
++     url = https://github.com/pytorch/kineto
++diff --git a/aten/src/ATen/CMakeLists.txt b/aten/src/ATen/CMakeLists.txt
++index baf9666f11..0aaf515d60 100644
++--- a/aten/src/ATen/CMakeLists.txt
+++++ b/aten/src/ATen/CMakeLists.txt
++@@ -208,6 +208,11 @@ if(USE_TBB)
++   list(APPEND ATen_CPU_DEPENDENCY_LIBS tbb)
++ endif()
++ 
+++if(USE_OPENMP)
+++  message("ATen is compiled with OPEN_MP (/usr/local/lib/libomp.dylib)")
+++  list(APPEND ATen_CPU_DEPENDENCY_LIBS /usr/local/lib/libomp.dylib)
+++endif()
+++
++ if(BLAS_FOUND)
++   if($ENV{TH_BINARY_BUILD})
++     message(STATUS "TH_BINARY_BUILD detected. Enabling special linkage.")
++@@ -354,6 +359,7 @@ if(USE_CUDA AND NOT USE_ROCM)
++       ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcufft_static_nocallback.a
++       ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcusolver_static.a
++       ${CUDA_TOOLKIT_ROOT_DIR}/lib64/liblapack_static.a     # needed for libcusolver_static
+++      /usr/local/lib/libomp.dylib # test parallel for symbol _omp_in_parallel
++       )
++   else()
++     list(APPEND ATen_CUDA_DEPENDENCY_LIBS
++@@ -361,6 +367,7 @@ if(USE_CUDA AND NOT USE_ROCM)
++       ${CUDA_cusparse_LIBRARY}
++       ${CUDA_curand_LIBRARY}
++       ${CUDA_cusolver_LIBRARY}
+++      /usr/local/lib/libomp.dylib # test parallel for symbol _omp_in_parallel
++       )
++   endif()
++ 
++diff --git a/aten/src/ATen/native/ReduceOps.cpp b/aten/src/ATen/native/ReduceOps.cpp
++index 111a9c7bd8..36f3070fb5 100644
++--- a/aten/src/ATen/native/ReduceOps.cpp
+++++ b/aten/src/ATen/native/ReduceOps.cpp
++@@ -427,6 +427,14 @@ template<typename T>
++ inline typename std::enable_if<!std::is_integral<T>::value, bool>::type isnan_(T x) {
++   return std::isnan(x);
++ }
+++#elif defined(__APPLE__) && defined(__MACH__)
+++   template<typename T>
+++   inline bool isnan_(T x) {
+++     return std::isnan(x);
+++   }
+++   inline bool isnan_(const c10::BFloat16 x) {
+++     return std::isnan(x.x);
+++   }
++ #else
++ template<typename T>
++ inline bool isnan_(T x) {
++diff --git a/caffe2/CMakeLists.txt b/caffe2/CMakeLists.txt
++index 50ebb224ce..219d5724fc 100644
++--- a/caffe2/CMakeLists.txt
+++++ b/caffe2/CMakeLists.txt
++@@ -96,7 +96,7 @@ if(INTERN_BUILD_ATEN_OPS)
++   list(APPEND Caffe2_HIP_INCLUDE ${ATen_HIP_INCLUDE})
++   list(APPEND Caffe2_VULKAN_INCLUDE ${ATen_VULKAN_INCLUDE})
++   list(APPEND Caffe2_DEPENDENCY_LIBS ${ATen_CPU_DEPENDENCY_LIBS})
++-  list(APPEND Caffe2_CUDA_DEPENDENCY_LIBS ${ATen_CUDA_DEPENDENCY_LIBS})
+++  list(APPEND Caffe2_CUDA_DEPENDENCY_LIBS ${ATen_CUDA_DEPENDENCY_LIBS} /usr/local/lib/libomp.dylib)
++   list(APPEND Caffe2_HIP_DEPENDENCY_LIBS ${ATen_HIP_DEPENDENCY_LIBS})
++   list(APPEND Caffe2_DEPENDENCY_INCLUDE ${ATen_THIRD_PARTY_INCLUDE})
++ endif()
++diff --git a/test/cpp/api/CMakeLists.txt b/test/cpp/api/CMakeLists.txt
++index ebc3dd5192..687b4d59e0 100644
++--- a/test/cpp/api/CMakeLists.txt
+++++ b/test/cpp/api/CMakeLists.txt
++@@ -53,7 +53,8 @@ if(USE_CUDA)
++     ${CUDA_LIBRARIES}
++     ${CUDA_NVRTC_LIB}
++     ${CUDA_CUDA_LIB}
++-    ${TORCH_CUDA_LIBRARIES})
+++    ${TORCH_CUDA_LIBRARIES}
+++     /usr/local/lib/libomp.dylib)
++ 
++   target_compile_definitions(test_api PRIVATE "USE_CUDA")
++ endif()
++diff --git a/third_party/tensorpipe b/third_party/tensorpipe
++index 05e4c890d4..232136c311 160000
++--- a/third_party/tensorpipe
+++++ b/third_party/tensorpipe
++@@ -1 +1 @@
++-Subproject commit 05e4c890d4bd5f8ac9a4ba8f3c21e2eba3f66eda
+++Subproject commit 232136c3118c7b2c8071e8248dc1173899de58dd
++-- 
++2.17.2 (Apple Git-113)
++
++
++From 96c5a2254d2cb6c5cdbf0befbe394b71da2d2f9c Mon Sep 17 00:00:00 2001
++From: Orlando Ding <xiandao.airs@gmail.com>
++Date: Tue, 10 May 2022 07:19:19 +0800
++Subject: [PATCH 2/2] orlando - for fixing issues
++
++---
++ .gitignore | 5 +++++
++ 1 file changed, 5 insertions(+)
++
++diff --git a/.gitignore b/.gitignore
++index e6200865d3..d2b9fb0c76 100644
++--- a/.gitignore
+++++ b/.gitignore
++@@ -304,3 +304,8 @@ bazel-*
++ 
++ # core dump files
++ core.*
+++
+++# additional folders
+++third_party/cudnn_frontend/
+++third_party/flatbuffers/
+++third_party/pocketfft/
++\ No newline at end of file
++-- 
++2.17.2 (Apple Git-113)
++
+-- 
+2.17.2 (Apple Git-113)
+
+
+From 6d0fe65685a647321f8e5e70edfedd94da12eeb7 Mon Sep 17 00:00:00 2001
+From: Orlando Ding <xiandao.airs@gmail.com>
+Date: Wed, 11 May 2022 12:44:51 +0800
+Subject: [PATCH 4/4] orlando - for enabling torch version with USE_CUDA_MPI
+
+---
+ CMakeLists.txt                     |  3 +++
+ aten/src/ATen/CMakeLists.txt       |  8 ++++----
+ caffe2/CMakeLists.txt              |  9 ++++++---
+ caffe2/core/macros.h.in            |  2 ++
+ caffe2/mpi/mpi_ops_gpu.cc          | 25 ++++++++++++++++++++++++-
+ cmake/Dependencies.cmake           | 29 +++++++++++++++++++++++++++--
+ cmake/Summary.cmake                |  1 +
+ modules/detectron/CMakeLists.txt   |  6 +++++-
+ test/cpp/api/CMakeLists.txt        |  9 ++++++---
+ torch/lib/c10d/CMakeLists.txt      |  3 +++
+ torch/lib/c10d/ProcessGroupMPI.cpp | 18 +++++++++++++-----
+ 11 files changed, 94 insertions(+), 19 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index ac1546c45a..9fd22ce2ed 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -280,6 +280,9 @@ option(USE_DISTRIBUTED "Use distributed" ON)
+ cmake_dependent_option(
+     USE_MPI "Use MPI for Caffe2. Only available if USE_DISTRIBUTED is on." ON
+     "USE_DISTRIBUTED" OFF)
++cmake_dependent_option(
++    USE_CUDA_MPI "Force CUDA-Aware MPI for Caffe2. Only available if USE_DISTRIBUTED and USE_MPI is on." OFF
++    "USE_DISTRIBUTED AND USE_MPI" OFF)
+ cmake_dependent_option(
+     USE_GLOO "Use Gloo. Only available if USE_DISTRIBUTED is on." ON
+     "USE_DISTRIBUTED" OFF)
+diff --git a/aten/src/ATen/CMakeLists.txt b/aten/src/ATen/CMakeLists.txt
+index 0aaf515d60..bc355150f2 100644
+--- a/aten/src/ATen/CMakeLists.txt
++++ b/aten/src/ATen/CMakeLists.txt
+@@ -209,8 +209,8 @@ if(USE_TBB)
+ endif()
+ 
+ if(USE_OPENMP)
+-  message("ATen is compiled with OPEN_MP (/usr/local/lib/libomp.dylib)")
+-  list(APPEND ATen_CPU_DEPENDENCY_LIBS /usr/local/lib/libomp.dylib)
++  message("ATen is compiled with OPEN_MP (/Users/llv23/opt/miniconda3/lib/libomp.dylib)")
++  list(APPEND ATen_CPU_DEPENDENCY_LIBS /Users/llv23/opt/miniconda3/lib/libomp.dylib)
+ endif()
+ 
+ if(BLAS_FOUND)
+@@ -359,7 +359,7 @@ if(USE_CUDA AND NOT USE_ROCM)
+       ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcufft_static_nocallback.a
+       ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcusolver_static.a
+       ${CUDA_TOOLKIT_ROOT_DIR}/lib64/liblapack_static.a     # needed for libcusolver_static
+-      /usr/local/lib/libomp.dylib # test parallel for symbol _omp_in_parallel
++      /Users/llv23/opt/miniconda3/lib/libomp.dylib # test parallel for symbol _omp_in_parallel
+       )
+   else()
+     list(APPEND ATen_CUDA_DEPENDENCY_LIBS
+@@ -367,7 +367,7 @@ if(USE_CUDA AND NOT USE_ROCM)
+       ${CUDA_cusparse_LIBRARY}
+       ${CUDA_curand_LIBRARY}
+       ${CUDA_cusolver_LIBRARY}
+-      /usr/local/lib/libomp.dylib # test parallel for symbol _omp_in_parallel
++      /Users/llv23/opt/miniconda3/lib/libomp.dylib # test parallel for symbol _omp_in_parallel
+       )
+   endif()
+ 
+diff --git a/caffe2/CMakeLists.txt b/caffe2/CMakeLists.txt
+index 219d5724fc..a3032b8c21 100644
+--- a/caffe2/CMakeLists.txt
++++ b/caffe2/CMakeLists.txt
+@@ -95,8 +95,8 @@ if(INTERN_BUILD_ATEN_OPS)
+   list(APPEND Caffe2_GPU_INCLUDE ${ATen_CUDA_INCLUDE})
+   list(APPEND Caffe2_HIP_INCLUDE ${ATen_HIP_INCLUDE})
+   list(APPEND Caffe2_VULKAN_INCLUDE ${ATen_VULKAN_INCLUDE})
+-  list(APPEND Caffe2_DEPENDENCY_LIBS ${ATen_CPU_DEPENDENCY_LIBS})
+-  list(APPEND Caffe2_CUDA_DEPENDENCY_LIBS ${ATen_CUDA_DEPENDENCY_LIBS} /usr/local/lib/libomp.dylib)
++  list(APPEND Caffe2_DEPENDENCY_LIBS ${ATen_CPU_DEPENDENCY_LIBS}  /Users/llv23/opt/miniconda3/lib/libomp.dylib)
++  list(APPEND Caffe2_CUDA_DEPENDENCY_LIBS ${ATen_CUDA_DEPENDENCY_LIBS} /Users/llv23/opt/miniconda3/lib/libomp.dylib)
+   list(APPEND Caffe2_HIP_DEPENDENCY_LIBS ${ATen_HIP_DEPENDENCY_LIBS})
+   list(APPEND Caffe2_DEPENDENCY_INCLUDE ${ATen_THIRD_PARTY_INCLUDE})
+ endif()
+@@ -1655,7 +1655,7 @@ if(BUILD_TEST)
+   foreach(test_src ${Caffe2_CPU_TEST_SRCS})
+     get_filename_component(test_name ${test_src} NAME_WE)
+     add_executable(${test_name} "${test_src}")
+-    target_link_libraries(${test_name} torch_library gtest_main)
++    target_link_libraries(${test_name} torch_library gtest_main /Users/llv23/opt/miniconda3/lib/libomp.dylib)
+     target_include_directories(${test_name} PRIVATE $<INSTALL_INTERFACE:include>)
+     target_include_directories(${test_name} PRIVATE $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include>)
+     target_include_directories(${test_name} PRIVATE ${Caffe2_CPU_INCLUDE})
+@@ -1813,6 +1813,9 @@ if(BUILD_PYTHON)
+   add_library(caffe2_pybind11_state MODULE ${Caffe2_CPU_PYTHON_SRCS})
+   if(USE_NUMPY)
+     target_compile_options(caffe2_pybind11_state PRIVATE "-DUSE_NUMPY")
++    # Orlando; refer to how to fix issue: ../caffe2/python/pybind_state.h:27:10: fatal error: 'numpy/arrayobject.h' file not found
++    find_package(Python3 REQUIRED COMPONENTS NumPy)
++    target_include_directories(caffe2_pybind11_state PRIVATE ${Python3_NumPy_INCLUDE_DIRS})
+   endif()
+   if(NOT MSVC)
+     set_target_properties(caffe2_pybind11_state PROPERTIES COMPILE_FLAGS "-fvisibility=hidden")
+diff --git a/caffe2/core/macros.h.in b/caffe2/core/macros.h.in
+index bd9a447b87..4db4b1aef9 100644
+--- a/caffe2/core/macros.h.in
++++ b/caffe2/core/macros.h.in
+@@ -25,6 +25,7 @@ static_assert(
+ 
+ #cmakedefine CAFFE2_BUILD_SHARED_LIBS
+ #cmakedefine CAFFE2_FORCE_FALLBACK_CUDA_MPI
++#cmakedefine CAFFE2_USE_CUDA_MPI
+ #cmakedefine CAFFE2_HAS_MKL_DNN
+ #cmakedefine CAFFE2_HAS_MKL_SGEMM_PACK
+ #cmakedefine CAFFE2_PERF_WITH_AVX
+@@ -62,6 +63,7 @@ static_assert(
+   {"CUDNN_VERSION", "${CUDNN_VERSION}"}, \
+   {"USE_NCCL", "${USE_NCCL}"}, \
+   {"USE_MPI", "${USE_MPI}"}, \
++  {"USE_CUDA_MPI", "${USE_CUDA_MPI}"}, \
+   {"USE_GFLAGS", "${USE_GFLAGS}"}, \
+   {"USE_GLOG", "${USE_GLOG}"}, \
+   {"USE_GLOO", "${USE_GLOI}"}, \
+diff --git a/caffe2/mpi/mpi_ops_gpu.cc b/caffe2/mpi/mpi_ops_gpu.cc
+index 5a16bfa201..fb4f3c282d 100644
+--- a/caffe2/mpi/mpi_ops_gpu.cc
++++ b/caffe2/mpi/mpi_ops_gpu.cc
+@@ -35,7 +35,22 @@ namespace caffe2 {
+ #define CAFFE2_HAS_CUDA_MPI_ALLREDUCE 0
+ #endif // CAFFE2_OMPI_VERSION >= 10805
+ #endif // CAFFE2_OMPI_VERSION >= 2000
+-#else // !OPEN_MPI
++#elif MVAPICH2_NUMVERSION // !OPEN_MPI
++#define CAFFE2_MV2_VERSION MVAPICH2_NUMVERSION
++#if CAFFE2_MV2_VERSION >= 20305300
++#include "mpi-ext.h"
++#if MPIX_CUDA_AWARE_SUPPORT
++#define CAFFE2_HAS_CUDA_MPI_BASICS 1
++#define CAFFE2_HAS_CUDA_MPI_ALLREDUCE 1
++#endif // MPIX_CUDA_AWARE_SUPPORT
++#else //CAFFE2_MV2_VERSION >= 235
++// In the case of MVAPICH2-GDR before 2.3.5, we don't have compile-time flags
++// // to figure out if CUDA is supported; as a result, we will assume that the
++// // user has built MVAPICH2-GDR with CUDA support.
++#define CAFFE2_HAS_CUDA_MPI_BASICS 1
++#define CAFFE2_HAS_CUDA_MPI_ALLREDUCE 1
++#endif //CAFFE2_MV2_VERSION >= 235
++#else // !OPEN_MPI && !MVAPICH_GDR
+ // We have not really tested against other MPI environments, so let's go for a
+ // safe path and basically say we don't have cuda-aware functions.
+ #define CAFFE2_HAS_CUDA_MPI_BASICS 0
+@@ -50,6 +65,14 @@ namespace caffe2 {
+ #define CAFFE2_HAS_CUDA_MPI_ALLREDUCE 0
+ #endif // CAFFE2_FORCE_FALLBACK_CUDA_MPI
+ 
++// We allow a macro to force using CUDA functions
++#ifdef CAFFE2_USE_CUDA_MPI
++#undef CAFFE2_HAS_CUDA_MPI_BASICS
++#undef CAFFE2_HAS_CUDA_MPI_ALLREDUCE
++#define CAFFE2_HAS_CUDA_MPI_BASICS 1
++#define CAFFE2_HAS_CUDA_MPI_ALLREDUCE 1
++#endif // CAFFE2_FORCE_CUDA_MPI
++
+ REGISTER_CUDA_OPERATOR(
+     MPICreateCommonWorld,
+     MPICreateCommonWorldOp<CUDAContext>);
+diff --git a/cmake/Dependencies.cmake b/cmake/Dependencies.cmake
+index 5d57b9ca78..5df5961f17 100644
+--- a/cmake/Dependencies.cmake
++++ b/cmake/Dependencies.cmake
+@@ -1042,9 +1042,34 @@ if(USE_MPI)
+       if(_output MATCHES "smcuda")
+         message(STATUS "Found OpenMPI with CUDA support built.")
+       else()
+-        message(WARNING "OpenMPI found, but it is not built with CUDA support.")
+-        set(CAFFE2_FORCE_FALLBACK_CUDA_MPI 1)
++        if(USE_CUDA_MPI)
++          if(USE_CUDA)
++            message(WARNING "OpenMPI with CUDA support not found, but forcing anyway.")
++          else()
++            message(WARNING "Force building for OpenMPI with CUDA.")
++          endif()
++          set(CAFFE2_USE_CUDA_MPI 1)
++        else()
++          message(WARNING "OpenMPI found, but it is not built with CUDA support.")
++          set(CAFFE2_FORCE_FALLBACK_CUDA_MPI 1)
++        endif()
+       endif()
++    else()
++      find_program(MV2_INFO NAMES mpiname HINTS ${MPI_CXX_LIBRARIES}/../bin)
++      if(MV2_INFO)
++          execute_process(COMMAND ${MV2_INFO} "-a" OUTPUT_VARIABLE _output)
++          if(_output MATCHES "enable-cuda")
++              message(STATUS "Found MVAPICH2 with CUDA support built.")
++          else()
++              if(USE_CUDA_MPI)
++                  message(WARNING "MVAPICH2 with CUDA support not found, but forcing anyway.")
++                  set(CAFFE2_USE_CUDA_MPI 1)
++              else()
++                  message(WARNING "MVAPICH2 found, but it is not built with CUDA SUPPORT.")
++                  set(CAFFE2_FORCE_FALLBACK_CUDA_MPI 1)
++              endif()
++          endif()
++      endif()   
+     endif()
+   else()
+     message(WARNING "Not compiling with MPI. Suppress this warning with -DUSE_MPI=OFF")
+diff --git a/cmake/Summary.cmake b/cmake/Summary.cmake
+index 3d013223f9..aea1a0a862 100644
+--- a/cmake/Summary.cmake
++++ b/cmake/Summary.cmake
+@@ -166,6 +166,7 @@ function(caffe2_print_configuration_summary)
+   message(STATUS "  USE_DISTRIBUTED       : ${USE_DISTRIBUTED}")
+   if(${USE_DISTRIBUTED})
+     message(STATUS "    USE_MPI             : ${USE_MPI}")
++    message(STATUS "    USE_CUDA_MPI        : ${USE_CUDA_MPI}")
+     message(STATUS "    USE_GLOO            : ${USE_GLOO}")
+     message(STATUS "    USE_TENSORPIPE      : ${USE_TENSORPIPE}")
+   endif()
+diff --git a/modules/detectron/CMakeLists.txt b/modules/detectron/CMakeLists.txt
+index 8041e71d35..44d138c4c8 100644
+--- a/modules/detectron/CMakeLists.txt
++++ b/modules/detectron/CMakeLists.txt
+@@ -4,7 +4,11 @@ file(GLOB_RECURSE Detectron_HIP_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/*.hip)
+ 
+ if(BUILD_CAFFE2_OPS)
+   if(USE_OPENMP AND OPENMP_FOUND)
+-    Set(OpenMP_link ${OpenMP_CXX_LIBRARIES})
++    if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
++      Set(OpenMP_link -Xpreprocessor -fopenmp /Users/llv23/opt/miniconda3/lib/libomp.dylib /Users/llv23/opt/miniconda3/lib/libgomp.dylib)
++    else()
++      Set(OpenMP_link ${OpenMP_CXX_LIBRARIES})
++    endif()
+   endif()
+ 
+   # Note(ilijar): Since Detectron ops currently have no
+diff --git a/test/cpp/api/CMakeLists.txt b/test/cpp/api/CMakeLists.txt
+index 687b4d59e0..59e723ee56 100644
+--- a/test/cpp/api/CMakeLists.txt
++++ b/test/cpp/api/CMakeLists.txt
+@@ -45,7 +45,11 @@ if(USE_CUDA)
+ endif()
+ 
+ add_executable(test_api ${TORCH_API_TEST_SOURCES})
+-target_include_directories(test_api PRIVATE ${ATen_CPU_INCLUDE})
++if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
++  target_link_libraries(test_api PRIVATE torch gtest -Xpreprocessor -fopenmp /Users/llv23/opt/miniconda3/lib/libomp.dylib /Users/llv23/opt/miniconda3/lib/libgomp.dylib)
++else()
++  target_link_libraries(test_api PRIVATE torch gtest)
++endif()
+ target_link_libraries(test_api PRIVATE torch gtest)
+ 
+ if(USE_CUDA)
+@@ -53,8 +57,7 @@ if(USE_CUDA)
+     ${CUDA_LIBRARIES}
+     ${CUDA_NVRTC_LIB}
+     ${CUDA_CUDA_LIB}
+-    ${TORCH_CUDA_LIBRARIES}
+-     /usr/local/lib/libomp.dylib)
++    ${TORCH_CUDA_LIBRARIES})
+ 
+   target_compile_definitions(test_api PRIVATE "USE_CUDA")
+ endif()
+diff --git a/torch/lib/c10d/CMakeLists.txt b/torch/lib/c10d/CMakeLists.txt
+index 3c11526f0c..0a96911ca9 100644
+--- a/torch/lib/c10d/CMakeLists.txt
++++ b/torch/lib/c10d/CMakeLists.txt
+@@ -34,6 +34,9 @@ if(USE_MPI)
+     message(STATUS "MPI_LIBRARIES: ${MPI_LIBRARIES}")
+     message(STATUS "MPIEXEC: ${MPIEXEC}")
+     option(USE_C10D_MPI "USE C10D MPI" ON)
++    if(USE_CUDA_MPI)
++      add_definitions(-DUSE_CUDA_MPI=1)
++    endif()
+   else()
+     message(STATUS "Not able to find MPI, will compile c10d without MPI support")
+   endif()
+diff --git a/torch/lib/c10d/ProcessGroupMPI.cpp b/torch/lib/c10d/ProcessGroupMPI.cpp
+index 4a27532aec..65f9e3bd0d 100644
+--- a/torch/lib/c10d/ProcessGroupMPI.cpp
++++ b/torch/lib/c10d/ProcessGroupMPI.cpp
+@@ -5,7 +5,13 @@
+ 
+ #include <c10/core/DeviceGuard.h>
+ 
+-#if defined(OPEN_MPI) && OPEN_MPI
++// #if defined(OPEN_MPI) && OPEN_MPI
++#ifndef OPEN_MPI
++#define OPEN_MPI 0
++#endif
++//Build flag USE_CUDA_MPI forces CUDA-Aware MPI support and removes run-time checks. 
++//USE_CUDA_MPI is meant for older MPI libraries that don't support MPIX_Query_cuda_support()
++#if (OPEN_MPI || (defined(MVAPICH2_NUMVERSION) && (MVAPICH2_NUMVERSION >= 20205300))) && !USE_CUDA_MPI
+ #include <mpi-ext.h> // Needed for CUDA-aware check
+ #endif
+ 
+@@ -43,18 +49,20 @@ std::map<at::ScalarType, MPI_Datatype> mpiDatatype = {
+ };
+ 
+ // Checking CUDA-aware MPI support, currently we only support CUDA aware
+-// MPI ops through Open MPI
++// MPI ops through Open MPI and MVAPICH2-GDR
+ bool cudaAwareMpiCheck() {
+ // Run time check
+-#if defined(MPIX_CUDA_AWARE_SUPPORT)
++#if !defined(USE_CUDA_MPI) && defined(MPIX_CUDA_AWARE_SUPPORT)
+   if (MPIX_Query_cuda_support() == 1) {
+     return true;
+   } else {
+     return false;
+   }
+-#else // !defined(MPIX_CUDA_AWARE_SUPPORT)
++#elif defined(USE_CUDA_MPI)
++  return true;
++#else // defined(USE_CUDA_MPI)
+   return false;
+-#endif // MPIX_CUDA_AWARE_SUPPORT
++#endif // MPIX_CUDA_AWARE_SUPPORT && !USE_CUDA_MPI
+ }
+ 
+ // Checking the input tensor's validity
+-- 
+2.17.2 (Apple Git-113)
+
