@@ -45,7 +45,11 @@ if(USE_CUDA)
 endif()
 
 add_executable(test_api ${TORCH_API_TEST_SOURCES})
-target_include_directories(test_api PRIVATE ${ATen_CPU_INCLUDE})
+if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  target_link_libraries(test_api PRIVATE torch gtest -Xpreprocessor -fopenmp /Users/llv23/opt/miniconda3/lib/libomp.dylib /Users/llv23/opt/miniconda3/lib/libgomp.dylib)
+else()
+  target_link_libraries(test_api PRIVATE torch gtest)
+endif()
 target_link_libraries(test_api PRIVATE torch gtest)
 
 if(USE_CUDA)
@@ -53,8 +57,7 @@ if(USE_CUDA)
     ${CUDA_LIBRARIES}
     ${CUDA_NVRTC_LIB}
     ${CUDA_CUDA_LIB}
-    ${TORCH_CUDA_LIBRARIES}
-     /usr/local/lib/libomp.dylib)
+    ${TORCH_CUDA_LIBRARIES})
 
   target_compile_definitions(test_api PRIVATE "USE_CUDA")
 endif()
