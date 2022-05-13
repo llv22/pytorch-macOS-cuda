@@ -4,7 +4,7 @@
 # pytorch 1.11.0 with tensorpipe + USE_CUDA_MPI for Nvidia GPU on macOS
 
 --------------------------------------------------------------------------------
-As officially Pytorch doesn't support for macOS cuda, I used this repository to build pytorch on macOS cuda. **This branch 1.11.0-tensorpipe-fixed branch is the current stable branch**. Currently MPI+CUDA is still disabled, an ensuing investigation will start later. My gut feeling is that it has been caused by CMakeList.txt setting, which doesn't set MPI and CUDA setting appropriately simultaneously.
+As officially Pytorch doesn't support for macOS cuda, I used this repository to build pytorch on macOS cuda. **This branch 1.11.0-tensorpipe-fixed branch is the current stable branch**. I had added USE_CUDA_MPI option to support CUDA-MPI for pytorch under USE_C10D_MPI=ON situation.
 
 - macOS 10.13.6, cuda 10.1, cudnn 7.6.5 (cuda and cudnn is the last official version which Nvidia released to support macOS)
 - [NCCL on macOS 2.9.6.1](https://github.com/llv22/nccl-osx) and [test suite](https://github.com/llv22/nccl-tests-macOS-cuda)
@@ -16,6 +16,7 @@ As officially Pytorch doesn't support for macOS cuda, I used this repository to 
 --   USE_DISTRIBUTED       : ON
 --     USE_MPI               : ON
 --     USE_CUDA_MPI          : ON
+--     USE_C10D_MPI          : ON
 --     USE_GLOO              : ON
 --     USE_TENSORPIPE        : ON
 ```
