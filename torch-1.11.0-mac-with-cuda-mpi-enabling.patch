@@ -1,0 +1,317 @@
+From 4d1dcddac47ce535330b9b2f2259ca84a414f97d Mon Sep 17 00:00:00 2001
+From: Orlando Ding <xiandao.airs@gmail.com>
+Date: Fri, 13 May 2022 15:21:27 +0800
+Subject: [PATCH] orlando - cuda-MPI enablement
+
+---
+ CMakeLists.txt                                |  3 ++
+ aten/src/ATen/CMakeLists.txt                  |  7 +++++
+ caffe2/CMakeLists.txt                         | 12 ++++++--
+ caffe2/core/macros.h.in                       |  2 ++
+ caffe2/mpi/mpi_ops_gpu.cc                     | 25 +++++++++++++++-
+ cmake/Dependencies.cmake                      | 30 +++++++++++++++++--
+ cmake/Summary.cmake                           |  1 +
+ modules/detectron/CMakeLists.txt              |  6 +++-
+ test/cpp/api/CMakeLists.txt                   |  9 ++++--
+ .../csrc/distributed/c10d/ProcessGroupMPI.cpp | 18 +++++++----
+ 10 files changed, 97 insertions(+), 16 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index e51760b5ae..4f35ec9a9a 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -301,6 +301,9 @@ option(USE_DISTRIBUTED "Use distributed" ON)
+ cmake_dependent_option(
+     USE_MPI "Use MPI for Caffe2. Only available if USE_DISTRIBUTED is on." ON
+     "USE_DISTRIBUTED" OFF)
++cmake_dependent_option(
++    USE_CUDA_MPI "Force CUDA-Aware MPI for Caffe2. Only available if USE_DISTRIBUTED and USE_MPI is on." OFF
++    "USE_DISTRIBUTED AND USE_MPI" OFF)
+ cmake_dependent_option(
+     USE_GLOO "Use Gloo. Only available if USE_DISTRIBUTED is on." ON
+     "USE_DISTRIBUTED" OFF)
+diff --git a/aten/src/ATen/CMakeLists.txt b/aten/src/ATen/CMakeLists.txt
+index 5710eca27c..c3740266cc 100644
+--- a/aten/src/ATen/CMakeLists.txt
++++ b/aten/src/ATen/CMakeLists.txt
+@@ -241,6 +241,11 @@ if(USE_TBB)
+   list(APPEND ATen_CPU_DEPENDENCY_LIBS TBB::tbb)
+ endif()
+ 
++if(USE_OPENMP)
++  message("ATen is compiled with OPEN_MP (/Users/llv23/opt/miniconda3/lib/libomp.dylib)")
++  list(APPEND ATen_CPU_DEPENDENCY_LIBS /Users/llv23/opt/miniconda3/lib/libomp.dylib)
++endif()
++
+ if(BLAS_FOUND)
+   if($ENV{TH_BINARY_BUILD})
+     message(STATUS "TH_BINARY_BUILD detected. Enabling special linkage.")
+@@ -392,6 +397,7 @@ if(USE_CUDA AND NOT USE_ROCM)
+       ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcufft_static_nocallback.a
+       ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcusolver_static.a
+       ${CUDA_TOOLKIT_ROOT_DIR}/lib64/liblapack_static.a     # needed for libcusolver_static
++      /Users/llv23/opt/miniconda3/lib/libomp.dylib # test parallel for symbol _omp_in_parallel
+       )
+   else()
+     list(APPEND ATen_CUDA_DEPENDENCY_LIBS
+@@ -399,6 +405,7 @@ if(USE_CUDA AND NOT USE_ROCM)
+       ${CUDA_cusparse_LIBRARY}
+       ${CUDA_curand_LIBRARY}
+       ${CUDA_cusolver_LIBRARY}
++      /Users/llv23/opt/miniconda3/lib/libomp.dylib # test parallel for symbol _omp_in_parallel
+       )
+   endif()
+ 
+diff --git a/caffe2/CMakeLists.txt b/caffe2/CMakeLists.txt
+index d57d7ebbd2..acbe2eedda 100644
+--- a/caffe2/CMakeLists.txt
++++ b/caffe2/CMakeLists.txt
+@@ -99,8 +99,8 @@ if(INTERN_BUILD_ATEN_OPS)
+   list(APPEND Caffe2_GPU_INCLUDE ${ATen_CUDA_INCLUDE})
+   list(APPEND Caffe2_HIP_INCLUDE ${ATen_HIP_INCLUDE})
+   list(APPEND Caffe2_VULKAN_INCLUDE ${ATen_VULKAN_INCLUDE})
+-  list(APPEND Caffe2_DEPENDENCY_LIBS ${ATen_CPU_DEPENDENCY_LIBS})
+-  list(APPEND Caffe2_CUDA_DEPENDENCY_LIBS ${ATen_CUDA_DEPENDENCY_LIBS})
++  list(APPEND Caffe2_DEPENDENCY_LIBS ${ATen_CPU_DEPENDENCY_LIBS} /Users/llv23/opt/miniconda3/lib/libomp.dylib)
++  list(APPEND Caffe2_CUDA_DEPENDENCY_LIBS ${ATen_CUDA_DEPENDENCY_LIBS} /Users/llv23/opt/miniconda3/lib/libomp.dylib)
+   list(APPEND Caffe2_HIP_DEPENDENCY_LIBS ${ATen_HIP_DEPENDENCY_LIBS})
+   list(APPEND Caffe2_DEPENDENCY_INCLUDE ${ATen_THIRD_PARTY_INCLUDE})
+ endif()
+@@ -1304,6 +1304,9 @@ if(USE_DISTRIBUTED)
+         "${TORCH_SRC_DIR}/csrc/distributed/c10d/ProcessGroupMPI.cpp"
+         PROPERTIES COMPILE_FLAGS -Wno-deprecated-declarations)
+     endif()
++    if(USE_CUDA_MPI)
++      add_definitions(-DUSE_CUDA_MPI=1)
++    endif()
+     target_compile_definitions(torch_cpu PUBLIC USE_C10D_MPI)
+   endif()
+   # Pass USE_RPC in order to reduce use of
+@@ -1759,7 +1762,7 @@ if(BUILD_TEST)
+   foreach(test_src ${Caffe2_CPU_TEST_SRCS})
+     get_filename_component(test_name ${test_src} NAME_WE)
+     add_executable(${test_name} "${test_src}")
+-    target_link_libraries(${test_name} torch_library gtest_main)
++    target_link_libraries(${test_name} torch_library gtest_main /Users/llv23/opt/miniconda3/lib/libomp.dylib)
+     if(USE_OPENMP)
+       # -fopenmp is a compile time flag and as result not guaranteed
+       # to link executable against OpenMP runtime library
+@@ -1925,6 +1928,9 @@ if(BUILD_PYTHON)
+   add_library(caffe2_pybind11_state MODULE ${Caffe2_CPU_PYTHON_SRCS})
+   if(USE_NUMPY)
+     target_compile_options(caffe2_pybind11_state PRIVATE "-DUSE_NUMPY")
++    # Orlando; refer to how to fix issue: ../caffe2/python/pybind_state.h:27:10: fatal error: 'numpy/arrayobject.h' file not found
++    find_package(Python3 REQUIRED COMPONENTS NumPy)
++    target_include_directories(caffe2_pybind11_state PRIVATE ${Python3_NumPy_INCLUDE_DIRS})
+   endif()
+   if(NOT MSVC)
+     set_target_properties(caffe2_pybind11_state PROPERTIES COMPILE_FLAGS "-fvisibility=hidden")
+diff --git a/caffe2/core/macros.h.in b/caffe2/core/macros.h.in
+index 11fd739b20..da4d6d1422 100644
+--- a/caffe2/core/macros.h.in
++++ b/caffe2/core/macros.h.in
+@@ -25,6 +25,7 @@ static_assert(
+ 
+ #cmakedefine CAFFE2_BUILD_SHARED_LIBS
+ #cmakedefine CAFFE2_FORCE_FALLBACK_CUDA_MPI
++#cmakedefine CAFFE2_USE_CUDA_MPI
+ #cmakedefine CAFFE2_HAS_MKL_DNN
+ #cmakedefine CAFFE2_HAS_MKL_SGEMM_PACK
+ #cmakedefine CAFFE2_PERF_WITH_AVX
+@@ -64,6 +65,7 @@ static_assert(
+   {"CUDNN_VERSION", "${CUDNN_VERSION}"}, \
+   {"USE_NCCL", "${USE_NCCL}"}, \
+   {"USE_MPI", "${USE_MPI}"}, \
++  {"USE_CUDA_MPI", "${USE_CUDA_MPI}"}, \
+   {"USE_GFLAGS", "${USE_GFLAGS}"}, \
+   {"USE_GLOG", "${USE_GLOG}"}, \
+   {"USE_GLOO", "${USE_GLOI}"}, \
+diff --git a/caffe2/mpi/mpi_ops_gpu.cc b/caffe2/mpi/mpi_ops_gpu.cc
+index bb645a5c78..337bed4e2c 100644
+--- a/caffe2/mpi/mpi_ops_gpu.cc
++++ b/caffe2/mpi/mpi_ops_gpu.cc
+@@ -34,7 +34,22 @@ namespace caffe2 {
+ #define CAFFE2_HAS_CUDA_MPI_ALLREDUCE 0
+ #endif // CAFFE2_OMPI_VERSION >= 10805
+ #endif // CAFFE2_OMPI_VERSION >= 2000
+-#else // !OPEN_MPI
++#elif MVAPICH2_NUMVERSION // !OPEN_MPI
++#define CAFFE2_MV2_VERSION MVAPICH2_NUMVERSION
++#if CAFFE2_MV2_VERSION >= 20305300
++#include "mpi-ext.h"
++#if MPIX_CUDA_AWARE_SUPPORT
++#define CAFFE2_HAS_CUDA_MPI_BASICS 1
++#define CAFFE2_HAS_CUDA_MPI_ALLREDUCE 1
++#endif // MPIX_CUDA_AWARE_SUPPORT
++#else //CAFFE2_MV2_VERSION >= 235
++// In the case of MVAPICH2-GDR before 2.3.5, we don't have compile-time flags
++// // to figure out if CUDA is supported; as a result, we will assume that the
++// // user has built MVAPICH2-GDR with CUDA support.
++#define CAFFE2_HAS_CUDA_MPI_BASICS 1
++#define CAFFE2_HAS_CUDA_MPI_ALLREDUCE 1
++#endif //CAFFE2_MV2_VERSION >= 235
++#else // !OPEN_MPI && !MVAPICH_GDR
+ // We have not really tested against other MPI environments, so let's go for a
+ // safe path and basically say we don't have cuda-aware functions.
+ #define CAFFE2_HAS_CUDA_MPI_BASICS 0
+@@ -49,6 +64,14 @@ namespace caffe2 {
+ #define CAFFE2_HAS_CUDA_MPI_ALLREDUCE 0
+ #endif // CAFFE2_FORCE_FALLBACK_CUDA_MPI
+ 
++// We allow a macro to force using CUDA functions
++#ifdef CAFFE2_USE_CUDA_MPI
++#undef CAFFE2_HAS_CUDA_MPI_BASICS
++#undef CAFFE2_HAS_CUDA_MPI_ALLREDUCE
++#define CAFFE2_HAS_CUDA_MPI_BASICS 1
++#define CAFFE2_HAS_CUDA_MPI_ALLREDUCE 1
++#endif // CAFFE2_FORCE_CUDA_MPI
++
+ REGISTER_CUDA_OPERATOR(
+     MPICreateCommonWorld,
+     MPICreateCommonWorldOp<CUDAContext>);
+diff --git a/cmake/Dependencies.cmake b/cmake/Dependencies.cmake
+index 557ab649a4..056882f186 100644
+--- a/cmake/Dependencies.cmake
++++ b/cmake/Dependencies.cmake
+@@ -1122,11 +1122,35 @@ if(USE_MPI)
+       execute_process(COMMAND ${OMPI_INFO}
+                       OUTPUT_VARIABLE _output)
+       if(_output MATCHES "smcuda")
+-        message(STATUS "Found OpenMPI with CUDA support built.")
+       else()
+-        message(WARNING "OpenMPI found, but it is not built with CUDA support.")
+-        set(CAFFE2_FORCE_FALLBACK_CUDA_MPI 1)
++        if(USE_CUDA_MPI)
++          if(USE_CUDA)
++            message(WARNING "OpenMPI with CUDA support not found, but forcing anyway.")
++          else()
++            message(WARNING "Force building for OpenMPI with CUDA.")
++          endif()
++          set(CAFFE2_USE_CUDA_MPI 1)
++        else()
++          message(WARNING "OpenMPI found, but it is not built with CUDA support.")
++          set(CAFFE2_FORCE_FALLBACK_CUDA_MPI 1)
++        endif()
+       endif()
++    else()
++      find_program(MV2_INFO NAMES mpiname HINTS ${MPI_CXX_LIBRARIES}/../bin)
++      if(MV2_INFO)
++          execute_process(COMMAND ${MV2_INFO} "-a" OUTPUT_VARIABLE _output)
++          if(_output MATCHES "enable-cuda")
++              message(STATUS "Found MVAPICH2 with CUDA support built.")
++          else()
++              if(USE_CUDA_MPI)
++                  message(WARNING "MVAPICH2 with CUDA support not found, but forcing anyway.")
++                  set(CAFFE2_USE_CUDA_MPI 1)
++              else()
++                  message(WARNING "MVAPICH2 found, but it is not built with CUDA SUPPORT.")
++                  set(CAFFE2_FORCE_FALLBACK_CUDA_MPI 1)
++              endif()
++          endif()
++      endif()   
+     endif()
+   else()
+     message(WARNING "Not compiling with MPI. Suppress this warning with -DUSE_MPI=OFF")
+diff --git a/cmake/Summary.cmake b/cmake/Summary.cmake
+index 2040120701..2dfe43ecbe 100644
+--- a/cmake/Summary.cmake
++++ b/cmake/Summary.cmake
+@@ -177,6 +177,7 @@ function(caffe2_print_configuration_summary)
+   message(STATUS "  USE_DISTRIBUTED       : ${USE_DISTRIBUTED}")
+   if(${USE_DISTRIBUTED})
+     message(STATUS "    USE_MPI               : ${USE_MPI}")
++    message(STATUS "    USE_CUDA_MPI        : ${USE_CUDA_MPI}")
+     message(STATUS "    USE_GLOO              : ${USE_GLOO}")
+     message(STATUS "    USE_GLOO_WITH_OPENSSL : ${USE_GLOO_WITH_OPENSSL}")
+     message(STATUS "    USE_TENSORPIPE        : ${USE_TENSORPIPE}")
+diff --git a/modules/detectron/CMakeLists.txt b/modules/detectron/CMakeLists.txt
+index bffc074e39..0a4b499b67 100644
+--- a/modules/detectron/CMakeLists.txt
++++ b/modules/detectron/CMakeLists.txt
+@@ -4,7 +4,11 @@ file(GLOB_RECURSE Detectron_HIP_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/*.hip)
+ 
+ if(BUILD_CAFFE2_OPS)
+   if(USE_OPENMP AND OPENMP_FOUND)
+-    Set(OpenMP_link ${OpenMP_CXX_LIBRARIES})
++      if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
++        Set(OpenMP_link -Xpreprocessor -fopenmp /Users/llv23/opt/miniconda3/lib/libomp.dylib /Users/llv23/opt/miniconda3/lib/libgomp.dylib)
++      else()
++        Set(OpenMP_link ${OpenMP_CXX_LIBRARIES})
++      endif()
+   endif()
+ 
+   # Note(ilijar): Since Detectron ops currently have no
+diff --git a/test/cpp/api/CMakeLists.txt b/test/cpp/api/CMakeLists.txt
+index e6d3751a8d..7bbcca6b3c 100644
+--- a/test/cpp/api/CMakeLists.txt
++++ b/test/cpp/api/CMakeLists.txt
+@@ -52,7 +52,11 @@ endif()
+ 
+ add_executable(test_api ${TORCH_API_TEST_SOURCES})
+ target_include_directories(test_api PRIVATE ${ATen_CPU_INCLUDE})
+-target_link_libraries(test_api PRIVATE torch gtest)
++if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
++  target_link_libraries(test_api PRIVATE torch gtest -Xpreprocessor -fopenmp /Users/llv23/opt/miniconda3/lib/libomp.dylib /Users/llv23/opt/miniconda3/lib/libgomp.dylib)
++else()
++  target_link_libraries(test_api PRIVATE torch gtest)
++endif()
+ if(NOT MSVC)
+   target_compile_options(test_api PRIVATE -Wno-unused-variable)
+ endif()
+@@ -62,8 +66,7 @@ if(USE_CUDA)
+     ${CUDA_LIBRARIES}
+     ${CUDA_NVRTC_LIB}
+     ${CUDA_CUDA_LIB}
+-    ${TORCH_CUDA_LIBRARIES}
+-    /usr/local/lib/libomp.dylib)
++    ${TORCH_CUDA_LIBRARIES})
+ 
+   target_compile_definitions(test_api PRIVATE "USE_CUDA")
+ endif()
+diff --git a/torch/csrc/distributed/c10d/ProcessGroupMPI.cpp b/torch/csrc/distributed/c10d/ProcessGroupMPI.cpp
+index 714f3a84de..5846aa15aa 100644
+--- a/torch/csrc/distributed/c10d/ProcessGroupMPI.cpp
++++ b/torch/csrc/distributed/c10d/ProcessGroupMPI.cpp
+@@ -9,7 +9,13 @@
+ #include <c10/core/DeviceGuard.h>
+ #include <c10/util/irange.h>
+ 
+-#if defined(OPEN_MPI) && OPEN_MPI
++// #if defined(OPEN_MPI) && OPEN_MPI
++#ifndef OPEN_MPI
++#define OPEN_MPI 0
++#endif
++//Build flag USE_CUDA_MPI forces CUDA-Aware MPI support and removes run-time checks. 
++//USE_CUDA_MPI is meant for older MPI libraries that don't support MPIX_Query_cuda_support()
++#if (OPEN_MPI || (defined(MVAPICH2_NUMVERSION) && (MVAPICH2_NUMVERSION >= 20205300))) && !USE_CUDA_MPI
+ #include <mpi-ext.h> // Needed for CUDA-aware check
+ #endif
+ 
+@@ -47,18 +53,20 @@ std::map<at::ScalarType, MPI_Datatype> mpiDatatype = {
+ };
+ 
+ // Checking CUDA-aware MPI support, currently we only support CUDA aware
+-// MPI ops through Open MPI
++// MPI ops through Open MPI and MVAPICH2-GDR
+ bool cudaAwareMpiCheck() {
+ // Run time check
+-#if defined(MPIX_CUDA_AWARE_SUPPORT)
++#if !defined(USE_CUDA_MPI) && defined(MPIX_CUDA_AWARE_SUPPORT)
+   if (MPIX_Query_cuda_support() == 1) {
+     return true;
+   } else {
+     return false;
+   }
+-#else // !defined(MPIX_CUDA_AWARE_SUPPORT)
++#elif defined(USE_CUDA_MPI)
++  return true;
++#else // defined(USE_CUDA_MPI)
+   return false;
+-#endif // MPIX_CUDA_AWARE_SUPPORT
++#endif // MPIX_CUDA_AWARE_SUPPORT && !USE_CUDA_MPI
+ }
+ 
+ // Checking the input tensor's validity
+-- 
+2.17.2 (Apple Git-113)
+
