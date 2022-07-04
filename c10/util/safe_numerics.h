@@ -7,7 +7,7 @@
 #include <type_traits>
 
 // GCC has __builtin_mul_overflow from before it supported __has_builtin
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #define C10_HAS_BUILTIN_OVERFLOW() (0)
 #include <c10/util/llvmMathExtras.h>
 #include <intrin.h>
@@ -19,7 +19,12 @@ namespace c10 {
 
 C10_ALWAYS_INLINE bool add_overflows(uint64_t a, uint64_t b, uint64_t* out) {
 #if C10_HAS_BUILTIN_OVERFLOW()
+// https://clang.llvm.org/docs/LanguageExtensions.html#checked-arithmetic-builtins
+#if defined(__APPLE__) && defined(__MACH__)
+  return __builtin_uaddll_overflow(a, b, out);
+#else
   return __builtin_add_overflow(a, b, out);
+#endif
 #else
   unsigned long long tmp;
   auto carry = _addcarry_u64(0, a, b, &tmp);
@@ -30,7 +35,12 @@ C10_ALWAYS_INLINE bool add_overflows(uint64_t a, uint64_t b, uint64_t* out) {
 
 C10_ALWAYS_INLINE bool mul_overflows(uint64_t a, uint64_t b, uint64_t* out) {
 #if C10_HAS_BUILTIN_OVERFLOW()
+// https://clang.llvm.org/docs/LanguageExtensions.html#checked-arithmetic-builtins
+#if defined(__APPLE__) && defined(__MACH__)
+  return __builtin_umulll_overflow(a, b, out);
+#else
   return __builtin_mul_overflow(a, b, out);
+#endif
 #else
   *out = a * b;
   // This test isnt exact, but avoids doing integer division

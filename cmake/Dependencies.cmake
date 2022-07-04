@@ -1049,7 +1049,9 @@ if(BUILD_PYTHON)
 
   # These should fill in the rest of the variables, like versions, but resepct
   # the variables we set above
+  set(CMAKE_PREFIX_PATH "/Users/llv23/opt/miniconda3")
   set(Python_ADDITIONAL_VERSIONS ${PYTHON_VERSION} 3.8 3.7)
+  # set(Python_ADDITIONAL_VERSIONS ${PYTHON_VERSION} 3.8)
   find_package(PythonInterp 3.0)
   find_package(PythonLibs 3.0)
 
