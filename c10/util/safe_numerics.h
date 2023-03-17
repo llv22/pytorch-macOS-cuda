@@ -19,7 +19,12 @@ namespace c10 {
 
 C10_ALWAYS_INLINE bool add_overflows(uint64_t a, uint64_t b, uint64_t* out) {
 #if C10_HAS_BUILTIN_OVERFLOW()
+// https://clang.llvm.org/docs/LanguageExtensions.html#checked-arithmetic-builtins
+#if defined(__APPLE__) && defined(__MACH__)
+  return __builtin_uaddll_overflow(a, b, out);
+#else
   return __builtin_add_overflow(a, b, out);
+#endif
 #else
   unsigned long long tmp;
 #if defined(_M_IX86) || defined(_M_X64)
@@ -36,7 +41,12 @@ C10_ALWAYS_INLINE bool add_overflows(uint64_t a, uint64_t b, uint64_t* out) {
 
 C10_ALWAYS_INLINE bool mul_overflows(uint64_t a, uint64_t b, uint64_t* out) {
 #if C10_HAS_BUILTIN_OVERFLOW()
+// https://clang.llvm.org/docs/LanguageExtensions.html#checked-arithmetic-builtins
+#if defined(__APPLE__) && defined(__MACH__)
+  return __builtin_umulll_overflow(a, b, out);
+#else
   return __builtin_mul_overflow(a, b, out);
+#endif
 #else
   *out = a * b;
   // This test isnt exact, but avoids doing integer division

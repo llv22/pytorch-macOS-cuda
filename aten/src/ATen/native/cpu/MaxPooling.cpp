@@ -10,6 +10,16 @@ namespace at::native {
 
 namespace {
 
+#if defined(__APPLE__) && defined(__MACH__)
+template<typename T>
+inline bool isnan_(T x) {
+  return std::isnan(x);
+  }
+inline bool isnan_(const c10::BFloat16 x) {
+  return std::isnan(x.x);
+}
+#endif
+
 template <typename scalar_t>
 inline void max_pool1d_kernel(
     scalar_t* C10_RESTRICT op,
@@ -21,7 +31,11 @@ inline void max_pool1d_kernel(
     int64_t ij = p.index(kj, oj);
     for (; oj < oe; ++oj, ij += p.SJ) {
       scalar_t val = ip[ij];
+#if defined(__APPLE__) && defined(__MACH__)
+      bool update_max = isnan_(val) || op[oj] < val;
+#else
       bool update_max = std::isnan(val) || op[oj] < val;
+#endif
       op[oj] = update_max ? val : op[oj];
     }
   }
