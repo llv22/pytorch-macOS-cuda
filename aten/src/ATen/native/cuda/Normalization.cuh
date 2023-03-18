@@ -1739,4 +1739,4 @@ at::Tensor batch_norm_backward_elemt_channels_last_cuda_template(
   return grad_input;
 }
 
-} } // namespace at::native
+}} // namespace at::native

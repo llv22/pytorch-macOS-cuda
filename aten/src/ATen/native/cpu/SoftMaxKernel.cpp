@@ -26,7 +26,7 @@
 //
 // We use a chunk size such that it'd fit in L1D.
 
-namespace at::native {
+namespace at { namespace native {
 
 namespace {
 template <typename scalar_t>
@@ -1294,4 +1294,4 @@ REGISTER_DISPATCH(softmax_backward_kernel, &softmax_backward_kernel_impl);
 REGISTER_DISPATCH(
     log_softmax_backward_kernel,
     &log_softmax_backward_kernel_impl);
-} // namespace at::native
+}} // namespace at::native

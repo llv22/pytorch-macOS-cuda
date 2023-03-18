@@ -4,7 +4,7 @@
 #include <ATen/native/TensorCompare.h>
 #include <ATen/native/Resize.h>
 
-namespace at::native {
+namespace at { namespace native {
 namespace mps {
 
 struct CachedGraph : public MPSCachedGraph
@@ -541,4 +541,4 @@ Tensor& nan_to_num_out_mps(const Tensor& self,
   return result;
 }
 
-} // namespace at::native
+}} // namespace at::native

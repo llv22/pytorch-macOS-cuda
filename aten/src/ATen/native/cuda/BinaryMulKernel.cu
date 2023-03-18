@@ -16,7 +16,7 @@
 // NOTE: CUDA on Windows requires that the enclosing function
 // of a __device__ lambda not have internal linkage.
 
-namespace at::native {
+namespace at { namespace native {
 
 CONSTEXPR_EXCEPT_WIN_CUDA char mul_name[] = "mul_kernel";
 void mul_kernel_cuda(TensorIteratorBase& iter) {
@@ -45,4 +45,4 @@ void mul_kernel_cuda(TensorIteratorBase& iter) {
 
 REGISTER_DISPATCH(mul_stub, &mul_kernel_cuda);
 
-} // namespace at::native
+}} // namespace at::native

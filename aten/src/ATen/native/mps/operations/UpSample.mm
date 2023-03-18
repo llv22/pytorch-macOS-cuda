@@ -4,7 +4,7 @@
 #include <ATen/native/mps/MPSGraphVenturaOps.h>
 #include <ATen/native/UpSample.h>
 
-namespace at::native {
+namespace at { namespace native {
 namespace mps {
 
 // Upsampling operations (1D/2D forward and backward)
@@ -397,4 +397,4 @@ TORCH_IMPL_FUNC(upsample_bilinear2d_backward_out_mps) (
   }
 }
 
-} // namespace at::native
+}} // namespace at::native

@@ -177,11 +177,13 @@ class TORCH_CUDA_CPP_API CuSparseSpMatCsrDescriptor
 
   std::tuple<int64_t, int64_t, int64_t> get_size() {
     int64_t rows, cols, nnz;
+#if CUDA_VERSION >= 11000
     TORCH_CUDASPARSE_CHECK(cusparseSpMatGetSize(
         this->descriptor(),
         &rows,
         &cols,
         &nnz));
+#endif
     return std::make_tuple(rows, cols, nnz);
   }
 
@@ -193,11 +195,13 @@ class TORCH_CUDA_CPP_API CuSparseSpMatCsrDescriptor
     TORCH_INTERNAL_ASSERT_DEBUG_ONLY(crow_indices.is_contiguous());
     TORCH_INTERNAL_ASSERT_DEBUG_ONLY(col_indices.is_contiguous());
     TORCH_INTERNAL_ASSERT_DEBUG_ONLY(values.is_contiguous());
+#if CUDA_VERSION >= 11000
     TORCH_CUDASPARSE_CHECK(cusparseCsrSetPointers(
         this->descriptor(),
         crow_indices.data_ptr(),
         col_indices.data_ptr(),
         values.data_ptr()));
+#endif
   }
 
 #if AT_USE_CUSPARSE_GENERIC_SPSV()
@@ -241,13 +245,15 @@ class TORCH_CUDA_CPP_API CuSparseSpSMDescriptor
  public:
   CuSparseSpSMDescriptor() {
     cusparseSpSMDescr_t raw_descriptor;
+#if CUDA_VERSION >= 11000
     TORCH_CUDASPARSE_CHECK(cusparseSpSM_createDescr(&raw_descriptor));
+#endif
     descriptor_.reset(raw_descriptor);
   }
 };
 #endif
-
-#if (defined(USE_ROCM) && ROCM_VERSION >= 50200) || !defined(USE_ROCM)
+ 
+#if (defined(USE_ROCM) && ROCM_VERSION >= 50200) || ( !defined(USE_ROCM) && CUDA_VERSION >= 11000 )
 class TORCH_CUDA_CPP_API CuSparseSpGEMMDescriptor
     : public CuSparseDescriptor<cusparseSpGEMMDescr, &cusparseSpGEMM_destroyDescr> {
  public:

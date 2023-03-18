@@ -25,7 +25,7 @@
 #include <cmath>
 #include <fstream>
 
-namespace torch {
+namespace torch { 
 namespace jit {
 namespace fuser {
 namespace cuda {
@@ -363,7 +363,7 @@ void fillTensorWithNan(at::Tensor& t) {
       t.fill_(0x7FFFFFFF);
       break;
     case at::ScalarType::Long:
-      t.fill_(0x7FFFFFFFFFFFFFFFL);
+      t.fill_((int64_t)0x7FFFFFFFFFFFFFFFl);
       break;
     case at::ScalarType::Bool:
       t.fill_(true);

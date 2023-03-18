@@ -12,7 +12,7 @@
 #import <MetalPerformanceShadersGraph/MPSGraphRNNOps.h>
 #include <torch/library.h>
 
-namespace at::native {
+namespace at { namespace native {
 
 std::vector<long long> getTensorShape(MPSGraphTensor* mpsTensor) {
     std::vector<long long> output_dimensions = {};

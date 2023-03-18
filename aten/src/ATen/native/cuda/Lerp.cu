@@ -6,7 +6,7 @@
 #include <ATen/native/cuda/JitLoops.cuh>
 #include <ATen/OpMathType.h>
 
-namespace at::native {
+namespace at { namespace native {
 namespace {
 
 CONSTEXPR_EXCEPT_WIN_CUDA char lerp_tensor_name[] = "lerp_tensor";
@@ -124,4 +124,4 @@ void lerp_scalar_kernel(at::TensorIteratorBase& iter, const c10::Scalar& weight)
 REGISTER_DISPATCH(lerp_kernel_tensor_weight, &lerp_tensor_kernel);
 REGISTER_DISPATCH(lerp_kernel_scalar_weight, &lerp_scalar_kernel);
 
-} // namespace at::native
+}} // namespace at::native

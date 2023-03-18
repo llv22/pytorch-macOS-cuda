@@ -9,7 +9,7 @@
 #include <ATen/native/ConvUtils.h>
 #include <torch/library.h>
 
-namespace at::native {
+namespace at { namespace native {
 
 void fill_depthwise_conv_desc(MPSGraphDepthwiseConvolution3DOpDescriptor* descriptor_,
                     NSUInteger strideInX, NSUInteger strideInY,
@@ -618,4 +618,4 @@ std::tuple<Tensor,Tensor> mps_convolution_transpose_backward(
 }
 
 
-} // namespace at::native
+}} // namespace at::native

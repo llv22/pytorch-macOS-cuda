@@ -9,7 +9,7 @@
 #include <ATen/native/Resize.h>
 #include <ATen/native/mps/Copy.h>
 #include <ATen/native/mps/TensorFactory.h>
-namespace at::native {
+namespace at { namespace native {
 
 static inline void maybe_resize_storage_mps(TensorImpl* self, uint64_t new_size) {
   if (new_size == 0) {
@@ -134,4 +134,4 @@ Tensor& set_storage_mps_(Tensor& result, Storage storage, int64_t storage_offset
   return result;
 }
 
-} // namespace at::native
+}} // namespace at::native

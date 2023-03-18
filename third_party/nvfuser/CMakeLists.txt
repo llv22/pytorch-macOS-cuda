@@ -317,7 +317,12 @@ if(BUILD_TEST AND USE_CUDA)
   target_include_directories(${NVFUSER_TESTS} PRIVATE "${NVFUSER_ROOT}" "${TORCH_ROOT}/torch/csrc/api/include/")
   target_link_libraries(${NVFUSER_TESTS} PRIVATE ${NVFUSER_CODEGEN} torch ${TORCHLIB_FLAVOR} gtest_main gmock_main)
   if(NOT MSVC)
-    target_compile_options(${NVFUSER_TESTS} PRIVATE -Wno-unused-variable)
+    if (USE_CUDA)
+      # see: nvvc doesn't support -Wno-unused-variable
+      target_compile_options(${NVFUSER_TESTS} PRIVATE "")
+    else()
+      target_compile_options(${NVFUSER_TESTS} PRIVATE -Wno-unused-variable)
+    endif()
   endif()
 
   install(TARGETS ${NVFUSER_TESTS} DESTINATION bin)

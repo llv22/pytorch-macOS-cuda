@@ -438,4 +438,4 @@ private:
 
 REGISTER_MPS_ALLOCATOR_CALLBACK("mps_graph_cache_callback", MPSGraphCacheCallback);
 
-} // namespace at::native::mps
+}} // namespace at::native::mps

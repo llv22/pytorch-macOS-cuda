@@ -5,7 +5,7 @@
 #include <c10/util/Optional.h>
 
 
-namespace at::native {
+namespace at { namespace native {
 
 TORCH_IMPL_FUNC(linalg_inv_ex_out_mps)(const Tensor& A, bool check_errors, const Tensor& result, const Tensor& info)
 {
@@ -87,4 +87,4 @@ TORCH_IMPL_FUNC(linalg_inv_ex_out_mps)(const Tensor& A, bool check_errors, const
     }
 }
 
-} // namespace at::native
+}} // namespace at::native

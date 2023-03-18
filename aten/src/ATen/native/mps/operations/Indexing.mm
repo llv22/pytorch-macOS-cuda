@@ -27,7 +27,7 @@
 #include <MetalPerformanceShaders/MetalPerformanceShaders.h>
 #endif
 
-namespace at::native {
+namespace at { namespace native {
 
 static
 bool dispatchIndexKernel(TensorIteratorBase& iter,
@@ -944,4 +944,4 @@ Tensor & masked_fill__mps(Tensor& self, const Tensor & mask, const Tensor & valu
 
 REGISTER_DISPATCH(index_stub, &index_kernel_mps);
 REGISTER_DISPATCH(index_put_stub, &index_put_kernel_mps);
-} // namespace at::native
+}} // namespace at::native

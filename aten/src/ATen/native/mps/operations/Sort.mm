@@ -7,7 +7,7 @@
 #include <ATen/native/mps/OperationUtils.h>
 #include <ATen/native/mps/MPSGraphVenturaOps.h>
 
-namespace at::native {
+namespace at { namespace native {
 
 // sort
 TORCH_IMPL_FUNC(sort_stable_out_mps)

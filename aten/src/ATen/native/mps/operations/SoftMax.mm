@@ -13,7 +13,7 @@
 #include <MetalPerformanceShaders/MetalPerformanceShaders.h>
 #endif
 
-namespace at::native {
+namespace at { namespace native {
 
 void get_shapes(MPSShape* input_shape_readonly,
                 NSMutableArray<NSNumber*>* &input_shape,
@@ -271,4 +271,4 @@ TORCH_IMPL_FUNC(softmax_backward_mps_out)
   }
 }
 
-} // namespace at::native
+}} // namespace at::native

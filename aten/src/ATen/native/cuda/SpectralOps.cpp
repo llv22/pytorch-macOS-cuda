@@ -30,7 +30,8 @@
 #include <vector>
 
 
-namespace at::native {
+namespace at { 
+namespace native {
 
 using namespace at::native::detail;
 
@@ -534,4 +535,4 @@ Tensor& _fft_c2c_cufft_out(const Tensor& self, IntArrayRef dim,
 }
 
 
-} // at::native
+}} // at::native

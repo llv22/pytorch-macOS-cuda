@@ -26,7 +26,7 @@ void check_supported_cuda_type(cudaDataType cuda_type) {
         prop->minor,
         ")");
   }
-#if !defined(USE_ROCM)
+#if !defined(USE_ROCM) && defined(CUDA_VERSION) && CUDA_VERSION >= 11000
   if (cuda_type == CUDA_R_16BF) {
     cudaDeviceProp* prop = at::cuda::getCurrentDeviceProperties();
     TORCH_CHECK(
@@ -177,7 +177,7 @@ CuSparseSpMatCsrDescriptor::CuSparseSpMatCsrDescriptor(const Tensor& input, int6
       value_type // data type of values
       ));
 
-#if AT_USE_HIPSPARSE_GENERIC_52_API() || !defined(USE_ROCM)
+#if (AT_USE_HIPSPARSE_GENERIC_52_API() || !defined(USE_ROCM)) && defined(CUDA_VERSION) && CUDA_VERSION >= 11000
   if (ndim == 3 && batch_offset == -1) {
     int batch_count =
         at::native::cuda_int_cast(at::native::batchCount(input), "batch_count");

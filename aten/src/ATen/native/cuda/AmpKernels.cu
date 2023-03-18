@@ -35,7 +35,7 @@ static __host__ __device__ __forceinline__ int isfinite_ensure_cuda_math(float v
 }
 }
 
-namespace at::native {
+namespace at { namespace native {
 
 namespace {
 // Single-tensor fallback for _amp_foreach_non_finite_check_and_unscale_cuda_.
@@ -245,4 +245,4 @@ Tensor& _amp_update_scale_cuda_(Tensor& current_scale,
   return current_scale;
 }
 
-} // namespace at::native
+}} // namespace at::native

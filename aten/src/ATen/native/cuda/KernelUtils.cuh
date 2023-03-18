@@ -1,7 +1,8 @@
 #pragma once
 #include <ATen/cuda/Atomic.cuh>
 
-#if !(defined(USE_ROCM) || ((defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 800))))
+// #if (!(defined(USE_ROCM) || ((defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 800))))) && CUDA_VERSION >= 11000
+#if CUDA_VERSION >= 11000
 #include <cuda_bf16.h>
 #endif
 
@@ -78,7 +79,8 @@ __device__ __forceinline__ void fastSpecializedAtomicAdd(
     scalar_t value) {
 #if (                      \
     (defined(USE_ROCM)) || \
-    (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 800)))
+    (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 800))) || \
+    CUDA_VERSION < 11000
   gpuAtomicAddNoReturn(
       reinterpret_cast<at::BFloat16*>(tensor) + index,
       static_cast<at::BFloat16>(value));

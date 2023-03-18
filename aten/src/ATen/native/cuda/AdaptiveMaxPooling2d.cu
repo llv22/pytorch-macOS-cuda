@@ -23,8 +23,7 @@
 #include <cmath>
 
 
-namespace at::native {
-
+namespace at { namespace native {
 namespace {
 
 __device__ inline int64_t start_index(int64_t a, int64_t b, int64_t c) {
@@ -471,4 +470,4 @@ TORCH_IMPL_FUNC(adaptive_max_pool2d_backward_out_cuda)
     gradInput.copy_(gradInput_c);
   }
  }
-} // namespace at::native
+}} // namespace at::native

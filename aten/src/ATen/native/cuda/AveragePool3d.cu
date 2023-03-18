@@ -21,7 +21,7 @@
 #endif
 
 
-namespace at::native {
+namespace at { namespace native {
 namespace {
 
 __device__ inline int min(int a, int b) {
@@ -603,4 +603,4 @@ TORCH_IMPL_FUNC(avg_pool3d_backward_out_cuda) (
   }
 }
 
-} // at::native
+}} // at::native

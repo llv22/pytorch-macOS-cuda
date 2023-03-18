@@ -28,7 +28,7 @@
 #include <ATen/ops/_softmax_backward_data.h>
 #endif
 
-namespace at::native {
+namespace at { namespace native {
 
 namespace {
 
@@ -1113,4 +1113,4 @@ Tensor masked_softmax_backward_cuda(
   return grad_input;
 }
 
-} // namespace at::native
+}} // namespace at::native

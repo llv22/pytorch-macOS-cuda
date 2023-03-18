@@ -30,7 +30,7 @@
 #include <ATen/ops/vdot_native.h>
 #endif
 
-namespace at::native {
+namespace at { namespace native {
 
 namespace {
 
@@ -672,4 +672,4 @@ TORCH_IMPL_FUNC(addmv_out_cuda)(const Tensor &self, const Tensor &mat, const Ten
   }
 }
 
-} // namespace at::native
+}} // namespace at::native

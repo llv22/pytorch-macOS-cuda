@@ -16,7 +16,7 @@
 
 #if !AT_MKLDNN_ENABLED()
 
-namespace at::native {
+namespace at { namespace native {
 
 
 std::tuple<Tensor, Tensor, Tensor, Tensor> mkldnn_rnn_layer(
@@ -68,14 +68,14 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor> mkldnn_rnn_la
 
 REGISTER_NO_CPU_DISPATCH(lstm_mkldnn_stub);
 
-} // namespace at::native
+}} // namespace at::native
 
 #else // AT_MKLDNN_EBABLED
 
 #include <ATen/native/mkldnn/MKLDNNCommon.h>
 #include <ATen/native/mkldnn/Utils.h>
 
-namespace at::native {
+namespace at { namespace native {
 
 struct RNNParams {
   ideep::rnn_kind mode;
@@ -571,6 +571,6 @@ void lstm_mkldnn(Tensor& output, Tensor& hy, Tensor& cy,
 
 REGISTER_ALL_CPU_DISPATCH(lstm_mkldnn_stub, &lstm_mkldnn);
 
-} // namespace at::native
+}} // namespace at::native
 
 #endif // AT_MKLDNN_EBABLED

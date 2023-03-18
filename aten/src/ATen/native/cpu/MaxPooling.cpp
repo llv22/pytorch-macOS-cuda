@@ -6,7 +6,7 @@
 #include <ATen/native/MaxPooling.h>
 #include <c10/util/irange.h>
 
-namespace at::native {
+namespace at { namespace native {
 
 namespace {
 
@@ -70,4 +70,4 @@ void max_pool1d_impl(
 
 REGISTER_DISPATCH(max_pool1d_stub, &max_pool1d_impl);
 
-} // namespace at::native
+}} // namespace at::native

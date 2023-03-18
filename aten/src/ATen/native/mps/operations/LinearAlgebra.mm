@@ -4,7 +4,7 @@
 #include <ATen/native/LinearAlgebraUtils.h>
 #include <ATen/native/Resize.h>
 
-namespace at::native {
+namespace at { namespace native {
 
 /*
  * Helper functions to be used for mm/addmm for detecting the Transpositions
@@ -842,4 +842,4 @@ TORCH_IMPL_FUNC(triangular_solve_mps_out)(const Tensor& self, const Tensor& A, b
   result.copy_(out);
 }
 
-} // namespace at::native
+}} // namespace at::native

@@ -7,7 +7,7 @@
 #include <ATen/native/TensorIterator.h>
 #include <ATen/native/cpu/Loops.h>
 
-namespace at::native {
+namespace at { namespace native {
 inline namespace CPU_CAPABILITY {
     static void scaled_modified_bessel_k1_kernel(TensorIteratorBase& iterator) {
         TORCH_INTERNAL_ASSERT(iterator.ntensors() == 2);
@@ -21,4 +21,4 @@ inline namespace CPU_CAPABILITY {
 } // namespace CPU_CAPABILITY
 
 REGISTER_DISPATCH(special_scaled_modified_bessel_k1_stub, &CPU_CAPABILITY::scaled_modified_bessel_k1_kernel);
-} // namespace at::native
+}} // namespace at::native

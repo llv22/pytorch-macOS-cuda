@@ -7,7 +7,7 @@
 #include <ATen/native/mps/OperationUtils.h>
 #include <ATen/native/mps/MPSGraphVenturaOps.h>
 
-namespace at::native {
+namespace at { namespace native {
 
 // Produces a shape with the `dim` dimension set to 0.
 std::vector<int64_t> getTopK0Shape(IntArrayRef sizes, const int64_t dim_) {
@@ -445,4 +445,4 @@ TORCH_IMPL_FUNC(cat_out_mps)
   }
 }
 
-} // namespace at::native
+}} // namespace at::native

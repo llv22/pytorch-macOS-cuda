@@ -9,7 +9,7 @@
 #include <cmath>
 #include <limits>
 
-namespace at::native {
+namespace at { namespace native {
 
 // custom min and max to be used in logcumsumexp for complex arguments
 template <typename scalar_t, bool min>
@@ -116,4 +116,4 @@ void launch_logcumsumexp_cuda_kernel(const TensorBase& result, const TensorBase&
       });
 }
 
-} // namespace at::native
+}} // namespace at::native

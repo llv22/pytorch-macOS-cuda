@@ -28,7 +28,7 @@
 #include <mkl.h>
 #endif
 
-namespace at::native {
+namespace at { namespace native {
 
 inline namespace CPU_CAPABILITY {
 
@@ -802,4 +802,4 @@ IMPLEMENT_FLOAT_KERNEL(trunc)
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables,modernize-avoid-c-arrays,cppcoreguidelines-avoid-c-arrays)
 IMPLEMENT_FLOAT_KERNEL(lgamma)
 
-} // namespace at::native
+}} // namespace at::native

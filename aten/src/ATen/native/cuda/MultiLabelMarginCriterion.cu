@@ -18,7 +18,7 @@
 #endif
 
 
-namespace at::native {
+namespace at { namespace native {
 
 namespace {
 const int MULTILABELMARGIN_THREADS = 128;
@@ -440,4 +440,4 @@ Tensor multilabel_margin_loss_backward_cuda(
   return grad_input;
 }
 
-} // namespace at::native
+}} // namespace at::native

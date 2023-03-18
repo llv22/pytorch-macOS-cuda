@@ -15,7 +15,7 @@
 #include <MetalPerformanceShaders/MetalPerformanceShaders.h>
 #endif
 
-namespace at::native {
+namespace at { namespace native {
 
 Tensor permute_mps(const Tensor& self, IntArrayRef dims) {
   auto nDims = self.dim();

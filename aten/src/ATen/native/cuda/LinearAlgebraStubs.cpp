@@ -29,7 +29,7 @@ struct MagmaInitializer {
 }  // namespace (anonymous)
 #endif
 #endif
-namespace at::native {
+namespace at { namespace native {
 #if defined(BUILD_LAZY_CUDA_LINALG)
 namespace {
 cuda::detail::LinalgDispatch disp = {_cholesky_solve_helper_cuda};
@@ -175,4 +175,4 @@ Tensor _cholesky_solve_helper_cuda(const Tensor& self, const Tensor& A, bool upp
 
 #endif /*defined(BUILD_LAZY_CUDA_LINALG)*/
 
-} // namespace at::native
+}} // namespace at::native
