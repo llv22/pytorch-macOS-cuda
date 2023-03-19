@@ -2,6 +2,8 @@
 <!-- markdownlint-disable MD004 -->
 <!-- markdownlint-disable MD029 -->
 # Pytorch 2.0.0 with Nvidia GPU on macOS
+--------------------------------------------------------------------------------
+[Features of pytorch 2.0](https://pytorch.org/blog/Accelerating-Hugging-Face-and-TIMM-models/) requires trions of [openAI triton](https://github.com/openai/triton), which needs NVIDIA GPUs (Compute Capability 7.0+, refer to https://developer.nvidia.com/cuda-gpus). In order to support the compilation via cuda, the hardware of eGPU needs to upgrade to 2080i +, like sales in [gaming box of 2080i](https://www.amazon.com/Embedded-Thunderbolt-Waterforce-Controller-Gv-N208TIXEB-11GC/dp/B07ZS9GZRY/ref=sr_1_5?crid=38RK3T5BAKIGN&keywords=gigabyte+gaming+box&qid=1679248280&s=pc&sprefix=gigabyte+gaming+box%2Ccomputers%2C147&sr=1-5). 
 
 --------------------------------------------------------------------------------
 As officially Pytorch doesn't support for macOS cuda, I used this repository to build pytorch on macOS cuda. **This branch v2.0.0-tensorpipe-fixed branch is the current stable branch** with MPI+CUDA enabled.
