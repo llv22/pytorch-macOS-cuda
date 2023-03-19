@@ -1,7 +1,7 @@
 <!-- markdownlint-disable MD033 -->
 <!-- markdownlint-disable MD004 -->
 <!-- markdownlint-disable MD029 -->
-# pytorch 2.0.0 with Nvidia GPU on macOS
+# Pytorch 2.0.0 with Nvidia GPU on macOS
 
 --------------------------------------------------------------------------------
 As officially Pytorch doesn't support for macOS cuda, I used this repository to build pytorch on macOS cuda. **This branch v2.0.0-tensorpipe-fixed branch is the current stable branch** with MPI+CUDA enabled.
