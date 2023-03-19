@@ -4,7 +4,7 @@
 # pytorch 2.0.0 with Nvidia GPU on macOS
 
 --------------------------------------------------------------------------------
-As officially Pytorch doesn't support for macOS cuda, I used this repository to build pytorch on macOS cuda. **This branch 1.12.0-fixed branch is the current stable branch** with MPI+CUDA enabled.
+As officially Pytorch doesn't support for macOS cuda, I used this repository to build pytorch on macOS cuda. **This branch v2.0.0-tensorpipe-fixed branch is the current stable branch** with MPI+CUDA enabled.
 
 - macOS 10.13.6, cuda 10.1, cudnn 7.6.5 (cuda and cudnn is the last official version which Nvidia released to support macOS)
 - [NCCL on macOS 2.9.6.1](https://github.com/llv22/nccl-osx) and [test suite](https://github.com/llv22/nccl-tests-macOS-cuda)
