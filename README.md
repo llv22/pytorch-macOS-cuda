@@ -22,7 +22,7 @@ As officially Pytorch doesn't support for macOS cuda, I used this repository to 
 --     USE_CUDA_MPI          : ON
 ```
 
-Consolidating [torch-2.0.0-mac-with-tensorpipe-cuda-mpi-enabling.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v2.0.0-fixed/mac-with-tensorpipe-cuda-mpi-enabling.patch) by
+Consolidating [torch-2.0.0-mac-with-tensorpipe-cuda-mpi-enabling.patch]([https://github.com/llv22/pytorch-macOS-cuda/blob/v2.0.0-fixed/mac-with-tensorpipe-cuda-mpi-enabling.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v2.0.0-tensorpipe-fixed/torch-2.0.0-mac-with-tensorpipe-cuda-mpi-enabling.patch)) by
 
 ```bash
 git format-patch -5 --stdout > torch-2.0.0-mac-with-tensorpipe-cuda-mpi-enabling.patch
