@@ -58,7 +58,7 @@ std::optional<TempFile> try_make_tempfile(std::string_view name_prefix) {
 #if defined(_WIN32)
   return TempFile(std::move(filename));
 #else
-  const int fd = mkstemp(filename.data());
+  const int fd = mkstemp((char*)(filename.data()));
   if (fd == -1) {
     return std::nullopt;
   }
@@ -94,7 +94,7 @@ std::optional<TempDir> try_make_tempdir(std::string_view name_prefix) {
   return std::nullopt;
 #else
   auto filename = make_filename(name_prefix);
-  const char* dirname = mkdtemp(filename.data());
+  const char* dirname = mkdtemp((char*)(filename.data()));
   if (!dirname) {
     return std::nullopt;
   }

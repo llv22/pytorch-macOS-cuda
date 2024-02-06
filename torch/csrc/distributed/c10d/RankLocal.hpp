@@ -1,6 +1,9 @@
 
 #pragma once
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <mutex>
+#endif
 #include <shared_mutex>
 
 #include <torch/csrc/autograd/function.h>
@@ -31,6 +34,25 @@ class RankLocal {
     const auto node = torch::autograd::get_current_node();
     auto fwd_thread_id = node == nullptr ? at::RecordFunction::currentThreadId()
                                          : node->thread_id();
+#if defined(__APPLE__) && defined(__MACH__)
+    std::lock_guard lock(lock_);
+    {
+      auto it = thread_id_to_rank_local_.find(fwd_thread_id);
+      if (it != thread_id_to_rank_local_.end()) {
+        // Cache for non-autograd threads
+        if (node == nullptr) {
+          cached_ = &it->second;
+        }
+        return it->second;
+      }
+    }
+    auto [it, _] = thread_id_to_rank_local_.try_emplace(fwd_thread_id);
+    // Cache for non-autograd threads
+    if (node == nullptr) {
+      cached_ = &it->second;
+    }
+    return it->second;
+#else
     // Optimistically aquire the read lock first, since most likely we are in
     // an autograd thread and the object has already been constructed.
     {
@@ -52,13 +74,18 @@ class RankLocal {
       cached_ = &it->second;
     }
     return it->second;
+#endif
   }
 
  private:
   RankLocal(){};
   thread_local static T* cached_;
   static std::unordered_map<uint64_t, T> thread_id_to_rank_local_;
+#if defined(__APPLE__) && defined(__MACH__)
+  static std::mutex lock_;
+#else
   static std::shared_mutex lock_;
+#endif
 };
 
 template <typename T>
@@ -67,7 +94,12 @@ thread_local T* RankLocal<T>::cached_ = nullptr;
 template <typename T>
 std::unordered_map<uint64_t, T> RankLocal<T>::thread_id_to_rank_local_;
 
+#if defined(__APPLE__) && defined(__MACH__)
+template <typename T>
+std::mutex RankLocal<T>::lock_;
+#else
 template <typename T>
 std::shared_mutex RankLocal<T>::lock_;
+#endif
 
 } // namespace c10d

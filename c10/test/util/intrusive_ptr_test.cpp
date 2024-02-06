@@ -21,6 +21,7 @@ using c10::weak_intrusive_ptr;
 #ifdef __clang__
 #pragma clang diagnostic ignored "-Wself-assign-overloaded"
 #endif
+
 // NOLINTBEGIN(clang-analyzer-cplusplus*)
 namespace {
 class SomeClass0Parameters : public intrusive_ptr_target {};
@@ -91,7 +92,7 @@ static_assert(NullType1::singleton() != NullType2::singleton());
 } // namespace
 
 static_assert(
-    std::is_same_v<SomeClass, intrusive_ptr<SomeClass>::element_type>,
+    std::is_same<SomeClass, intrusive_ptr<SomeClass>::element_type>::value,
     "intrusive_ptr<T>::element_type is wrong");
 
 TEST(MakeIntrusiveTest, ClassWith0Parameters) {
@@ -1715,7 +1716,7 @@ struct WeakReferenceToSelf : public intrusive_ptr_target {
 } // namespace
 
 static_assert(
-    std::is_same_v<SomeClass, weak_intrusive_ptr<SomeClass>::element_type>,
+    std::is_same<SomeClass, weak_intrusive_ptr<SomeClass>::element_type>::value,
     "weak_intrusive_ptr<T>::element_type is wrong");
 
 TEST(

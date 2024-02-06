@@ -4,6 +4,15 @@
 
 #include <utility>
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+namespace std {
+  using ::c10::get_if;
+}// namespace std
+#else
+#include <variant>
+#endif
+
 // SHAPE CACHING CODE
 namespace torch {
 namespace jit {

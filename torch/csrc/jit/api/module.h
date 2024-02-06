@@ -90,7 +90,9 @@ struct TORCH_API Module : public Object {
   Module() = default;
   Module(const Module&) = default;
   Module& operator=(const Module&) = default;
+#if !defined(__APPLE__) and !defined(__MACH__)
   Module(Module&&) noexcept = default;
+#endif
   Module& operator=(Module&&) noexcept = default;
   Module(
       c10::QualifiedName,

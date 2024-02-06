@@ -6,7 +6,8 @@
 
 #include <ATen/NumericUtils.h>
 
-#if !(defined(USE_ROCM) || ((defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 800))))
+// #if !(defined(USE_ROCM) || ((defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 800)))) && CUDA_VERSION >= 11000
+#if CUDA_VERSION >= 11000
 #include <cuda_bf16.h>
 #endif
 
@@ -220,7 +221,7 @@ static inline  __device__ at::Half gpuAtomicAdd(at::Half *address, at::Half val)
 }
 
 static inline __device__ at::BFloat16 gpuAtomicAdd(at::BFloat16 *address, at::BFloat16 val) {
-#if defined(USE_ROCM) || ((defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 800)))
+#if defined(USE_ROCM) || ((defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 800))) || CUDA_VERSION < 11000
 return AtomicFPOp<at::BFloat16>()(address, val,
                                   [](at::BFloat16 bsum, at::BFloat16 val) {
                                     return bsum + val;

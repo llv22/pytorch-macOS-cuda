@@ -17,6 +17,17 @@
 #include <cstddef>
 #include <vector>
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+namespace std {
+  using ::c10::variant;
+  using ::c10::holds_alternative;
+  using ::c10::get_if;
+}// namespace std
+#else
+#include <variant>
+#endif
+
 namespace torch {
 namespace nn {
 
@@ -42,6 +53,38 @@ class ConvNdImpl : public torch::nn::Cloneable<Derived> {
         options.out_channels() % options.groups() == 0,
         "out_channels must be divisible by groups");
 
+#if defined(__APPLE__) && defined(__MACH__)
+    c10::visit(
+        c10::overloaded(
+            [&](enumtype::kValid) {
+              _reversed_padding_repeated_twice.resize(2 * D);
+              std::fill_n(_reversed_padding_repeated_twice.begin(), 2 * D, 0);
+            },
+            [&](enumtype::kSame) {
+              for (const auto i : c10::irange(D)) {
+                const auto stride = (*options.stride())[i];
+                TORCH_CHECK(
+                    stride == 1,
+                    "padding='same' is not supported for strided convolutions");
+              }
+
+              _reversed_padding_repeated_twice.resize(2 * D);
+              for (const auto i : c10::irange(D)) {
+                const auto dilation = (*options.dilation())[i];
+                const auto kernel_size = (*options.kernel_size())[i];
+                const auto total_padding = dilation * (kernel_size - 1);
+                auto left_pad = total_padding / 2;
+                auto right_pad = total_padding - left_pad;
+                _reversed_padding_repeated_twice[2 * i] = left_pad;
+                _reversed_padding_repeated_twice[2 * i + 1] = right_pad;
+              }
+            },
+            [&](const ExpandingArray<D>& pad) {
+              _reversed_padding_repeated_twice =
+                  torch::nn::modules::utils::_reverse_repeat_vector(pad, 2);
+            }),
+        options.padding());
+#else
     std::visit(
         c10::overloaded(
             [&](enumtype::kValid) {
@@ -72,6 +115,7 @@ class ConvNdImpl : public torch::nn::Cloneable<Derived> {
                   torch::nn::modules::utils::_reverse_repeat_vector(pad, 2);
             }),
         options.padding());
+#endif
 
     if (options.transposed()) {
       std::vector<int64_t> weight_sizes = {
@@ -121,6 +165,18 @@ class ConvNdImpl : public torch::nn::Cloneable<Derived> {
            << "(" << options.in_channels() << ", " << options.out_channels()
            << ", kernel_size=" << options.kernel_size()
            << ", stride=" << options.stride();
+#if defined(__APPLE__) && defined(__MACH__)
+    c10::visit(
+        c10::overloaded(
+            [&](enumtype::kValid) { stream << ", padding='valid'"; },
+            [&](enumtype::kSame) { stream << ", padding='same'"; },
+            [&](const ExpandingArray<D>& pad) {
+              if (*pad != *ExpandingArray<D>(0)) {
+                stream << ", padding=" << pad;
+              }
+            }),
+        options.padding());
+#else
     std::visit(
         c10::overloaded(
             [&](enumtype::kValid) { stream << ", padding='valid'"; },
@@ -131,6 +187,7 @@ class ConvNdImpl : public torch::nn::Cloneable<Derived> {
               }
             }),
         options.padding());
+#endif
     if (*options.dilation() != *ExpandingArray<D>(1)) {
       stream << ", dilation=" << options.dilation();
     }

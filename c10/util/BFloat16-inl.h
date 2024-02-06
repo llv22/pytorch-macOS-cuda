@@ -39,7 +39,7 @@ inline C10_HOST_DEVICE BFloat16::BFloat16(float value)
 
 /// Implicit conversions
 inline C10_HOST_DEVICE BFloat16::operator float() const {
-#if defined(__CUDACC__) && !defined(USE_ROCM)
+#if defined(__CUDACC__) && !defined(USE_ROCM) && CUDA_VERSION >= 11000
   return __bfloat162float(*reinterpret_cast<const __nv_bfloat16*>(&x));
 #elif defined(__SYCL_DEVICE_ONLY__) && \
     defined(SYCL_EXT_ONEAPI_BFLOAT16_MATH_FUNCTIONS)
@@ -49,7 +49,7 @@ inline C10_HOST_DEVICE BFloat16::operator float() const {
 #endif
 }
 
-#if defined(__CUDACC__) && !defined(USE_ROCM)
+#if defined(__CUDACC__) && !defined(USE_ROCM) && CUDA_VERSION >= 11000
 inline C10_HOST_DEVICE BFloat16::BFloat16(const __nv_bfloat16& value) {
   x = *reinterpret_cast<const unsigned short*>(&value);
 }

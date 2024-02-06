@@ -3,7 +3,15 @@
 #include <ATen/core/function_schema.h>
 #include <c10/macros/Macros.h>
 #include <string>
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+namespace std {
+  using ::c10::variant;
+  using ::c10::get;
+} // namespace std
+#else
 #include <variant>
+#endif
 
 namespace torch {
 namespace jit {

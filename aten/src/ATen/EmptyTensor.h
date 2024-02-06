@@ -1,7 +1,7 @@
 #pragma once
 #include <ATen/core/TensorBase.h>
 
-namespace at::detail {
+namespace at{ namespace detail {
 
 inline void check_size_nonnegative(ArrayRef<int64_t> size) {
   for (const auto& x : size) {
@@ -157,4 +157,4 @@ TORCH_API TensorBase empty_strided_symint_meta(
     SymIntArrayRef stride,
     const TensorOptions& options);
 
-} // namespace at::detail
+}} // namespace at::detail

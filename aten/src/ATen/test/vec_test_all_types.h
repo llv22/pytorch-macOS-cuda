@@ -16,6 +16,15 @@
 #include <float.h>
 #include <algorithm>
 
+
+#if defined(__APPLE__) and defined(__MACH__)
+#include <type_traits>
+namespace std{
+  template< class T >
+    inline constexpr bool is_integral_v = is_integral<T>::value;
+}
+#endif
+
 #if defined(CPU_CAPABILITY_AVX512)
 #define CACHE_LINE 64
 #else

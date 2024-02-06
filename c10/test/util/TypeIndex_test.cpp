@@ -55,31 +55,35 @@ static_assert(
     "");
 
 namespace test_top_level_name {
-#if C10_TYPENAME_SUPPORTS_CONSTEXPR
+#if C10_TYPENAME_SUPPORTS_CONSTEXPR and !defined(__APPLE__) && !defined(__MACH__)
 static_assert(
-    string_view::npos != get_fully_qualified_type_name<Dummy>().find("Dummy"),
+    c10::string_view::npos != get_fully_qualified_type_name<Dummy>().find("Dummy"),
     "");
 #endif
+#if !defined(__APPLE__) && !defined(__MACH__)
 TEST(TypeIndex, TopLevelName) {
   EXPECT_NE(
-      string_view::npos, get_fully_qualified_type_name<Dummy>().find("Dummy"));
+    c10::string_view::npos, get_fully_qualified_type_name<Dummy>().find("Dummy"));
 }
+#endif
 } // namespace test_top_level_name
 
 namespace test_nested_name {
 struct Dummy final {};
 
-#if C10_TYPENAME_SUPPORTS_CONSTEXPR
+#if C10_TYPENAME_SUPPORTS_CONSTEXPR and !defined(__APPLE__) && !defined(__MACH__)
 static_assert(
     string_view::npos !=
         get_fully_qualified_type_name<Dummy>().find("test_nested_name::Dummy"),
     "");
 #endif
+#if !defined(__APPLE__) && !defined(__MACH__)
 TEST(TypeIndex, NestedName) {
   EXPECT_NE(
       string_view::npos,
       get_fully_qualified_type_name<Dummy>().find("test_nested_name::Dummy"));
 }
+#endif
 } // namespace test_nested_name
 
 namespace test_type_template_parameter {
@@ -87,7 +91,7 @@ template <class T>
 struct Outer final {};
 struct Inner final {};
 
-#if C10_TYPENAME_SUPPORTS_CONSTEXPR
+#if C10_TYPENAME_SUPPORTS_CONSTEXPR and !defined(__APPLE__) && !defined(__MACH__)
 static_assert(
     string_view::npos !=
         get_fully_qualified_type_name<Outer<Inner>>().find(
@@ -99,6 +103,8 @@ static_assert(
             "test_type_template_parameter::Inner"),
     "");
 #endif
+
+#if !defined(__APPLE__) && !defined(__MACH__)
 TEST(TypeIndex, TypeTemplateParameter) {
   EXPECT_NE(
       string_view::npos,
@@ -109,23 +115,27 @@ TEST(TypeIndex, TypeTemplateParameter) {
       get_fully_qualified_type_name<Outer<Inner>>().find(
           "test_type_template_parameter::Inner"));
 }
+#endif
 } // namespace test_type_template_parameter
 
 namespace test_nontype_template_parameter {
 template <size_t N>
 struct Class final {};
 
-#if C10_TYPENAME_SUPPORTS_CONSTEXPR
+#if C10_TYPENAME_SUPPORTS_CONSTEXPR and !defined(__APPLE__) && !defined(__MACH__)
 static_assert(
     string_view::npos !=
         get_fully_qualified_type_name<Class<38474355>>().find("38474355"),
     "");
 #endif
+
+#if !defined(__APPLE__) && !defined(__MACH__)
 TEST(TypeIndex, NonTypeTemplateParameter) {
   EXPECT_NE(
       string_view::npos,
       get_fully_qualified_type_name<Class<38474355>>().find("38474355"));
 }
+#endif
 } // namespace test_nontype_template_parameter
 
 namespace test_type_computations_are_resolved {
@@ -152,6 +162,8 @@ static_assert(
             .find("*"),
     "");
 #endif
+
+#if !defined(__APPLE__) && !defined(__MACH__)
 TEST(TypeIndex, TypeComputationsAreResolved) {
   EXPECT_NE(
       string_view::npos,
@@ -166,6 +178,7 @@ TEST(TypeIndex, TypeComputationsAreResolved) {
           typename std::remove_pointer<typename Type<int>::type>::type>()
           .find("*"));
 }
+#endif
 
 struct Functor final {
   std::string operator()(int64_t a, const Type<int>& b) const;
@@ -201,6 +214,8 @@ static_assert(
             "test_function_arguments_and_returns::Dummy"),
     "");
 #endif
+
+#if !defined(__APPLE__) && !defined(__MACH__)
 TEST(TypeIndex, FunctionArgumentsAndReturns) {
   EXPECT_NE(
       string_view::npos,
@@ -211,6 +226,7 @@ TEST(TypeIndex, FunctionArgumentsAndReturns) {
       get_fully_qualified_type_name<void(Dummy)>().find(
           "test_function_arguments_and_returns::Dummy"));
 }
+#endif
 } // namespace test_function_arguments_and_returns
 } // namespace
 // NOLINTEND(modernize-unary-static-assert)

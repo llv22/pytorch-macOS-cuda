@@ -11,6 +11,20 @@ namespace nn {
 
 namespace detail {
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+typedef c10::variant<
+    enumtype::kZeros,
+    enumtype::kReflect,
+    enumtype::kReplicate,
+    enumtype::kCircular>
+    conv_padding_mode_t;
+
+template <size_t D>
+using conv_padding_t =
+    c10::variant<ExpandingArray<D>, enumtype::kValid, enumtype::kSame>;
+#else
+#include <variant>
 typedef std::variant<
     enumtype::kZeros,
     enumtype::kReflect,
@@ -21,6 +35,7 @@ typedef std::variant<
 template <size_t D>
 using conv_padding_t =
     std::variant<ExpandingArray<D>, enumtype::kValid, enumtype::kSame>;
+#endif
 
 /// Options for a `D`-dimensional convolution or convolution transpose module.
 template <size_t D>

@@ -5,7 +5,15 @@
 #include <mutex>
 #include <type_traits>
 #include <utility>
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+namespace std {
+  // Define is_nothrow_move_assignable_v for C++ versions before C++17 where it might not be available.
+  using ::c10::variant;
+}// namespace std
+#else
 #include <variant>
+#endif
 
 #include <ATen/Context.h>
 #include <c10/core/Device.h>
@@ -354,12 +362,20 @@ struct TORCH_API Result : public std::enable_shared_from_this<Result> {
 
   template <typename T>
   decltype(auto) visit(T&& visitor) {
+#if defined(__APPLE__) && defined(__MACH__)
+    return c10::visit(std::forward<T>(visitor), extra_fields_);
+#else
     return std::visit(std::forward<T>(visitor), extra_fields_);
+#endif
   }
 
   template <typename T>
   decltype(auto) visit(T&& visitor) const {
+#if defined(__APPLE__) && defined(__MACH__)
+    return c10::visit(std::forward<T>(visitor), extra_fields_);
+#else
     return std::visit(std::forward<T>(visitor), extra_fields_);
+#endif
   }
 
   template <typename T, typename Fn>

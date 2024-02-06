@@ -556,6 +556,15 @@ void RecordFunction::end() {
 }
 
 const char* RecordFunction::name() const {
+#if defined(__APPLE__) && defined(__MACH__)
+  return c10::visit(
+      c10::overloaded(
+          [](const std::string& name) { return name.c_str(); },
+          [](const schema_ref_t schema) {
+            return schema.get().name().c_str();
+          }),
+      fn_);
+#else
   return std::visit(
       c10::overloaded(
           [](const std::string& name) { return name.c_str(); },
@@ -563,9 +572,19 @@ const char* RecordFunction::name() const {
             return schema.get().name().c_str();
           }),
       fn_);
+#endif
 }
 
 size_t RecordFunction::num_inputs() const {
+#if defined(__APPLE__) && defined(__MACH__)
+  return c10::visit(
+      c10::overloaded(
+          [&](const std::string&) { return inputs_.size(); },
+          [](const schema_ref_t schema) {
+            return schema.get().arguments().size();
+          }),
+      fn_);
+#else
   return std::visit(
       c10::overloaded(
           [&](const std::string&) { return inputs_.size(); },
@@ -573,9 +592,19 @@ size_t RecordFunction::num_inputs() const {
             return schema.get().arguments().size();
           }),
       fn_);
+#endif
 }
 
 size_t RecordFunction::num_outputs() const {
+#if defined(__APPLE__) && defined(__MACH__)
+  return c10::visit(
+      c10::overloaded(
+          [&](const std::string&) { return outputs_.size(); },
+          [](const schema_ref_t schema) {
+            return schema.get().returns().size();
+          }),
+      fn_);
+#else
   return std::visit(
       c10::overloaded(
           [&](const std::string&) { return outputs_.size(); },
@@ -583,9 +612,21 @@ size_t RecordFunction::num_outputs() const {
             return schema.get().returns().size();
           }),
       fn_);
+#endif
 }
 
 c10::optional<OperatorName> RecordFunction::operator_name() const {
+#if defined(__APPLE__) && defined(__MACH__)
+  return c10::visit(
+      c10::overloaded(
+          [&](const std::string&) -> c10::optional<OperatorName> {
+            return c10::nullopt;
+          },
+          [](const schema_ref_t schema) -> c10::optional<OperatorName> {
+            return schema.get().operator_name();
+          }),
+      fn_);
+#else
   return std::visit(
       c10::overloaded(
           [&](const std::string&) -> c10::optional<OperatorName> {
@@ -595,9 +636,21 @@ c10::optional<OperatorName> RecordFunction::operator_name() const {
             return schema.get().operator_name();
           }),
       fn_);
+#endif
 }
 
 c10::optional<c10::FunctionSchema> RecordFunction::operator_schema() const {
+#if defined(__APPLE__) && defined(__MACH__)
+  return c10::visit(
+      c10::overloaded(
+          [&](const std::string&) -> c10::optional<c10::FunctionSchema> {
+            return c10::nullopt;
+          },
+          [](const schema_ref_t schema) -> c10::optional<c10::FunctionSchema> {
+            return schema.get();
+          }),
+      fn_);
+#else
   return std::visit(
       c10::overloaded(
           [&](const std::string&) -> c10::optional<c10::FunctionSchema> {
@@ -607,6 +660,7 @@ c10::optional<c10::FunctionSchema> RecordFunction::operator_schema() const {
             return schema.get();
           }),
       fn_);
+#endif
 }
 
 StepCallbacks getStepCallbacks(RecordScope scope) {

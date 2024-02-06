@@ -60,7 +60,7 @@ endif()
 
 file(GLOB base_h "*.h" "detail/*.h" "cpu/*.h" "cpu/vec/vec512/*.h" "cpu/vec/vec256/*.h" "cpu/vec/vec256/vsx/*.h" "cpu/vec/vec256/zarch/*.h" "cpu/vec/*.h" "quantized/*.h" "functorch/*.h")
 file(GLOB base_cpp "*.cpp" "detail/*.cpp" "cpu/*.cpp" "functorch/*.cpp")
-file(GLOB cuda_h "cuda/*.h" "cuda/detail/*.h" "cuda/*.cuh" "cuda/detail/*.cuh")
+file(GLOB cuda_h "cuda/*.h" "cuda/detail/*.h" "cuda/*.cuh" "cuda/detail/*.cuh" "/usr/local/cuda/include/*.h")
 file(GLOB cuda_cpp "cuda/*.cpp" "cuda/detail/*.cpp")
 file(GLOB cuda_nvrtc_stub_h "cuda/nvrtc_stub/*.h")
 file(GLOB cuda_nvrtc_stub_cpp "cuda/nvrtc_stub/*.cpp")
@@ -242,7 +242,9 @@ if(USE_CUDA AND USE_ROCM)
 endif()
 
 if(USE_CUDA)
-  list(APPEND ATen_CUDA_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/cuda)
+  list(APPEND ATen_CUDA_INCLUDE
+  ${CMAKE_CURRENT_SOURCE_DIR}/cuda
+  )
   list(APPEND ATen_CUDA_CU_SRCS
     ${cuda_cu}
     ${native_cuda_cu}
@@ -300,6 +302,11 @@ if(USE_TBB)
   endif()
   list(APPEND ATen_CPU_INCLUDE ${TBB_INCLUDE_DIR})
   list(APPEND ATen_CPU_DEPENDENCY_LIBS TBB::tbb)
+endif()
+
+if(USE_OPENMP)
+  message("ATen is compiled with OPEN_MP (/Users/llv23/opt/miniconda3/lib/libomp.dylib)")
+  list(APPEND ATen_CPU_DEPENDENCY_LIBS /Users/llv23/opt/miniconda3/lib/libomp.dylib)
 endif()
 
 if(BLAS_FOUND)
@@ -447,17 +454,20 @@ endif()
 
 if(USE_CUDA AND NOT USE_ROCM)
   list(APPEND ATen_CUDA_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/../../../third_party/cutlass/include)
+  list(APPEND ATen_CUDA_INCLUDE /usr/local/cuda/include)
   if($ENV{ATEN_STATIC_CUDA})
     list(APPEND ATen_CUDA_DEPENDENCY_LIBS
       ${CUDA_LIBRARIES}
       CUDA::cusparse_static
       CUDA::cufft_static_nocallback
+      /Users/llv23/opt/miniconda3/lib/libomp.dylib # test parallel for symbol _omp_in_parallel
     )
    if(NOT BUILD_LAZY_CUDA_LINALG)
      if(CUDA_VERSION_MAJOR LESS_EQUAL 11)
        list(APPEND ATen_CUDA_DEPENDENCY_LIBS
          CUDA::cusolver_static
          ${CUDAToolkit_LIBRARY_DIR}/liblapack_static.a     # needed for libcusolver_static
+         /Users/llv23/opt/miniconda3/lib/libomp.dylib # test parallel for symbol _omp_in_parallel
        )
      elseif(CUDA_VERSION_MAJOR GREATER_EQUAL 12)
        list(APPEND ATen_CUDA_DEPENDENCY_LIBS
@@ -509,6 +519,7 @@ endif()
   endif(USE_MAGMA)
 
 # Include CPU paths for CUDA/HIP as well
+list(APPEND ATen_CUDA_INCLUDE /usr/local/cuda/include)
 list(APPEND ATen_CUDA_INCLUDE ${ATen_CPU_INCLUDE})
 list(APPEND ATen_HIP_INCLUDE ${ATen_CPU_INCLUDE})
 list(APPEND ATen_VULKAN_INCLUDE ${ATen_CPU_INCLUDE})

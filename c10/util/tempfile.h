@@ -1,7 +1,16 @@
 #pragma once
 
 #include <c10/macros/Export.h>
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/Optional.h>
+namespace std {
+  // Define is_nothrow_move_assignable_v for C++ versions before C++17 where it might not be available.
+  using ::c10::optional;
+  using ::c10::nullopt;
+}
+#else
 #include <optional>
+#endif
 #include <string>
 #include <utility>
 

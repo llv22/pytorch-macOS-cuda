@@ -10,6 +10,18 @@
 #include <cstddef>
 #include <memory>
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+namespace std {
+  // Define is_nothrow_move_assignable_v for C++ versions before C++17 where it might not be available.
+  using ::c10::holds_alternative;
+  // https://stackoverflow.com/questions/56843413/stdbyte-is-not-member-of-std
+  enum class byte : unsigned char {};
+}
+#else
+#include <optional>
+#endif
+
 // NOLINTBEGIN(clang-analyzer-cplusplus*)
 namespace c10::impl {
 namespace {
@@ -110,7 +122,7 @@ struct MyDeleterContext {
   MyDeleterContext(void* bytes) : bytes(bytes) {}
 
   ~MyDeleterContext() {
-    delete[] static_cast<std::byte*>(bytes);
+  delete[] static_cast<std::byte*>(bytes);
   }
 
   void* bytes;

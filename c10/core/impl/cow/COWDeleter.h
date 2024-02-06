@@ -6,8 +6,24 @@
 #include <atomic>
 #include <cstdint>
 #include <memory>
+
+#if defined(__APPLE__) && defined(__MACH__)
+#include <mutex>
+namespace std {
+  using shared_mutex = std::mutex;
+} // namespace std
+#else
 #include <shared_mutex>
+#endif
+
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+namespace std {
+  using ::c10::variant;
+} // namespace std
+#else
 #include <variant>
+#endif
 
 namespace c10::impl::cow {
 
@@ -33,7 +49,11 @@ class C10_API COWDeleterContext {
   //
   // This is returned by decrement_refcount to allow the caller to
   // copy the data under the shared lock.
+#if defined(__APPLE__) && defined(__MACH__)
+  using NotLastReference = std::unique_lock<std::shared_mutex>;
+#else
   using NotLastReference = std::shared_lock<std::shared_mutex>;
+#endif
 
   // Represents the last reference to the context.
   //
@@ -52,7 +72,7 @@ class C10_API COWDeleterContext {
 
   std::shared_mutex mutex_;
   std::unique_ptr<void, DeleterFnPtr> data_;
-  std::atomic<std::int64_t> refcount_ = 1;
+  std::atomic<std::int64_t> refcount_ = { 1 };
 };
 
 // `cow_deleter` is used as the `ctx_deleter` for DataPtr to implement a COW

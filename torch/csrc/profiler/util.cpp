@@ -6,6 +6,15 @@
 #include <c10/util/irange.h>
 #include <fmt/format.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+namespace std {
+  using ::c10::holds_alternative;
+}// namespace std
+#else
+#include <variant>
+#endif
+
 #ifdef USE_KINETO
 #include <libkineto.h>
 #endif

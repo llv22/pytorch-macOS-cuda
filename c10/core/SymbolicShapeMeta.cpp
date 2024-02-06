@@ -12,7 +12,12 @@ SymbolicShapeMeta::SymbolicShapeMeta(const SymbolicShapeMeta& other)
       strides_(other.strides_),
       storage_offset_(other.storage_offset_),
       strides_valid_(other.strides_valid_) {
+
+#if defined(__APPLE__) && defined(__MACH__)
+  std::unique_lock<std::mutex> lock(other.mutables_);
+#else
   std::scoped_lock lock(other.mutables_);
+#endif
   // These must be copied under lock, so ignore clang-tidy here!
   // NOLINTBEGIN(cppcoreguidelines-prefer-member-initializer)
   numel_ = other.numel_;
@@ -194,7 +199,11 @@ SymBool SymbolicShapeMeta::compute_is_non_overlapping_and_dense_anydim() const {
 
 // NOLINTNEXTLINE(performance-unnecessary-value-param)
 void SymbolicShapeMeta::set_numel(SymInt val) const {
+#if defined(__APPLE__) && defined(__MACH__)
+  std::unique_lock<std::mutex> lock(mutables_);
+#else
   std::scoped_lock lock(mutables_);
+#endif
   if (has_numel()) {
     return;
   }
@@ -202,7 +211,11 @@ void SymbolicShapeMeta::set_numel(SymInt val) const {
   available_.fetch_or(numel_avail);
 }
 void SymbolicShapeMeta::set_is_contiguous(SymBool val) const {
+#if defined(__APPLE__) && defined(__MACH__)
+  std::unique_lock<std::mutex> lock(mutables_);
+#else
   std::scoped_lock lock(mutables_);
+#endif
   if (has_is_contiguous()) {
     return;
   }
@@ -210,7 +223,11 @@ void SymbolicShapeMeta::set_is_contiguous(SymBool val) const {
   available_.fetch_or(is_contiguous_avail);
 }
 void SymbolicShapeMeta::set_is_channels_last_contiguous(SymBool val) const {
+#if defined(__APPLE__) && defined(__MACH__)
+  std::unique_lock<std::mutex> lock(mutables_);
+#else
   std::scoped_lock lock(mutables_);
+#endif
   if (has_is_channels_last_contiguous()) {
     return;
   }
@@ -218,7 +235,11 @@ void SymbolicShapeMeta::set_is_channels_last_contiguous(SymBool val) const {
   available_.fetch_or(is_channels_last_contiguous_avail);
 }
 void SymbolicShapeMeta::set_is_channels_last_3d_contiguous(SymBool val) const {
+#if defined(__APPLE__) && defined(__MACH__)
+  std::unique_lock<std::mutex> lock(mutables_);
+#else
   std::scoped_lock lock(mutables_);
+#endif
   if (has_is_channels_last_3d_contiguous()) {
     return;
   }
@@ -226,7 +247,11 @@ void SymbolicShapeMeta::set_is_channels_last_3d_contiguous(SymBool val) const {
   available_.fetch_or(is_channels_last_3d_contiguous_avail);
 }
 void SymbolicShapeMeta::set_is_channels_last(SymBool val) const {
+#if defined(__APPLE__) && defined(__MACH__)
+  std::unique_lock<std::mutex> lock(mutables_);
+#else
   std::scoped_lock lock(mutables_);
+#endif
   if (has_is_channels_last()) {
     return;
   }
@@ -234,7 +259,11 @@ void SymbolicShapeMeta::set_is_channels_last(SymBool val) const {
   available_.fetch_or(is_channels_last_avail);
 }
 void SymbolicShapeMeta::set_is_channels_last_3d(SymBool val) const {
+#if defined(__APPLE__) && defined(__MACH__)
+  std::unique_lock<std::mutex> lock(mutables_);
+#else
   std::scoped_lock lock(mutables_);
+#endif
   if (has_is_channels_last_3d()) {
     return;
   }
@@ -243,7 +272,11 @@ void SymbolicShapeMeta::set_is_channels_last_3d(SymBool val) const {
 }
 
 void SymbolicShapeMeta::set_is_non_overlapping_and_dense(SymBool val) const {
+#if defined(__APPLE__) && defined(__MACH__)
+  std::unique_lock<std::mutex> lock(mutables_);
+#else
   std::scoped_lock lock(mutables_);
+#endif
   if (has_is_non_overlapping_and_dense()) {
     return;
   }

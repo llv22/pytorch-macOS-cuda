@@ -14,6 +14,17 @@
 #include <torch/csrc/Export.h>
 #include <torch/csrc/jit/frontend/source_range.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+namespace std {
+  using ::c10::variant;
+  using ::c10::holds_alternative;
+  using ::c10::get;
+}// namespace std
+#else
+#include <variant>
+#endif
+
 // TODO: replace with pytorch/rfcs#43 when it is ready.
 #define SOFT_ASSERT(cond, ...)                         \
   [&]() -> bool {                                      \
@@ -60,8 +71,13 @@ TORCH_API void logSoftAssert(
     const char* cond,
     const std::string& args);
 
+#if defined(__APPLE__) && defined(__MACH__)
+using shape =
+    c10::variant<std::vector<int64_t>, std::vector<std::vector<int64_t>>>;
+#else
 using shape =
     std::variant<std::vector<int64_t>, std::vector<std::vector<int64_t>>>;
+#endif
 constexpr int TENSOR_LIST_DISPLAY_LENGTH_LIMIT = 30;
 
 std::string getNvtxStr(

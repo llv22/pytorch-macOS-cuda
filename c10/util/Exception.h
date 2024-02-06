@@ -1,4 +1,4 @@
-#ifndef C10_UTIL_EXCEPTION_H_
+  #ifndef C10_UTIL_EXCEPTION_H_
 #define C10_UTIL_EXCEPTION_H_
 
 #include <c10/macros/Macros.h>
@@ -7,7 +7,14 @@
 #include <cstddef>
 #include <exception>
 #include <string>
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+namespace std {
+  using ::c10::variant;
+} // namespace std
+#else
 #include <variant>
+#endif
 #include <vector>
 
 #if defined(_MSC_VER) && _MSC_VER <= 1900
@@ -115,7 +122,11 @@ class C10_API Warning {
   class C10_API UserWarning {};
   class C10_API DeprecationWarning {};
 
+#if defined(__APPLE__) && defined(__MACH__)
+  using warning_variant_t = c10::variant<UserWarning, DeprecationWarning>;
+#else
   using warning_variant_t = std::variant<UserWarning, DeprecationWarning>;
+#endif
 
   Warning(
       warning_variant_t type,

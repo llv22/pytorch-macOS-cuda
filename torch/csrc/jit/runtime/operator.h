@@ -22,7 +22,15 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+namespace std {
+  using ::c10::variant;
+  using ::c10::get;
+} // namespace std
+#else
 #include <variant>
+#endif
 #include <vector>
 
 namespace torch::jit {
@@ -128,6 +136,21 @@ struct TORCH_API Operator {
             op_creator}) {}
 
   Operation getOperation(const Node* node = nullptr) const {
+#if defined(__APPLE__) && defined(__MACH__)
+    return c10::visit(
+        c10::overloaded(
+            [](const C10Operator& op) { return op.op_; },
+            [node](const JitOnlyOperator& op) {
+              return c10::visit(
+                  c10::overloaded(
+                      [](const Operation& op) { return op; },
+                      [node](const OperationCreator& op_creator) {
+                        return op_creator(node);
+                      }),
+                  op.op_);
+            }),
+        op_);
+#else
     return std::visit(
         c10::overloaded(
             [](const C10Operator& op) { return op.op_; },
@@ -141,9 +164,26 @@ struct TORCH_API Operator {
                   op.op_);
             }),
         op_);
+#endif
   }
 
   Operation getOperationForDispatchKey(c10::DispatchKey dk) const {
+#if defined(__APPLE__) && defined(__MACH__)
+    return c10::visit(
+        c10::overloaded(
+            [dk](const C10Operator& op) {
+              return Operation([op, dk](Stack& stack) {
+                op.handle_.callBoxedForDispatchKey(dk, stack);
+              });
+            },
+            [](const JitOnlyOperator& op) {
+              TORCH_CHECK(
+                  false,
+                  "calling a JIT operator for dispatch key is not supported");
+              return Operation(nullptr);
+            }),
+        op_);
+#else
     // TODO: some sort of caching mechanism?
     return std::visit(
         c10::overloaded(
@@ -159,9 +199,35 @@ struct TORCH_API Operator {
               return Operation(nullptr);
             }),
         op_);
+#endif
   }
 
   const FunctionSchema& schema() const {
+#if defined(__APPLE__) && defined(__MACH__)
+    return c10::visit(
+        c10::overloaded(
+            [](const C10Operator& op) -> const FunctionSchema& {
+              return op.handle_.schema();
+            },
+            [](const JitOnlyOperator& op) -> const FunctionSchema& {
+              // we lazily parse schema initialized from strings so that
+              // we do less work during static operator registration
+              if (op.schema_.index() == 1) {
+                auto& unmaterializedSchema =
+                    std::get<UnparsedFunctionSchema>(op.schema_);
+                FunctionSchema schema =
+                    parseSchema(unmaterializedSchema.schema_string_);
+                if (unmaterializedSchema.alias_analysis_.has_value()) {
+                  // TODO What if it gets set later?
+                  schema.setAliasAnalysis(
+                      *unmaterializedSchema.alias_analysis_);
+                }
+                op.schema_ = std::move(schema);
+              }
+              return std::get<FunctionSchema>(op.schema_);
+            }),
+        op_);
+#else
     return std::visit(
         c10::overloaded(
             [](const C10Operator& op) -> const FunctionSchema& {
@@ -185,9 +251,23 @@ struct TORCH_API Operator {
               return std::get<FunctionSchema>(op.schema_);
             }),
         op_);
+#endif
   }
 
   c10::ArrayRef<at::Tag> getTags() const {
+#if defined(__APPLE__) && defined(__MACH__)
+    return c10::visit(
+        c10::overloaded(
+            [](const C10Operator& op) { return op.handle_.getTags(); },
+            [](const JitOnlyOperator& op) {
+              // JitOnlyOperators don't have an c10::OperatorHandle or a way to
+              // specify tags. We're grandfathering them all into
+              // pt2_compliant_tag, but for anything else, please just stop
+              // using JitOnlyOperator.
+              return c10::ArrayRef<at::Tag>(kJitOnlyOperatorTags);
+            }),
+        op_);
+#else
     return std::visit(
         c10::overloaded(
             [](const C10Operator& op) { return op.handle_.getTags(); },
@@ -199,6 +279,7 @@ struct TORCH_API Operator {
               return c10::ArrayRef<at::Tag>(kJitOnlyOperatorTags);
             }),
         op_);
+#endif
   }
 
   bool isC10Op() const {
@@ -219,11 +300,19 @@ struct TORCH_API Operator {
   }
 
   bool hasOperation() const {
+#if defined(__APPLE__) && defined(__MACH__)
+    return c10::visit(
+        c10::overloaded(
+            [](const C10Operator&) { return true; },
+            [](const JitOnlyOperator& op) { return op.op_.index() == 0; }),
+        op_);
+#else
     return std::visit(
         c10::overloaded(
             [](const C10Operator&) { return true; },
             [](const JitOnlyOperator& op) { return op.op_.index() == 0; }),
         op_);
+#endif
   }
 
  private:

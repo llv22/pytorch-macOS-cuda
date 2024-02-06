@@ -768,6 +768,17 @@ template<typename T>
 inline typename std::enable_if<!std::is_integral<T>::value, bool>::type isnan_(T x) {
   return std::isnan(x);
 }
+#elif defined(__APPLE__) && defined(__MACH__)
+template<typename T>
+inline bool isnan_(T x) {
+  return std::isnan(x);
+}
+inline bool isnan_(const c10::Half x) {
+  return std::isnan(x.x);
+}
+inline bool isnan_(const c10::BFloat16 x) {
+  return std::isnan(x.x);
+}
 #else
 template<typename T>
 inline bool isnan_(T x) {

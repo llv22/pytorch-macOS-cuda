@@ -8,6 +8,15 @@
 #include <torch/csrc/jit/tensorexpr/codegen.h>
 #include <torch/csrc/jit/tensorexpr/tensor.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+namespace std {
+  using ::c10::monostate;
+}// namespace std
+#else
+#include <variant>
+#endif
+
 namespace torch {
 namespace jit {
 namespace tensorexpr {

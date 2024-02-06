@@ -5,6 +5,12 @@
 #include <torch/enum.h>
 #include <torch/types.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+#else
+#include <variant>
+#endif
+
 namespace torch {
 namespace nn {
 namespace functional {
@@ -18,10 +24,17 @@ namespace functional {
 /// F::GridSampleFuncOptions().mode(torch::kBilinear).padding_mode(torch::kZeros).align_corners(true));
 /// ```
 struct TORCH_API GridSampleFuncOptions {
+#if defined(__APPLE__) && defined(__MACH__)
+  typedef c10::variant<enumtype::kBilinear, enumtype::kNearest> mode_t;
+  typedef c10::
+      variant<enumtype::kZeros, enumtype::kBorder, enumtype::kReflection>
+          padding_mode_t;
+#else
   typedef std::variant<enumtype::kBilinear, enumtype::kNearest> mode_t;
   typedef std::
       variant<enumtype::kZeros, enumtype::kBorder, enumtype::kReflection>
           padding_mode_t;
+#endif
 
   /// interpolation mode to calculate output values. Default: Bilinear
   TORCH_ARG(mode_t, mode) = torch::kBilinear;

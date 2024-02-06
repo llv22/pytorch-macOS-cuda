@@ -9,7 +9,13 @@
 #include <c10/core/DeviceGuard.h>
 #include <c10/util/irange.h>
 
-#if defined(OPEN_MPI) && OPEN_MPI
+// #if defined(OPEN_MPI) && OPEN_MPI
+#ifndef OPEN_MPI
+#define OPEN_MPI 0
+#endif
+//Build flag USE_CUDA_MPI forces CUDA-Aware MPI support and removes run-time checks. 
+//USE_CUDA_MPI is meant for older MPI libraries that don't support MPIX_Query_cuda_support()
+#if (OPEN_MPI || (defined(MVAPICH2_NUMVERSION) && (MVAPICH2_NUMVERSION >= 20205300))) && !USE_CUDA_MPI
 #include <mpi-ext.h> // Needed for CUDA-aware check
 #endif
 
@@ -48,17 +54,20 @@ std::map<at::ScalarType, MPI_Datatype> mpiDatatype = {
 
 // Checking CUDA-aware MPI support, currently we only support CUDA aware
 // MPI ops through Open MPI
+// MPI ops through Open MPI and MVAPICH2-GDR
 bool cudaAwareMpiCheck() {
 // Run time check
-#if defined(MPIX_CUDA_AWARE_SUPPORT)
+#if !defined(USE_CUDA_MPI) && defined(MPIX_CUDA_AWARE_SUPPORT)
   if (MPIX_Query_cuda_support() == 1) {
     return true;
   } else {
     return false;
   }
-#else // !defined(MPIX_CUDA_AWARE_SUPPORT)
+#elif defined(USE_CUDA_MPI)
+  return true;
+#else // defined(USE_CUDA_MPI)
   return false;
-#endif // MPIX_CUDA_AWARE_SUPPORT
+#endif // MPIX_CUDA_AWARE_SUPPORT && !USE_CUDA_MPI
 }
 
 // Checking the input tensor's validity

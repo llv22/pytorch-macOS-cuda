@@ -22,7 +22,7 @@ namespace c10 {
 struct Allocator;
 }
 
-namespace at::cuda {
+namespace at{ namespace cuda {
 
 /*
 A common CUDA interface for ATen.
@@ -83,4 +83,4 @@ TORCH_CUDA_CPP_API void clearCublasWorkspaces();
 TORCH_CUDA_CPP_API cusolverDnHandle_t getCurrentCUDASolverDnHandle();
 #endif
 
-} // namespace at::cuda
+}} // namespace at::cuda

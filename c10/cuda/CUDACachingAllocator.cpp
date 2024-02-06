@@ -36,6 +36,11 @@
 #include <utility>
 #include <vector>
 
+#if defined(__APPLE__) and defined(__MACH__)
+#include <nvml.h>
+using nvmlProcessInfo_v1_t = nvmlProcessInfo_t;
+#endif
+
 TORCH_SDT_DEFINE_SEMAPHORE(malloc)
 TORCH_SDT_DEFINE_SEMAPHORE(free)
 

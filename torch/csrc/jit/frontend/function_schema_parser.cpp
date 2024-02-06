@@ -19,6 +19,16 @@ using c10::IValue;
 using c10::ListType;
 using c10::OperatorName;
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+namespace std {
+  // Define is_nothrow_move_assignable_v for C++ versions before C++17 where it might not be available.
+  using ::c10::holds_alternative;
+}// namespace std
+#else
+#include <variant>
+#endif
+
 namespace torch::jit {
 
 namespace {

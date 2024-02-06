@@ -68,6 +68,14 @@
 #include <ATen/core/enum_tag.h>
 #include <ATen/core/op_registration/op_registration.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+namespace std {
+  // Define is_nothrow_move_assignable_v for C++ versions before C++17 where it might not be available.
+  using ::c10::holds_alternative;
+}
+#endif
+
 namespace torch {
 
 #if defined C10_MOBILE

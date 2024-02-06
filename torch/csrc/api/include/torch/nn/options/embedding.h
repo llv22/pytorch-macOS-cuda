@@ -5,6 +5,12 @@
 #include <torch/enum.h>
 #include <torch/types.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+#else
+#include <variant>
+#endif
+
 namespace torch {
 namespace nn {
 
@@ -101,8 +107,13 @@ struct TORCH_API EmbeddingFuncOptions {
 
 // ============================================================================
 
+#if defined(__APPLE__) && defined(__MACH__)
+typedef c10::variant<enumtype::kSum, enumtype::kMean, enumtype::kMax>
+    EmbeddingBagMode;
+#else
 typedef std::variant<enumtype::kSum, enumtype::kMean, enumtype::kMax>
     EmbeddingBagMode;
+#endif
 
 /// Options for the `EmbeddingBag` module.
 ///

@@ -13,7 +13,15 @@
 #include <torch/csrc/autograd/functions/basic_ops.h>
 #include <torch/csrc/autograd/functions/utils.h>
 
+
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/Optional.h>
+namespace std {
+  using c10::optional;
+}//namespace
+#else
 #include <optional>
+#endif
 #include <utility>
 #include <vector>
 

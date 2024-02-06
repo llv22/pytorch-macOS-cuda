@@ -28,6 +28,18 @@
 #include <stdexcept>
 #include <utility>
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+namespace std {
+  using ::c10::variant;
+  using ::c10::holds_alternative;
+  using ::c10::get;
+  using ::c10::get_if;
+}// namespace std
+#else
+#include <variant>
+#endif
+
 #ifdef USE_KINETO
 #include <libkineto.h>
 #include <time_since_epoch.h>
@@ -100,6 +112,27 @@ auto parseArgData(
   std::vector<c10::IValue> concrete_inputs_list;
 
   for (const auto& i : c10::irange(input_shapes.size())) {
+#if defined(__APPLE__) && defined(__MACH__)
+    c10::visit(
+        c10::overloaded(
+            [&](const TensorMetadata& t) {
+              shapes[i] = t.sizes_;
+              shapes_for_kineto_event[i] = t.sizes_;
+              dtypes[i] = std::string(scalarTypeToTypeMeta(t.dtype_).name());
+            },
+            [&](const std::vector<TensorMetadata>& l) {
+              std::vector<std::vector<int64_t>> shape;
+              shape.reserve(l.size());
+              for (const auto& t : l) {
+                shape.emplace_back(t.sizes_);
+              }
+              shapes[i] = shape;
+              dtypes[i] = "TensorList";
+            },
+            [&](const c10::IValue& val) { dtypes[i] = "Scalar"; },
+            [&](const auto&) {}),
+        input_shapes[i]);
+#else
     std::visit(
         c10::overloaded(
             [&](const TensorMetadata& t) {
@@ -119,6 +152,7 @@ auto parseArgData(
             [&](const c10::IValue& val) { dtypes[i] = "Scalar"; },
             [&](const auto&) {}),
         input_shapes[i]);
+#endif
   }
 
   // If we recorded concrete inputs, then parse them
@@ -127,6 +161,21 @@ auto parseArgData(
     concrete_inputs_list.resize(input_shapes.size());
 
     for (const auto& i : c10::irange(input_shapes.size())) {
+#if defined(__APPLE__) && defined(__MACH__)
+      c10::visit(
+          c10::overloaded(
+              [&](const c10::IValue& val) { concrete_inputs_list[i] = val; },
+              [&](const auto&) {}),
+          input_shapes[i]);
+      c10::visit(
+          c10::overloaded(
+              [&](const c10::IValue& val) {
+                concrete_inputs_list[i] = val;
+                dtypes[i] = "ScalarList";
+              },
+              [&](const auto&) {}),
+          concrete_inputs[i]);
+#else
       std::visit(
           c10::overloaded(
               [&](const c10::IValue& val) { concrete_inputs_list[i] = val; },
@@ -140,6 +189,7 @@ auto parseArgData(
               },
               [&](const auto&) {}),
           concrete_inputs[i]);
+#endif
     }
   }
 

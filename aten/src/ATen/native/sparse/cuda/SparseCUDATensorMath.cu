@@ -755,7 +755,9 @@ cudaDataType getTensorCudaDataType(Tensor self) {
 #endif
 
 Tensor& bmm_out_sparse_cuda(const SparseTensor& self, const Tensor& mat2, Tensor& result) {
-#if defined(_MSC_VER) && (CUSPARSE_VERSION < 11000)
+#if defined(USE_ROCM)
+  TORCH_CHECK(false, "bmm sparse-dense is not supported on HIP");
+#elif defined(_MSC_VER) && (CUSPARSE_VERSION < 11000)
   TORCH_CHECK(false, "bmm sparse-dense CUDA is not supported on Windows with cuda before 11.0");
 #elif defined(USE_ROCM) || (defined(CUDART_VERSION) && (CUDART_VERSION >= 10010))  // linux cuda >= 10.1 or windows cuda >= 11.0
 
@@ -839,7 +841,11 @@ Tensor& bmm_out_sparse_cuda(const SparseTensor& self, const Tensor& mat2, Tensor
 
   // See Note [Enabling Deterministic Operations]
   bool deterministic =  globalContext().deterministicAlgorithms();
-  cusparseSpMMAlg_t mm_alg = deterministic ? CUSPARSE_SPMM_COO_ALG2 : CUSPARSE_SPMM_COO_ALG1;
+  // https://petsc.org/release/src/mat/impls/aij/seq/seqcusparse/aijcusparse.cu.html
+  int CUSPARSE_SPMM_COO_ALG2 = 2;
+  int CUSPARSE_SPMM_COO_ALG1 = 1;
+  cusparseSpMMAlg_t mm_alg = deterministic ? (cusparseSpMMAlg_t)CUSPARSE_SPMM_COO_ALG2 : (cusparseSpMMAlg_t)CUSPARSE_SPMM_COO_ALG1;
+
 
   // Iterate through each set of 2D matrices within the 3D
   // tensor inputs, performing a matrix multiply with each

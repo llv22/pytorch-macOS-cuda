@@ -20,7 +20,16 @@
 #include <ATen/native/mkldnn/Matmul.h>
 #include <c10/util/accumulate.h>
 #include <c10/util/irange.h>
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+namespace std {
+  // Define is_nothrow_move_assignable_v for C++ versions before C++17 where it might not be available.
+  using ::c10::variant;
+  using ::c10::get_if;
+}// namespace std
+#else
 #include <variant>
+#endif
 
 #ifndef AT_PER_OPERATOR_HEADERS
 #include <ATen/Functions.h>
@@ -3085,6 +3094,16 @@ static Tensor _linalg_cond_helper(const Tensor& self, std::variant<Scalar, c10::
   info.unsqueeze_(-1).unsqueeze_(-1);
   inverse.masked_fill_(info > 0, INFINITY);
 
+#if defined(__APPLE__) and defined(__MACH__)
+  return c10::visit([&](auto&& ord) {
+    Tensor norm_self = at::linalg_matrix_norm(self, ord);
+    Tensor norm_inverse = at::linalg_matrix_norm(inverse, ord);
+    Tensor result = norm_self * norm_inverse;
+    // fix multiplication of zero and infinity for NumPy compatibility
+    result.nan_to_num_(INFINITY, INFINITY, -INFINITY);
+    return result;
+  }, ord_variant);
+#else
   return std::visit([&](auto&& ord) {
     Tensor norm_self = at::linalg_matrix_norm(self, ord);
     Tensor norm_inverse = at::linalg_matrix_norm(inverse, ord);
@@ -3093,6 +3112,7 @@ static Tensor _linalg_cond_helper(const Tensor& self, std::variant<Scalar, c10::
     result.nan_to_num_(INFINITY, INFINITY, -INFINITY);
     return result;
   }, ord_variant);
+#endif
 }
 
 // Return zero for each matrix in the batch

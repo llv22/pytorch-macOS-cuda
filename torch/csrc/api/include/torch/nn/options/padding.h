@@ -6,6 +6,12 @@
 #include <torch/expanding_array.h>
 #include <torch/types.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+#else
+#include <variant>
+#endif
+
 namespace torch {
 namespace nn {
 
@@ -194,12 +200,21 @@ namespace functional {
 /// 2}).mode(torch::kReplicate));
 /// ```
 struct TORCH_API PadFuncOptions {
+#if defined(__APPLE__) && defined(__clang__)
+  typedef c10::variant<
+      enumtype::kConstant,
+      enumtype::kReflect,
+      enumtype::kReplicate,
+      enumtype::kCircular>
+      mode_t;
+#else
   typedef std::variant<
       enumtype::kConstant,
       enumtype::kReflect,
       enumtype::kReplicate,
       enumtype::kCircular>
       mode_t;
+#endif
 
   PadFuncOptions(std::vector<int64_t> pad);
 

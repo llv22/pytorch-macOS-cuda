@@ -136,10 +136,12 @@ static_assert('h' == *begin(string_view("hello")), "");
 static_assert('o' == *(string_view("hello").end() - 1), "");
 static_assert('o' == *(string_view("hello").cend() - 1), "");
 static_assert('o' == *(end(string_view("hello")) - 1), "");
+#if !defined(__APPLE__) && !defined(__MACH__)
 static_assert('o' == *string_view("hello").rbegin(), "");
 static_assert('o' == *string_view("hello").crbegin(), "");
 static_assert('h' == *(string_view("hello").rend() - 1), "");
 static_assert('h' == *(string_view("hello").crend() - 1), "");
+#endif
 } // namespace test_iterators
 
 namespace test_forward_iteration {
@@ -154,12 +156,14 @@ static_assert(hello.end() == hello.begin() + 5, "");
 
 namespace test_reverse_iteration {
 constexpr string_view hello = "hello";
+#if !defined(__APPLE__) && !defined(__MACH__)
 static_assert('o' == *(hello.rbegin() + 0), "");
 static_assert('l' == *(hello.rbegin() + 1), "");
 static_assert('l' == *(hello.rbegin() + 2), "");
 static_assert('e' == *(hello.rbegin() + 3), "");
 static_assert('h' == *(hello.rbegin() + 4), "");
 static_assert(hello.rend() == hello.rbegin() + 5, "");
+#endif
 } // namespace test_reverse_iteration
 
 namespace test_random_access {

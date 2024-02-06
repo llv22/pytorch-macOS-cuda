@@ -8,6 +8,14 @@ struct StorageImpl;
 class DataPtr;
 }; // namespace c10
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/Optional.h>
+namespace std {
+  // Define is_nothrow_move_assignable_v for C++ versions before C++17 where it might not be available.
+  using ::c10::optional;
+}
+#endif
+
 namespace c10::impl::cow {
 
 // Creates a Copy-on-write (COW) clone of the given storage. This will also

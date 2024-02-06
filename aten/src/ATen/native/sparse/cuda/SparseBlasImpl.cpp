@@ -619,7 +619,7 @@ void spmm(
 
   // CUDA < 11.0 doesn't support 64-bit indices and doesn't raise an error about this
   // silently returning incorrect results
-#if defined(USE_ROCM)
+#if defined(USE_ROCM) || (defined(CUDA_VERSION) && CUDA_VERSION < 11000)  
   auto mat1_32 = at::native::_sparse_csr_tensor_unsafe(
       mat1.crow_indices().to(kInt),
       mat1.col_indices().to(kInt),
@@ -696,7 +696,8 @@ void spgemm(
     const Scalar& beta,
     const Scalar& alpha,
     const at::sparse_csr::SparseCsrTensor& C) {
-#if defined(USE_ROCM) && ROCM_VERSION < 50200
+// #if defined(USE_ROCM) && ROCM_VERSION < 50200
+#if defined(CUDA_VERSION) && CUDA_VERSION < 11000
   TORCH_CHECK(
       false,
       "Calling addmm with sparse GPU tensors requires compiling ",

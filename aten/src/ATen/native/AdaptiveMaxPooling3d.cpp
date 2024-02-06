@@ -81,6 +81,30 @@ namespace {
 
 // 5d tensor B x D x T x H x W
 
+#ifdef _MSC_VER
+template<typename T>
+inline typename std::enable_if<std::is_integral<T>::value, bool>::type isnan_(T x) {
+  return false;
+}
+template<typename T>
+inline typename std::enable_if<!std::is_integral<T>::value, bool>::type isnan_(T x) {
+  return std::isnan(x);
+}
+#elif defined(__APPLE__) && defined(__MACH__)
+template<typename T>
+inline bool isnan_(T x) {
+  return std::isnan(x);
+}
+inline bool isnan_(const c10::BFloat16 x) {
+  return std::isnan(x.x);
+}
+#else
+template<typename T>
+inline bool isnan_(T x) {
+  return std::isnan(x);
+}
+#endif
+
 template <typename scalar_t>
 static void adaptive_max_pool3d_single_out_frame(
           scalar_t *input_p,
@@ -137,7 +161,7 @@ static void adaptive_max_pool3d_single_out_frame(
                 for(iw = 0; iw < kW; iw++)
                 {
                   scalar_t val = *(ip + it*istrideT + ih*istrideH + iw*istrideW);
-                  if ((val > maxval) || std::isnan(val))
+                  if ((val > maxval) || isnan_(val))
                   {
                     maxval = val;
                     maxindex = (it+istartT)*isizeH*isizeW + (ih+istartH)*isizeW + (iw+istartW);

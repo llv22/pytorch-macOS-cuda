@@ -42,6 +42,15 @@ but not limited to:
 
 static bool symbolic_shape_analysis_test_mode = false;
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+namespace std {
+  using ::c10::get_if;
+}// namespace std
+#else
+#include <variant>
+#endif
+
 namespace torch {
 namespace jit {
 

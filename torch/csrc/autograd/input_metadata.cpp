@@ -3,6 +3,20 @@
 // TODO: we may be able to move some imports from input_metadata.h to here, but
 // it seems that function.h transitively depends on some of them.
 
+
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+namespace std {
+  // Define is_nothrow_move_assignable_v for C++ versions before C++17 where it might not be available.
+  using ::c10::holds_alternative;
+  using ::c10::get;
+  // https://stackoverflow.com/questions/56843413/stdbyte-is-not-member-of-std
+  // enum class byte : unsigned char {};
+}// namespace std
+#else
+#include <variant>
+#endif
+
 namespace torch {
 namespace autograd {
 
@@ -11,9 +25,17 @@ namespace {
 MetadataShape compute_variant_shape(const at::Tensor& input) {
   if (input.is_nested() && !input.unsafeGetTensorImpl()->is_python_dispatch()) {
     auto nested_size = input._nested_tensor_size();
+#if defined(__APPLE__) && defined(__MACH__)
+    return MetadataShape{c10::in_place_type<at::Tensor>, nested_size};
+#else
     return MetadataShape{std::in_place_type<at::Tensor>, nested_size};
+#endif
   }
+#if defined(__APPLE__) && defined(__MACH__)
+  return MetadataShape{c10::in_place_type<SymIntSmallVec>, input.sym_sizes()};
+#else
   return MetadataShape{std::in_place_type<SymIntSmallVec>, input.sym_sizes()};
+#endif
 }
 
 bool is_python_dispatch(const at::Tensor& tensor) {

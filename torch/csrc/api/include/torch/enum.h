@@ -1,7 +1,16 @@
 #pragma once
 
 #include <string>
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+namespace std {
+  using ::c10::variant;
+  using ::c10::holds_alternative;
+  using ::c10::get;
+}// namespace std
+#else
 #include <variant>
+#endif
 
 #include <ATen/core/Reduction.h>
 #include <c10/util/Exception.h>
@@ -188,7 +197,11 @@ struct _compute_enum_name {
 
 template <typename V>
 std::string get_enum_name(V variant_enum) {
+#if defined(__APPLE__) && defined(__MACH__)
+  return c10::visit(enumtype::_compute_enum_name{}, variant_enum);
+#else
   return std::visit(enumtype::_compute_enum_name{}, variant_enum);
+#endif
 }
 
 template <typename V>

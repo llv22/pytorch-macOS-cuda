@@ -22,7 +22,11 @@ class GroupRegistry {
 
   c10::intrusive_ptr<c10d::ProcessGroup> resolve_group(
       const std::string& group_name) {
+#if defined(__APPLE__) && defined(__MACH__)
+    std::lock_guard read_lock(lock_);
+#else
     std::shared_lock read_lock(lock_);
+#endif
     auto it = registry_.find(group_name);
     TORCH_CHECK(
         it != registry_.end(),
@@ -40,7 +44,12 @@ class GroupRegistry {
 
  private:
   std::map<std::string, c10::weak_intrusive_ptr<c10d::ProcessGroup>> registry_;
+
+#if defined(__APPLE__) && defined(__MACH__)
+  std::mutex lock_;
+#else
   std::shared_mutex lock_;
+#endif
 };
 
 } // namespace

@@ -564,7 +564,8 @@ class BuildExtension(build_ext):
             # overriding the option if the user explicitly passed it.
             cpp_format_prefix = '/{}:' if self.compiler.compiler_type == 'msvc' else '-{}='
             cpp_flag_prefix = cpp_format_prefix.format('std')
-            cpp_flag = cpp_flag_prefix + 'c++17'
+            import platform
+            cpp_flag = cpp_flag_prefix + 'c++17' if not platform.platform().startswith('macOS-10.13.6') else cpp_flag_prefix + 'c++14'
             if not any(flag.startswith(cpp_flag_prefix) for flag in cflags):
                 cflags.append(cpp_flag)
 
@@ -2177,6 +2178,9 @@ def _write_ninja_file_to_build_library(path,
     common_cflags += [f"{x}" for x in _get_pybind11_abi_build_flags()]
 
     common_cflags += [f'-I{include}' for include in user_includes]
+    print(f"ORLANDO system_includes: {system_includes}")
+    if '/usr/local/cuda/include' not in system_includes:
+        system_includes.append('/usr/local/cuda/include')
     common_cflags += [f'-isystem {include}' for include in system_includes]
 
     common_cflags += [f"{x}" for x in _get_glibcxx_abi_build_flags()]
@@ -2305,12 +2309,22 @@ def _write_ninja_file(path,
             else:
                 nvcc = _join_cuda_home('bin', 'nvcc')
         config.append(f'nvcc = {nvcc}')
+        
+    def replace_std17_with_std14(options):
+            options = [c for c in options if c != "-std=c++17"]
+            if options.find("-std=c++14") == -1:
+                options.append("-std=c++14")
+            return options
 
     if IS_HIP_EXTENSION:
         post_cflags = COMMON_HIP_FLAGS + post_cflags
     flags = [f'cflags = {" ".join(cflags)}']
+    # orlando: customized for cuda version, filtering -std=c++17
+    post_cflags = replace_std17_with_std14(post_cflags)
     flags.append(f'post_cflags = {" ".join(post_cflags)}')
     if with_cuda:
+        # orlando: customized for cuda version, filtering -std=c++17
+        cuda_post_cflags = replace_std17_with_std14(cuda_post_cflags)
         flags.append(f'cuda_cflags = {" ".join(cuda_cflags)}')
         flags.append(f'cuda_post_cflags = {" ".join(cuda_post_cflags)}')
     flags.append(f'cuda_dlink_post_cflags = {" ".join(cuda_dlink_post_cflags)}')

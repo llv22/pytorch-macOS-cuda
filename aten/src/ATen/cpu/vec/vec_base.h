@@ -38,6 +38,13 @@
 #include <c10/util/irange.h>
 #include <c10/util/Load.h>
 
+// #if defined(__APPLE__) and defined(__MACH__)
+// namespace std{
+//   template< class T >
+//   inline constexpr bool is_signed_v = is_signed<T>::value;
+// }
+// #endif
+
 // These macros helped us unify vec_base.h
 #ifdef CPU_CAPABILITY_AVX512
 #if defined(__GNUC__)

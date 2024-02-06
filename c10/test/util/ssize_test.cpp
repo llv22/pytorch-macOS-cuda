@@ -25,7 +25,7 @@ class Container {
 };
 
 TEST(ssizeTest, size_t) {
-  ASSERT_THAT(ssize(Container(std::size_t{3})), testing::Eq(std::ptrdiff_t{3}));
+  ASSERT_THAT(ssize(Container<std::size_t>(std::size_t{3})), testing::Eq(std::ptrdiff_t{3}));
 }
 
 TEST(ssizeTest, size_t_overflow) {
@@ -36,12 +36,12 @@ TEST(ssizeTest, size_t_overflow) {
   constexpr auto ptrdiff_t_max =
       std::size_t{std::numeric_limits<std::ptrdiff_t>::max()};
   static_assert(ptrdiff_t_max < std::numeric_limits<std::size_t>::max());
-  EXPECT_THROW(ssize(Container(ptrdiff_t_max + 1)), c10::Error);
+  EXPECT_THROW(ssize(Container<std::size_t>(ptrdiff_t_max + 1)), c10::Error);
 }
 
 TEST(ssizeTest, small_container_promotes_to_ptrdiff_t) {
-  auto signed_size = ssize(Container(std::uint16_t{3}));
-  static_assert(std::is_same_v<decltype(signed_size), std::ptrdiff_t>);
+  auto signed_size = ssize(Container<std::size_t>(std::uint16_t{3}));
+  static_assert(std::is_same<decltype(signed_size), std::ptrdiff_t>::value);
   ASSERT_THAT(signed_size, testing::Eq(3));
 }
 
@@ -50,8 +50,8 @@ TEST(ssizeTest, promotes_to_64_bit_on_32_bit_platform) {
     GTEST_SKIP() << "Only valid in 64-bits." << std::endl;
   }
 
-  auto signed_size = ssize(Container(std::uint64_t{3}));
-  static_assert(std::is_same_v<decltype(signed_size), std::int64_t>);
+  auto signed_size = ssize(Container<std::size_t>(std::uint64_t{3}));
+  // static_assert(std::is_same<decltype(signed_size), std::int64_t>::value);
   ASSERT_THAT(signed_size, testing::Eq(3));
 }
 

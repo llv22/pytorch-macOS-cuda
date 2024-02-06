@@ -3,6 +3,12 @@
 #include <c10/util/overloaded.h>
 #include <torch/csrc/profiler/collection.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+#else
+#include <variant>
+#endif
+
 namespace torch {
 namespace profiler {
 namespace impl {
@@ -77,7 +83,11 @@ void calculateUniqueTensorIDs(
       result->visit(c10::overloaded(
           [&](ExtraFields<EventType::TorchOp>& torch_op) {
             for (auto& i : torch_op.inputs_) {
+#if defined(__APPLE__) && defined(__MACH__)
+              c10::visit(raw_tensors, i);
+#else
               std::visit(raw_tensors, i);
+#endif
             }
           },
           [&](ExtraFields<EventType::PyCall>& py_call) {

@@ -107,7 +107,7 @@ cublasHandle_t getCurrentCUDABlasHandle() {
   auto handle = myPoolWindow->reserve(device);
   auto stream = c10::cuda::getCurrentCUDAStream();
   TORCH_CUDABLAS_CHECK(cublasSetStream(handle, stream));
-#if !defined(USE_ROCM) && defined(CUDA_VERSION) && CUDA_VERSION < 12200
+#if !defined(USE_ROCM) && defined(CUDA_VERSION) && CUDA_VERSION >= 11000
   // cuBLAS should not need an explicitly allocated workspace after CUDA 12.2
   // to avoid increasing memory usage during graph captures
   // original issue: https://github.com/pytorch/pytorch/pull/83461
@@ -119,7 +119,7 @@ cublasHandle_t getCurrentCUDABlasHandle() {
   }
   TORCH_CUDABLAS_CHECK(cublasSetWorkspace(handle, workspace_it->second.get(), getChosenWorkspaceSize()));
 #endif
-#if !defined(USE_ROCM)
+#if !defined(USE_ROCM) && defined(CUDA_VERSION) && CUDA_VERSION >= 11000
   // On CUDA >= 11, and architecture >= Ampere, cuBLAS can use TF32 to speedup
   // FP32 data type calculations based on the value of the allow_tf32 flag.
   // To enable TF32, set the math mode of the handle to CUBLAS_TF32_TENSOR_OP_MATH.

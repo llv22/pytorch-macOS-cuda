@@ -5,13 +5,29 @@
 #include <torch/enum.h>
 #include <torch/types.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+namespace std {
+  using ::c10::variant;
+}// namespace std
+#else
+#include <variant>
+#endif
+
 namespace torch {
 namespace nn {
 
+#if defined(__APPLE__) && defined(__MACH__)
+using activation_t = c10::variant<
+    enumtype::kReLU,
+    enumtype::kGELU,
+    std::function<Tensor(const Tensor&)>>;
+#else
 using activation_t = std::variant<
     enumtype::kReLU,
     enumtype::kGELU,
     std::function<Tensor(const Tensor&)>>;
+#endif
 
 /// Options for the `TransformerEncoderLayer`
 ///

@@ -8,6 +8,14 @@
 #include <c10/macros/Macros.h>
 #include <c10/util/irange.h>
 
+#if defined(__APPLE__) and defined(__MACH__)
+#include <type_traits>
+// namespace std{
+//   template <class T, class U>
+//   inline constexpr bool is_same_v = is_same<T, U>::value;
+// }
+#endif
+
 namespace at::vec {
 inline namespace CPU_CAPABILITY {
 

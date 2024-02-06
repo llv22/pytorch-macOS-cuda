@@ -5,6 +5,12 @@
 #include <torch/enum.h>
 #include <torch/types.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+#else
+#include <variant>
+#endif
+
 namespace torch {
 namespace nn {
 
@@ -12,12 +18,22 @@ namespace detail {
 
 /// Common options for RNN, LSTM and GRU modules.
 struct TORCH_API RNNOptionsBase {
+
+#if defined(__APPLE__) && defined(__MACH__)
+  typedef c10::variant<
+      enumtype::kLSTM,
+      enumtype::kGRU,
+      enumtype::kRNN_TANH,
+      enumtype::kRNN_RELU>
+      rnn_options_base_mode_t;
+#else
   typedef std::variant<
       enumtype::kLSTM,
       enumtype::kGRU,
       enumtype::kRNN_TANH,
       enumtype::kRNN_RELU>
       rnn_options_base_mode_t;
+#endif
 
   RNNOptionsBase(
       rnn_options_base_mode_t mode,
@@ -57,7 +73,11 @@ struct TORCH_API RNNOptionsBase {
 /// 64).num_layers(3).dropout(0.2).nonlinearity(torch::kTanh));
 /// ```
 struct TORCH_API RNNOptions {
+#if defined(__APPLE__) && defined(__MACH__)
+  typedef c10::variant<enumtype::kTanh, enumtype::kReLU> nonlinearity_t;
+#else
   typedef std::variant<enumtype::kTanh, enumtype::kReLU> nonlinearity_t;
+#endif
 
   RNNOptions(int64_t input_size, int64_t hidden_size);
 
@@ -180,7 +200,11 @@ struct TORCH_API RNNCellOptionsBase {
 /// 10).bias(false).nonlinearity(torch::kReLU));
 /// ```
 struct TORCH_API RNNCellOptions {
+#if defined(__APPLE__) && defined(__MACH__)
+  typedef c10::variant<enumtype::kTanh, enumtype::kReLU> nonlinearity_t;
+#else
   typedef std::variant<enumtype::kTanh, enumtype::kReLU> nonlinearity_t;
+#endif
 
   RNNCellOptions(int64_t input_size, int64_t hidden_size);
 

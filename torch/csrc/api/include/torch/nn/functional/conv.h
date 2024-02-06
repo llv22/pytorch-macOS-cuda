@@ -3,6 +3,12 @@
 #include <torch/nn/options/conv.h>
 #include <torch/types.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+#else
+#include <variant>
+#endif
+
 namespace torch {
 namespace nn {
 namespace functional {
@@ -31,12 +37,21 @@ inline Tensor conv1d(
     const Conv1dFuncOptions::padding_t& padding,
     ExpandingArray<1> dilation,
     int64_t groups) {
+#if defined(__APPLE__) && defined(__MACH__)
+  return c10::visit(
+      [&](const auto& pad) {
+        return torch::conv1d(
+            input, weight, bias, stride, padding_unwrap(pad), dilation, groups);
+      },
+      padding);
+#else
   return std::visit(
       [&](const auto& pad) {
         return torch::conv1d(
             input, weight, bias, stride, padding_unwrap(pad), dilation, groups);
       },
       padding);
+#endif
 }
 } // namespace detail
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
@@ -77,12 +92,21 @@ inline Tensor conv2d(
     const Conv2dFuncOptions::padding_t& padding,
     ExpandingArray<2> dilation,
     int64_t groups) {
+#if defined(__APPLE__) && defined(__MACH__)
+  return c10::visit(
+      [&](const auto& pad) {
+        return torch::conv2d(
+            input, weight, bias, stride, padding_unwrap(pad), dilation, groups);
+      },
+      padding);
+#else
   return std::visit(
       [&](const auto& pad) {
         return torch::conv2d(
             input, weight, bias, stride, padding_unwrap(pad), dilation, groups);
       },
       padding);
+#endif
 }
 } // namespace detail
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
@@ -123,12 +147,21 @@ inline Tensor conv3d(
     const Conv3dFuncOptions::padding_t& padding,
     ExpandingArray<3> dilation,
     int64_t groups) {
+#if defined(__APPLE__) && defined(__MACH__)
+  return c10::visit(
+      [&](const auto& pad) {
+        return torch::conv3d(
+            input, weight, bias, stride, padding_unwrap(pad), dilation, groups);
+      },
+      padding);
+#else
   return std::visit(
       [&](const auto& pad) {
         return torch::conv3d(
             input, weight, bias, stride, padding_unwrap(pad), dilation, groups);
       },
       padding);
+#endif
 }
 } // namespace detail
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */

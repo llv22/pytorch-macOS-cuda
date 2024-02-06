@@ -40,7 +40,7 @@
 C10_CLANG_DIAGNOSTIC_PUSH()
 C10_CLANG_DIAGNOSTIC_IGNORE("-Wundefined-var-template")
 
-namespace at::native {
+namespace at{ namespace native {
 
 enum class CPUCapability {
   DEFAULT = 0,
@@ -310,6 +310,6 @@ struct RegisterPRIVATEUSE1Dispatch {
 #endif
 #define ALSO_REGISTER_AVX512_DISPATCH(name, fn) REGISTER_ARCH_DISPATCH(name, CPU_CAPABILITY, fn)
 #endif
-} // namespace at::native
+}} // namespace at::native
 
 C10_CLANG_DIAGNOSTIC_POP()

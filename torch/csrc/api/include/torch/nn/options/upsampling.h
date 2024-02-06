@@ -8,6 +8,12 @@
 
 #include <vector>
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+#else
+#include <variant>
+#endif
+
 namespace torch {
 namespace nn {
 
@@ -27,6 +33,15 @@ struct TORCH_API UpsampleOptions {
 
   /// the upsampling algorithm: one of "nearest", "linear", "bilinear",
   /// "bicubic" and "trilinear". Default: "nearest"
+#if defined(__APPLE__) && defined(__MACH__)
+  typedef c10::variant<
+      enumtype::kNearest,
+      enumtype::kLinear,
+      enumtype::kBilinear,
+      enumtype::kBicubic,
+      enumtype::kTrilinear>
+      mode_t;
+#else
   typedef std::variant<
       enumtype::kNearest,
       enumtype::kLinear,
@@ -34,6 +49,7 @@ struct TORCH_API UpsampleOptions {
       enumtype::kBicubic,
       enumtype::kTrilinear>
       mode_t;
+#endif
   TORCH_ARG(mode_t, mode) = torch::kNearest;
 
   /// if "True", the corner pixels of the input and output tensors are
@@ -54,6 +70,17 @@ namespace functional {
 /// F::InterpolateFuncOptions().size(std::vector<int64_t>({4})).mode(torch::kNearest));
 /// ```
 struct TORCH_API InterpolateFuncOptions {
+#if defined(__APPLE__) && defined(__MACH__)
+  typedef c10::variant<
+      enumtype::kNearest,
+      enumtype::kLinear,
+      enumtype::kBilinear,
+      enumtype::kBicubic,
+      enumtype::kTrilinear,
+      enumtype::kArea,
+      enumtype::kNearestExact>
+      mode_t;
+#else
   typedef std::variant<
       enumtype::kNearest,
       enumtype::kLinear,
@@ -63,6 +90,7 @@ struct TORCH_API InterpolateFuncOptions {
       enumtype::kArea,
       enumtype::kNearestExact>
       mode_t;
+#endif
 
   /// output spatial sizes.
   TORCH_ARG(c10::optional<std::vector<int64_t>>, size) = c10::nullopt;

@@ -44,7 +44,7 @@ template<> inline cudaDataType getCudaDataType<int>() {
 }
 #endif
 
-#if !defined(USE_ROCM)
+#if !defined(USE_ROCM) && CUDA_VERSION >= 11000
 template<> inline cudaDataType getCudaDataType<int16_t>() {
   return CUDA_R_16I;
 }
@@ -59,7 +59,7 @@ template<> inline cudaDataType getCudaDataType<at::BFloat16>() {
 inline cudaDataType ScalarTypeToCudaDataType(const c10::ScalarType& scalar_type) {
   switch (scalar_type) {
 // HIP doesn't define integral types
-#ifndef USE_ROCM
+#if !defined(USE_ROCM) && CUDA_VERSION >= 11000
     case c10::ScalarType::Byte:
       return CUDA_R_8U;
     case c10::ScalarType::Char:
@@ -79,14 +79,14 @@ inline cudaDataType ScalarTypeToCudaDataType(const c10::ScalarType& scalar_type)
       return CUDA_C_32F;
     case c10::ScalarType::ComplexDouble:
       return CUDA_C_64F;
-#if !defined(USE_ROCM)
+#if !defined(USE_ROCM) && CUDA_VERSION >= 11080
     case c10::ScalarType::Short:
       return CUDA_R_16I;
     case c10::ScalarType::Long:
       return CUDA_R_64I;
     case c10::ScalarType::BFloat16:
       return CUDA_R_16BF;
-#if defined(CUDA_VERSION) && CUDA_VERSION >= 11080
+#if defined(CUDA_VERSION)
     case c10::ScalarType::Float8_e4m3fn:
       return CUDA_R_8F_E4M3;
     case c10::ScalarType::Float8_e5m2:

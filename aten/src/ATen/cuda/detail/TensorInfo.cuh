@@ -2,7 +2,7 @@
 
 #include <ATen/CollapseDims.h>
 
-namespace at::cuda::detail {
+namespace at{ namespace cuda{ namespace detail {
 
 #define MAX_TENSORINFO_DIMS 25
 
@@ -113,4 +113,4 @@ struct IndexToOffset<T, IndexType, -1> {
   }
 };
 
-} // namespace at::cuda::detail
+}}} // namespace at::cuda::detail

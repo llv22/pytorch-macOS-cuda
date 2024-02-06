@@ -9,6 +9,15 @@
 #include <torch/csrc/jit/tensorexpr/lowerings.h>
 #include <torch/csrc/jit/tensorexpr/tensor.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+namespace std {
+  using ::c10::get_if;
+}// namespace std
+#else
+#include <variant>
+#endif
+
 namespace torch {
 namespace jit {
 namespace tensorexpr {

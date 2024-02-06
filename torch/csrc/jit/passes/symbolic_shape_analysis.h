@@ -4,7 +4,14 @@
 #include <torch/csrc/jit/ir/ir.h>
 #include <unordered_map>
 #include <utility>
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+namespace std {
+  using ::c10::variant;
+}// namespace std
+#else
 #include <variant>
+#endif
 
 namespace torch {
 namespace jit {

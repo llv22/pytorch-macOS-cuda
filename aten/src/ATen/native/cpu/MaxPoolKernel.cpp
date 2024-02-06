@@ -16,6 +16,16 @@ namespace at::native {
 
 namespace {
 
+#if defined(__APPLE__) && defined(__MACH__)
+template<typename T>
+inline bool isnan_(T x) {
+  return std::isnan(x);
+}
+inline bool isnan_(const c10::BFloat16 x) {
+  return std::isnan(x.x);
+}
+#endif
+
 template <typename scalar_t>
 bool is_nan(scalar_t v) {
   if (std::is_integral<scalar_t>::value || std::is_same<scalar_t, unsigned char>::value) {

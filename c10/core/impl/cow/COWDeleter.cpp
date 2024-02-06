@@ -25,14 +25,22 @@ auto cow::COWDeleterContext::decrement_refcount()
   auto refcount = --refcount_;
   TORCH_INTERNAL_ASSERT(refcount >= 0, refcount);
   if (refcount == 0) {
+#if defined(__APPLE__) && defined(__MACH__)
+    std::unique_lock<std::shared_mutex> lock(mutex_);
+#else
     std::unique_lock lock(mutex_);
+#endif
     auto result = std::move(data_);
     lock.unlock();
     delete this;
     return {std::move(result)};
   }
 
+#if defined(__APPLE__) && defined(__MACH__)
+  return std::unique_lock<std::shared_mutex>(mutex_);
+#else
   return std::shared_lock(mutex_);
+#endif
 }
 
 cow::COWDeleterContext::~COWDeleterContext() {

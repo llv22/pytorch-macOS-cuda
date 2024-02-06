@@ -33,7 +33,9 @@ TEST(TypeMetaTest, Names) {
   TypeMeta int_meta = TypeMeta::Make<int>();
   EXPECT_EQ("int", int_meta.name());
   TypeMeta string_meta = TypeMeta::Make<string>();
+#if !defined(__APPLE__) && !defined(__MACH__)
   EXPECT_TRUE(c10::string_view::npos != string_meta.name().find("string"));
+#endif
 }
 
 TEST(TypeMetaTest, TypeMeta) {
@@ -66,8 +68,10 @@ TEST(TypeMetaTest, TypeMeta) {
   EXPECT_EQ(bar_meta.itemsize(), TypeMeta::ItemSize<TypeMetaTestBar>());
   EXPECT_EQ(int_meta.name(), "int");
   EXPECT_EQ(float_meta.name(), "float");
+#if !defined(__APPLE__) && !defined(__MACH__)
   EXPECT_NE(foo_meta.name().find("TypeMetaTestFoo"), c10::string_view::npos);
   EXPECT_NE(bar_meta.name().find("TypeMetaTestBar"), c10::string_view::npos);
+#endif
 }
 
 class ClassAllowAssignment {

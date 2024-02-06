@@ -2,6 +2,14 @@
 #include <array>
 #include <iostream>
 
+#if defined(__APPLE__) && defined(__MACH__)
+namespace std {
+  // Define is_nothrow_move_assignable_v for C++ versions before C++17 where it might not be available.
+  template <class T>
+  constexpr bool is_standard_layout_v = std::is_standard_layout<T>::value;
+}
+#endif
+
 namespace c10 {
 
 namespace detail {
