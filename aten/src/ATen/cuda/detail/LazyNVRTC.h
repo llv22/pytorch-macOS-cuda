@@ -1,6 +1,6 @@
 #pragma once
 #include <ATen/detail/CUDAHooksInterface.h>
-namespace at::cuda {
+namespace at{ namespace cuda {
 // Forward-declares at::cuda::NVRTC
 struct NVRTC;
 
@@ -8,4 +8,4 @@ namespace detail {
 extern NVRTC lazyNVRTC;
 } // namespace detail
 
-}  // namespace at::cuda
+}}  // namespace at::cuda

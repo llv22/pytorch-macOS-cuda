@@ -24,7 +24,7 @@
 
 #include <c10/util/MaybeOwned.h>
 
-namespace at::native {
+namespace at{ namespace native {
 
 Tensor& addmv_out_sparse_compressed(
     const Tensor& self,
@@ -266,4 +266,4 @@ void sparse_sampled_addmm_check_inputs(
 
 DEFINE_DISPATCH(sampled_addmm_sparse_csr_stub);
 
-} // namespace at::native
+}} // namespace at::native

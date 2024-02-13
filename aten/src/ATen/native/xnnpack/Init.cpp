@@ -3,7 +3,7 @@
 #include <ATen/native/xnnpack/Common.h>
 #include <c10/util/Exception.h>
 
-namespace at::native::xnnpack {
+namespace at{ namespace native { namespace xnnpack {
 namespace internal {
 namespace {
 
@@ -55,6 +55,6 @@ bool available() {
   return internal::initialize();
 }
 
-} // namespace at::native::xnnpack
+}}} // namespace at::native::xnnpack
 
 #endif /* USE_XNNPACK */

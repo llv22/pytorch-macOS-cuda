@@ -8,6 +8,10 @@
 #include <torch/extension.h>
 #include <sstream>
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+#endif
+
 namespace {
 
 struct LocalState {
@@ -30,8 +34,8 @@ class TensorCheck {
       const LocalState& state,
       PyTypeObject* pt,
       const at::Tensor& v,
-      std::vector<std::optional<c10::SymInt>> dynamic_dims_sizes,
-      std::vector<std::optional<c10::SymInt>> dynamic_dims_strides)
+      std::vector<c10::optional<c10::SymInt>> dynamic_dims_sizes,
+      std::vector<c10::optional<c10::SymInt>> dynamic_dims_strides)
       : pytype(pt),
         dispatch_key_(state.apply(v.key_set()).raw_repr()),
         dtype_(v.dtype().toScalarType()),
@@ -146,8 +150,8 @@ class TensorCheck {
   at::DeviceIndex device_index_;
   bool requires_grad_;
   // NB: These are unset if dynamic shapes is enabled.
-  std::vector<std::optional<c10::SymInt>> sizes_;
-  std::vector<std::optional<c10::SymInt>> strides_;
+  std::vector<c10::optional<c10::SymInt>> sizes_;
+  std::vector<c10::optional<c10::SymInt>> strides_;
   // Not strictly required for dense tensors, but nested tensors need it.
   int64_t dim_;
 };
@@ -178,26 +182,26 @@ static PyObject* TensorGuards_new(
   return (PyObject*)self;
 }
 
-static std::vector<std::optional<c10::SymInt>> wrapIntegersInOptional(
+static std::vector<c10::optional<c10::SymInt>> wrapIntegersInOptional(
     const c10::SymIntArrayRef& intArray) {
-  std::vector<std::optional<c10::SymInt>> optVec(intArray.size());
+  std::vector<c10::optional<c10::SymInt>> optVec(intArray.size());
   std::transform(
       intArray.begin(),
       intArray.end(),
       optVec.begin(),
-      [](const c10::SymInt& value) { return std::make_optional(value); });
+      [](const c10::SymInt& value) { return c10::make_optional(value); });
   return optVec;
 }
 
-static std::vector<std::optional<c10::SymInt>> pyListToVecOptInt(
+static std::vector<c10::optional<c10::SymInt>> pyListToVecOptInt(
     PyObject* pyList) {
-  std::vector<std::optional<c10::SymInt>> vec;
+  std::vector<c10::optional<c10::SymInt>> vec;
   Py_ssize_t size = PyList_Size(pyList);
   for (Py_ssize_t i = 0; i < size; i++) {
     PyObject* item = PyList_GetItem(pyList, i);
     auto handle = py::handle(item);
     if (item == Py_None) {
-      vec.emplace_back(std::nullopt);
+      vec.emplace_back(c10::nullopt);
     } else if (torch::is_symint(handle)) {
       vec.emplace_back(py::cast<c10::SymInt>(handle));
     } else {
@@ -214,14 +218,14 @@ static std::vector<std::optional<c10::SymInt>> pyListToVecOptInt(
   return vec;
 }
 
-static std::vector<std::vector<std::optional<c10::SymInt>>> get_dynamic_dims(
+static std::vector<std::vector<c10::optional<c10::SymInt>>> get_dynamic_dims(
     PyObject* dynamic_dims_py) {
-  std::vector<std::vector<std::optional<c10::SymInt>>> per_tensor_dynamic_dims;
+  std::vector<std::vector<c10::optional<c10::SymInt>>> per_tensor_dynamic_dims;
   if (dynamic_dims_py != Py_None) {
     Py_ssize_t size = PyList_Size(dynamic_dims_py);
     for (Py_ssize_t i = 0; i < size; i++) {
       PyObject* py_list = PyList_GetItem(dynamic_dims_py, i);
-      std::vector<std::optional<c10::SymInt>> vec = pyListToVecOptInt(py_list);
+      std::vector<c10::optional<c10::SymInt>> vec = pyListToVecOptInt(py_list);
       per_tensor_dynamic_dims.push_back(std::move(vec));
     }
   }
@@ -252,9 +256,9 @@ static int TensorGuards_init(
 
   // dynamic_dims_strides/sizes_py is None when dynamic_shapes=False - this is
   // an optimization to avoid invoking .size()/.stride() in python needlessly
-  std::vector<std::vector<std::optional<c10::SymInt>>>
+  std::vector<std::vector<c10::optional<c10::SymInt>>>
       per_tensor_dynamic_dims_sizes = get_dynamic_dims(dynamic_dims_sizes_py);
-  std::vector<std::vector<std::optional<c10::SymInt>>>
+  std::vector<std::vector<c10::optional<c10::SymInt>>>
       per_tensor_dynamic_dims_strides =
           get_dynamic_dims(dynamic_dims_strides_py);
 
@@ -270,11 +274,11 @@ static int TensorGuards_init(
       return -1;
     }
     auto tensor = THPVariable_Unpack(item);
-    std::vector<std::optional<c10::SymInt>> tensor_dims_size =
+    std::vector<c10::optional<c10::SymInt>> tensor_dims_size =
         per_tensor_dynamic_dims_sizes.empty()
         ? wrapIntegersInOptional(tensor.sym_sizes())
         : per_tensor_dynamic_dims_sizes[i];
-    std::vector<std::optional<c10::SymInt>> tensor_dims_stride =
+    std::vector<c10::optional<c10::SymInt>> tensor_dims_stride =
         per_tensor_dynamic_dims_strides.empty()
         ? wrapIntegersInOptional(tensor.sym_strides())
         : per_tensor_dynamic_dims_strides[i];

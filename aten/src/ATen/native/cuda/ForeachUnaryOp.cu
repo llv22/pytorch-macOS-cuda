@@ -41,7 +41,7 @@
 #include <ATen/ops/empty_like_native.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 
 template <typename scalar_t, template <class> class Op>
 std::vector<Tensor> foreach_unary_op(TensorList tensors) {
@@ -404,4 +404,4 @@ void foreach_tensor_zero_cuda_(TensorList tensors) {
       });
 }
 
-} // namespace at::native
+}} // namespace at::native

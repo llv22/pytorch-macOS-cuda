@@ -16,7 +16,7 @@
 #include <ATen/ops/where_native.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 namespace mps {
 
 struct CachedGraph : public MPSCachedGraph {
@@ -527,4 +527,4 @@ Tensor& nan_to_num_out_mps(const Tensor& self,
   return result;
 }
 
-} // namespace at::native
+}} // namespace at::native

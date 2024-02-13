@@ -4,7 +4,7 @@
 
 #include <ATen/Tensor.h>
 
-namespace at::native::xnnpack::internal::pooling {
+namespace at{ namespace native { namespace xnnpack{ namespace internal{ namespace pooling {
 
 struct Parameters final {
 
@@ -37,6 +37,6 @@ private:
   }
 };
 
-} // namespace at::native::xnnpack::internal::pooling
+}}}}} // namespace at::native::xnnpack::internal::pooling
 
 #endif /* USE_XNNPACK */

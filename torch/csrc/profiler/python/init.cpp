@@ -10,6 +10,10 @@
 #include <torch/csrc/profiler/standalone/execution_trace_observer.h>
 #include <torch/csrc/utils/pybind.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+#endif
+
 struct THPCapturedTraceback {
   PyObject_HEAD std::shared_ptr<torch::CapturedTraceback> data;
 };
@@ -389,6 +393,16 @@ void initPythonBindings(PyObject* module) {
           [](const torch_op_t& op) {
             py::list out;
             for (const auto& input : op.inputs_) {
+#if defined(__APPLE__) && defined(__MACH__)
+              c10::visit(
+                  c10::overloaded(
+                      [&](const c10::IValue& v) {
+                        out.append(torch::jit::toPyObject(v));
+                      },
+                      [&](const c10::nullopt_t&) { out.append(py::none()); },
+                      [&](const auto& v) { out.append(py::cast(v)); }),
+                  input);
+#else
               std::visit(
                   c10::overloaded(
                       [&](const c10::IValue& v) {
@@ -397,6 +411,7 @@ void initPythonBindings(PyObject* module) {
                       [&](const c10::nullopt_t&) { out.append(py::none()); },
                       [&](const auto& v) { out.append(py::cast(v)); }),
                   input);
+#endif
             }
             return out;
           })

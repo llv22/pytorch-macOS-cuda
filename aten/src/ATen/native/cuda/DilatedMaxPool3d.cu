@@ -23,7 +23,7 @@
 #include <ATen/ops/max_pool3d_with_indices_backward_native.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 namespace {
 
 __device__ inline int min(int a, int b) {
@@ -649,4 +649,4 @@ Tensor max_pool3d_with_indices_backward_cuda(
   return gradInput;
 }
 
-} // at::native
+}} // at::native

@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <c10/cuda/CUDACachingAllocator.h>
 
-namespace at::cuda {
+namespace at{ namespace cuda {
 
 /// Allocator for Thrust to re-route its internal device allocations
 /// to the THC allocator
@@ -20,4 +20,4 @@ public:
   }
 };
 
-} // namespace at::cuda
+}} // namespace at::cuda

@@ -13,6 +13,10 @@
 #include <torch/csrc/monitor/counters.h>
 #include <torch/csrc/monitor/events.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+#endif
+
 namespace pybind11 {
 namespace detail {
 template <>
@@ -42,18 +46,18 @@ struct type_caster<torch::monitor::data_value_t> {
       torch::monitor::data_value_t src,
       return_value_policy /* policy */,
       handle /* parent */) {
-    if (std::holds_alternative<double>(src)) {
-      return PyFloat_FromDouble(std::get<double>(src));
-    } else if (std::holds_alternative<int64_t>(src)) {
-      return THPUtils_packInt64(std::get<int64_t>(src));
-    } else if (std::holds_alternative<bool>(src)) {
-      if (std::get<bool>(src)) {
+    if (c10::holds_alternative<double>(src)) {
+      return PyFloat_FromDouble(c10::get<double>(src));
+    } else if (c10::holds_alternative<int64_t>(src)) {
+      return THPUtils_packInt64(c10::get<int64_t>(src));
+    } else if (c10::holds_alternative<bool>(src)) {
+      if (c10::get<bool>(src)) {
         Py_RETURN_TRUE;
       } else {
         Py_RETURN_FALSE;
       }
-    } else if (std::holds_alternative<std::string>(src)) {
-      std::string str = std::get<std::string>(src);
+    } else if (c10::holds_alternative<std::string>(src)) {
+      std::string str = c10::get<std::string>(src);
       return THPUtils_packString(str);
     }
     throw std::runtime_error("unknown data_value_t type");

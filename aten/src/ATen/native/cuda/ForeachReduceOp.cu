@@ -18,7 +18,7 @@
 #include <ATen/ops/zeros.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 
 template <
     typename T,
@@ -225,4 +225,4 @@ std::vector<Tensor> foreach_tensor_norm_cuda(
   return result;
 }
 
-} // namespace at::native
+}} // namespace at::native

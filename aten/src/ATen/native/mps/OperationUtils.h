@@ -27,7 +27,7 @@
 
 using namespace at::mps;
 
-namespace at::native::mps {
+namespace at{ namespace native { namespace mps {
 
 void dispatch_sync_with_rethrow(dispatch_queue_t queue, void (^block)());
 
@@ -323,4 +323,4 @@ inline bool is_dense_in_storage(const at::Tensor& t) {
   return compute_storage_numel_distance(t) == static_cast<size_t>(t.numel());
 }
 
-} // namespace at::native::mps
+}}} // namespace at::native::mps

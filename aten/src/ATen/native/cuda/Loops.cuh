@@ -80,7 +80,7 @@ __device__ inline void elementwise_kernel_helper(func_t f, policy_t policy) {
   #include <ATen/native/cuda/ROCmLoops.cuh>
 #endif
 
-namespace at:: native {
+namespace at{ namespace native {
 
 template <typename func_t>
 void gpu_kernel_nocast(TensorIteratorBase& iter, const func_t& f) {
@@ -333,4 +333,4 @@ void gpu_kernel_multiple_outputs(TensorIteratorBase& iter, const func_t& f) {
   gpu_kernel_multiple_outputs_impl(iter, f);
 }
 
-} //namespace at::native
+}} //namespace at::native

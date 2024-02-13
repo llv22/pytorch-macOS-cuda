@@ -21,7 +21,7 @@
 
 #include <c10/core/Scalar.h>
 
-namespace at::native {
+namespace at{ namespace native {
 
 namespace {
 
@@ -1461,4 +1461,4 @@ ALSO_REGISTER_AVX512_DISPATCH(silu_backward_stub, &silu_backward_kernel);
 ALSO_REGISTER_AVX512_DISPATCH(mish_stub, &mish_kernel);
 ALSO_REGISTER_AVX512_DISPATCH(mish_backward_stub, &mish_backward_kernel);
 
-} // namespace at::native
+}} // namespace at::native

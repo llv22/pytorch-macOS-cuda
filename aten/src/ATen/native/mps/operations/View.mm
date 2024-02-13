@@ -15,7 +15,7 @@
 #include <ATen/ops/view_as_real.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 namespace mps {
 
 struct ViewCachedGraph : public MPSCachedGraph {
@@ -954,4 +954,4 @@ Tensor as_strided_tensorimpl_mps(const Tensor& self,
   return result;
 }
 
-} // namespace at::native
+}} // namespace at::native

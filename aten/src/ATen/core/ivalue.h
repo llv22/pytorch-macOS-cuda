@@ -505,6 +505,16 @@ struct TORCH_API IValue final {
   // Tuple
   IValue(c10::intrusive_ptr<ivalue::Tuple> v);
 
+#if defined(__APPLE__) && defined(__MACH__)
+  template <
+      typename... Args,
+      std::enable_if_t<
+          !guts::disjunction<
+              std::is_lvalue_reference<Args>...,
+              guts::negation<std::is_constructible<IValue, Args>>...>::value,
+          std::nullptr_t> = nullptr>
+  IValue(const std::tuple<Args...>& t);
+#else
   template <
       typename... Args,
       std::enable_if_t<
@@ -513,6 +523,21 @@ struct TORCH_API IValue final {
               std::negation<std::is_constructible<IValue, Args>>...>::value,
           std::nullptr_t> = nullptr>
   IValue(const std::tuple<Args...>& t);
+#endif
+
+#if defined(__APPLE__) && defined(__MACH__)
+  template <
+      typename... Args,
+      std::enable_if_t<
+          !guts::disjunction<
+              std::is_lvalue_reference<Args>...,
+              guts::negation<std::is_constructible<IValue, Args>>...>::value,
+          std::nullptr_t> = nullptr>
+  IValue(std::tuple<Args...>&& t);
+  bool isTuple() const {
+    return Tag::Tuple == tag;
+  }
+#else
   template <
       typename... Args,
       std::enable_if_t<
@@ -524,6 +549,8 @@ struct TORCH_API IValue final {
   bool isTuple() const {
     return Tag::Tuple == tag;
   }
+#endif
+
   c10::intrusive_ptr<ivalue::Tuple> toTuple() &&;
   c10::intrusive_ptr<ivalue::Tuple> toTuple() const&;
   C10_NODISCARD ivalue::Tuple& toTupleRef() const;

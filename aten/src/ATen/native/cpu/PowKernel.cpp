@@ -10,7 +10,7 @@
 
 #include <c10/core/Scalar.h>
 
-namespace at::native {
+namespace at{ namespace native {
 
 inline namespace CPU_CAPABILITY {
 
@@ -147,4 +147,4 @@ static void pow_tensor_scalar_kernel(
 ALSO_REGISTER_AVX512_DISPATCH(pow_tensor_tensor_stub, &CPU_CAPABILITY::pow_tensor_tensor_kernel);
 ALSO_REGISTER_AVX512_DISPATCH(pow_tensor_scalar_stub, &CPU_CAPABILITY::pow_tensor_scalar_kernel);
 
-} // namespace at::native
+}} // namespace at::native

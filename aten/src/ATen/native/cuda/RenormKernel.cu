@@ -5,7 +5,7 @@
 
 #include <ATen/Dispatch.h>
 
-namespace at::native {
+namespace at{ namespace native {
 namespace {
 
 void renorm_scale_factor_impl(TensorIteratorBase& iter, double maxnorm) {
@@ -26,4 +26,4 @@ void renorm_scale_factor_impl(TensorIteratorBase& iter, double maxnorm) {
 
 REGISTER_DISPATCH(renorm_scale_factor_stub, &renorm_scale_factor_impl);
 
-}  // namespace at::native
+}}  // namespace at::native

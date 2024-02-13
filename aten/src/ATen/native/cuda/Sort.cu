@@ -14,7 +14,15 @@
 #include <limits>
 #include <c10/core/DeviceArray.h>
 
-namespace at::native {
+#if defined(__APPLE__) && defined(__MACH__)
+#include <type_traits>
+namespace std {
+  template< class T, class U >
+    inline constexpr bool is_same_v = is_same<T, U>::value;
+} // namespace std
+#endif
+
+namespace at{ namespace native {
 
 template <typename T>
 static int minimum_grid_for_occupancy(T kernel, int max_block_size) {
@@ -379,4 +387,4 @@ void sortKeyValueInplace(
   }
 }
 
-}  // namespace at::native
+}}  // namespace at::native

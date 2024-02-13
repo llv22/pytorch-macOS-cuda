@@ -20,7 +20,7 @@
 #include <ATen/ops/smooth_l1_loss_native.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 namespace mps {
 
 static string reductionToString(int64_t reduction) {
@@ -1274,4 +1274,4 @@ Tensor nll_loss2d_backward_mps(const Tensor& grad_output,
   return grad_input;
 }
 
-} // namespace at::native
+}} // namespace at::native

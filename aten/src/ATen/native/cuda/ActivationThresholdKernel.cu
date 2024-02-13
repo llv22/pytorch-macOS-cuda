@@ -16,7 +16,7 @@
 #include <ATen/cuda/detail/OffsetCalculator.cuh>
 #include <ATen/native/cuda/Loops.cuh>
 
-namespace at::native {
+namespace at{ namespace native {
 namespace {
 
 template <typename scalar_t>
@@ -49,4 +49,4 @@ static void threshold_kernel_cuda(
 
 REGISTER_DISPATCH(threshold_stub, &threshold_kernel_cuda);
 
-} // namespace at::native
+}} // namespace at::native

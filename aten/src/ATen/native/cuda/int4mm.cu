@@ -11,7 +11,7 @@
 #include <c10/cuda/CUDAGuard.h>
 
 
-namespace at::native {
+namespace at{ namespace native {
 
 template <typename U, typename V>
 constexpr __host__ __device__ auto divDown(U a, V b) -> decltype(a + b) {
@@ -1095,4 +1095,4 @@ at::Tensor _convert_weight_to_int4pack_cuda(
 }
 
 
-} // namespace at::native
+}} // namespace at::native

@@ -384,7 +384,7 @@ struct TORCH_API Result : public std::enable_shared_from_this<Result> {
       using extra_fields_t = typename std::remove_cv_t<
           typename std::remove_reference_t<decltype(extra_fields)>>;
 
-      if constexpr (std::is_base_of_v<T, extra_fields_t>) {
+      if constexpr (std::is_base_of<T, extra_fields_t>::value) {
         fn(extra_fields);
       }
     });

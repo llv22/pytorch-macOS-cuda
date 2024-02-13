@@ -10,7 +10,7 @@
 #include <c10/util/irange.h>
 #include <ATen/OpMathType.h>
 
-namespace at::native {
+namespace at{ namespace native {
 
 namespace {
 
@@ -68,7 +68,7 @@ void cpu_adaptive_avg_pool(
 }
 
 template <typename scalar_t>
-typename std::enable_if_t<std::is_same_v<scalar_t, at::opmath_type<scalar_t>>, void>
+typename std::enable_if_t<std::is_same<scalar_t, at::opmath_type<scalar_t>>::value, void>
 cpu_adaptive_avg_pool_channels_last(
     Tensor& output_,
     const Tensor& input_,
@@ -155,7 +155,7 @@ cpu_adaptive_avg_pool_channels_last(
 }
 
 template <typename scalar_t>
-typename std::enable_if_t<!std::is_same_v<scalar_t, at::opmath_type<scalar_t>>, void>
+typename std::enable_if_t<!std::is_same<scalar_t, at::opmath_type<scalar_t>>::value, void>
 cpu_adaptive_avg_pool_channels_last(
     Tensor& output_,
     const Tensor& input_,
@@ -414,4 +414,4 @@ void adapative_avg_pool2d_backward_kernel_impl(
 REGISTER_DISPATCH(adaptive_avg_pool2d_kernel, &adaptive_avg_pool2d_kernel_impl);
 REGISTER_DISPATCH(adaptive_avg_pool2d_backward_kernel, &adapative_avg_pool2d_backward_kernel_impl);
 
-} // at::native
+}} // at::native

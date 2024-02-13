@@ -60,7 +60,7 @@
 #include <ATen/ops/pow.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 
 #define FOREACH_BINARY_OP_TENSOR(OP)                            \
   void foreach_tensor_##OP##_tensor_kernel_slow_(               \
@@ -459,4 +459,4 @@ std::vector<Tensor> foreach_scalar_pow_list_kernel_slow(
   return result;
 }
 
-} // namespace at::native
+}} // namespace at::native

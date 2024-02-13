@@ -93,15 +93,22 @@ if(INTERN_BUILD_ATEN_OPS)
   list(APPEND Caffe2_CPU_TEST_SRCS ${ATen_CORE_TEST_SRCS})
   list(APPEND Caffe2_VULKAN_TEST_SRCS ${ATen_VULKAN_TEST_SRCS})
   list(APPEND Caffe2_CPU_INCLUDE ${ATen_CPU_INCLUDE})
-  list(APPEND Caffe2_CPU_INCLUDE ${ATen_CUDA_INCLUDE} /usr/local/cuda/include)
+  # list(APPEND Caffe2_GPU_INCLUDE ${ATen_CUDA_INCLUDE} /usr/local/cuda/include ${PROJECT_SOURCE_DIR}/third_party/cutlass/include)
+  list(APPEND Caffe2_GPU_INCLUDE ${ATen_CUDA_INCLUDE} /usr/local/cuda/include)
   list(APPEND Caffe2_HIP_INCLUDE ${ATen_HIP_INCLUDE})
   list(APPEND Caffe2_VULKAN_INCLUDE ${ATen_VULKAN_INCLUDE})
   list(APPEND Caffe2_DEPENDENCY_LIBS ${ATen_CPU_DEPENDENCY_LIBS} /Users/llv23/opt/miniconda3/lib/libomp.dylib)
   list(APPEND Caffe2_CUDA_DEPENDENCY_LIBS ${ATen_CUDA_DEPENDENCY_LIBS} /Users/llv23/opt/miniconda3/lib/libomp.dylib)
   list(APPEND Caffe2_HIP_DEPENDENCY_LIBS ${ATen_HIP_DEPENDENCY_LIBS})
-  list(APPEND Caffe2_DEPENDENCY_INCLUDE ${ATen_THIRD_PARTY_INCLUDE})
+  # list(APPEND Caffe2_DEPENDENCY_INCLUDE ${ATen_THIRD_PARTY_INCLUDE} ${PROJECT_SOURCE_DIR}/third_party/cutlass/include)
   set(Caffe2_CUDA_DEPENDENCY_LIBS ${Caffe2_CUDA_DEPENDENCY_LIBS} PARENT_SCOPE)
 endif()
+
+
+# if(USE_FLASH_ATTENTION AND NOT MSVC)
+#   list(APPEND Caffe2_CPU_INCLUDE ${PROJECT_SOURCE_DIR}/third_party/cutlass/include)
+#   include_directories(${PROJECT_SOURCE_DIR}/third_party/cutlass/include)
+# endif()
 
 # ---[ Caffe2 build
 # Note: the folders that are being commented out have not been properly

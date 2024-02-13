@@ -29,7 +29,7 @@
 #include <ATen/ops/upsample_nearest2d_backward_native.h>
 #include <ATen/ops/upsample_nearest2d_native.h>
 #endif
-namespace at::native {
+namespace at{ namespace native {
 namespace mps {
 
 // Upsampling operations (1D/2D forward and backward)
@@ -392,4 +392,4 @@ TORCH_IMPL_FUNC(upsample_bilinear2d_backward_out_mps)
   }
 }
 
-} // namespace at::native
+}} // namespace at::native

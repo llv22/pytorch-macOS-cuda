@@ -6,7 +6,7 @@
 #include <ATen/ops/_copy_from_and_resize_native.h>
 #include <ATen/ops/_copy_from_native.h>
 
-namespace at::native {
+namespace at{ namespace native {
 namespace mps {
 
 static void* pageAlignedBlockPtr(const void* ptr, NSUInteger size, NSUInteger* alignedBlockSize) {
@@ -331,4 +331,4 @@ Tensor _copy_from_mps(const at::Tensor& self, const at::Tensor& dst, bool non_bl
   return mps::mps_copy_(const_cast<Tensor&>(dst), self, non_blocking);
 }
 
-} // namespace at::native
+}} // namespace at::native

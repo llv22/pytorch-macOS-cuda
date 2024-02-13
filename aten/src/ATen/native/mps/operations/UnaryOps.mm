@@ -54,7 +54,7 @@
 #include <ATen/ops/view_as_real.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 
 enum class MPSCumulativeOpType : uint8_t {
   CUMSUM = 0,
@@ -498,4 +498,4 @@ TORCH_IMPL_FUNC(sgn_out_mps)(const Tensor& self, const Tensor& output) {
   mps::unary_op(realInput, realOutput, "sgn_out_mps", complex_sgn_op);
 }
 
-} // namespace at::native
+}} // namespace at::native

@@ -15,7 +15,7 @@
 #include <ATen/ops/empty_like_native.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 
 template <typename T, template <class> class Op>
 std::vector<Tensor> foreach_binary_op(
@@ -203,4 +203,4 @@ FOREACH_BINARY_OP_SCALAR_TENSOR(
     std::divides,
     /* div_op */ true);
 
-} // namespace at::native
+}} // namespace at::native

@@ -2,7 +2,7 @@
 #include <ATen/core/List.h>
 #include <ATen/native/ConvUtils.h>
 
-namespace at::native::quantized {
+namespace at{ namespace native { namespace quantized {
 namespace {
 // MakeConvOutputShape used from both CPU and CUDA libraries
 // and exporting symbol from torch_cpu would probaby take more storage
@@ -59,4 +59,4 @@ at::SmallVector<int64_t, 5> MakeConvOutputShape<3>(
 
 #endif
 } // anonymous namespace
-} // namespace at::native::quantized
+}}} // namespace at::native::quantized

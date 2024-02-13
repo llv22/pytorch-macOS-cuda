@@ -20,7 +20,7 @@
 #include <ATen/ops/triangular_solve_native.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 namespace mps {
 /*
  * Helper functions to be used for mm/addmm for detecting the Transpositions
@@ -785,4 +785,4 @@ TORCH_IMPL_FUNC(triangular_solve_mps_out)
   result.copy_(out);
 }
 
-} // namespace at::native
+}} // namespace at::native

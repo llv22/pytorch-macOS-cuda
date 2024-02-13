@@ -17,7 +17,7 @@
 #include <ATen/native/cuda/Loops.cuh>
 #include <c10/util/complex.h>
 
-namespace at::native {
+namespace at{ namespace native {
 namespace {
 
 void silu_kernel(TensorIteratorBase& iter) {
@@ -57,4 +57,4 @@ void silu_backward_kernel(TensorIteratorBase& iter) {
 REGISTER_DISPATCH(silu_stub, &silu_kernel);
 REGISTER_DISPATCH(silu_backward_stub, &silu_backward_kernel);
 
-} // namespace at::native
+}} // namespace at::native

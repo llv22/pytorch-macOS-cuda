@@ -4,7 +4,16 @@
 #include <memory>
 #include <mutex>
 
-namespace at::native {
+#if defined(__APPLE__) && defined(__MACH__)
+#include <type_traits>
+// namespace std {
+//   // Define is_nothrow_move_assignable_v for C++ versions before C++17 where it might not be available.
+//   template <class T>
+//   constexpr bool is_standard_layout_v = std::is_standard_layout<T>::value;
+// }
+#endif
+
+namespace at{ namespace native {
 
 // Hashing machinery for Params
 // Fowler–Noll–Vo hash function
@@ -14,7 +23,7 @@ template <typename Params>
 struct ParamsHash {
   // Params must be a POD because we read out its memory
   // contents as char* when hashing
-  static_assert(std::is_standard_layout_v<Params>, "Params is not POD");
+  static_assert(std::is_standard_layout<Params>::value, "Params is not POD");
 
   size_t operator()(const Params& params) const {
     auto ptr = reinterpret_cast<const uint8_t*>(&params);
@@ -31,7 +40,7 @@ template <typename Params>
 struct ParamsEqual {
   // Params must be a POD because we read out its memory
   // contents as char* when comparing
-  static_assert(std::is_standard_layout_v<Params>, "Params is not POD");
+  static_assert(std::is_standard_layout<Params>::value, "Params is not POD");
 
   bool operator()(const Params& a, const Params& b) const {
     auto ptr1 = reinterpret_cast<const uint8_t*>(&a);
@@ -46,7 +55,7 @@ template <typename T>
 struct ParamsWrapper {
   T pod;
   static_assert(
-      std::is_standard_layout_v<T>,
+      std::is_standard_layout<T>::value,
       "ParamsWrapper cannot wrap non-POD data");
 
   ParamsWrapper() {
@@ -87,7 +96,7 @@ struct ParamsWrapperHash {
   // Params must be a POD because we read out its memory
   // contents as char* when hashing
   static_assert(
-      std::is_standard_layout_v<decltype(ParamsWrapper::pod)>,
+      std::is_standard_layout<decltype(ParamsWrapper::pod)>::value,
       "ParamsWrapper cannot wrap non-POD data");
 
   size_t operator()(const ParamsWrapper& params_wrapper) const {
@@ -101,4 +110,4 @@ struct ParamsWrapperHash {
   }
 };
 
-} // namespace at::native
+}} // namespace at::native

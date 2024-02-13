@@ -13,7 +13,7 @@
 #include <c10/macros/Macros.h>
 #include <cmath>
 
-namespace at::native {
+namespace at{ namespace native {
 
 using namespace at::cuda::detail;
 
@@ -958,4 +958,4 @@ void launch_grid_sampler_3d_backward_kernel(
   }
 }
 
-}  // namespace at::native
+}}  // namespace at::native

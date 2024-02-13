@@ -48,7 +48,7 @@ class AppendOnlyList {
  public:
   using array_t = block_t<T, ChunkSize>;
   static_assert(
-      std::is_base_of_v<std::array<T, ChunkSize>, array_t>,
+      std::is_base_of<std::array<T, ChunkSize>, array_t>::value,
       "AppendOnlyList expects raw low level pointer storage.");
   static_assert(ChunkSize > 0, "Block cannot be empty.");
 
@@ -64,8 +64,8 @@ class AppendOnlyList {
   T* emplace_back(Args&&... args) {
     maybe_grow();
     if constexpr (
-        std::is_trivially_destructible_v<T> &&
-        std::is_trivially_destructible_v<array_t>) {
+        std::is_trivially_destructible<T>::value &&
+        std::is_trivially_destructible<array_t>::value) {
       ::new ((void*)next_) T{std::forward<Args>(args)...};
     } else {
       *next_ = T{std::forward<Args>(args)...};

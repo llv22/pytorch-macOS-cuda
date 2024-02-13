@@ -40,7 +40,7 @@
 #include <ATen/ops/xlogy_native.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 namespace mps {
 
 struct BinaryOpCachedGraph : public MPSCachedGraph {
@@ -536,4 +536,4 @@ TORCH_IMPL_FUNC(xlogy_out_mps)(const Tensor& self, const Tensor& other, const Te
 TORCH_IMPL_FUNC(lerp_Scalar_mps)(const Tensor& self, const Tensor& end, const Scalar& weight, const Tensor& out) {
   mps::add_sub_lerp_template(self, end, weight, out, "lerp");
 }
-} // namespace at::native
+}} // namespace at::native

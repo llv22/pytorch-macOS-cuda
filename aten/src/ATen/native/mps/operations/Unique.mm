@@ -17,7 +17,7 @@
 #include <ATen/ops/unique_dim_consecutive_native.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 namespace mps {
 
 struct UniqueCachedGraph : public MPSCachedGraph {
@@ -327,4 +327,4 @@ std::tuple<Tensor, Tensor, Tensor> _unique2_mps(const Tensor& self,
   return _unique_impl_mps(self, return_inverse, return_counts, false, c10::nullopt);
 }
 
-} // namespace at::native
+}} // namespace at::native

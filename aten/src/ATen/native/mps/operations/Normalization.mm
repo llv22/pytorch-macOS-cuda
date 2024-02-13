@@ -18,7 +18,7 @@
 #include <ATen/ops/native_layer_norm_native.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 namespace mps {
 static void get_shapes(MPSShape* input_shape_readonly,
                        NSMutableArray<NSNumber*>*& input_shape,
@@ -1163,4 +1163,4 @@ std::tuple<Tensor, Tensor, Tensor> layer_norm_backward_mps(const Tensor& grad_ou
   return std::make_tuple(std::move(grad_input), std::move(grad_weight), std::move(grad_bias));
 }
 
-} // namespace at::native
+}} // namespace at::native

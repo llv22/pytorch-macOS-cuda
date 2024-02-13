@@ -65,8 +65,12 @@ TEST(FlatbufferTest, LoadMalformedModule) {
       torch::jit::load(bad_data), "Malformed Flatbuffer module");
 
   // Check guard at parse_and_initialize_mobile_module.
+  std::string str = bad_data.str(); // Assuming bad_data.str() returns a std::string
+  const void* cvptr = static_cast<const void*>(str.data()); // Safe: No cast away const-ness
+  // If you really need a non-const void* (be careful with this, as it allows modification which is unsafe)
+  void* vptr = const_cast<void*>(cvptr);
   ASSERT_THROWS_WITH_MESSAGE(
-      parse_mobile_module(bad_data.str().data(), bad_data.str().size()),
+      torch::jit::parse_mobile_module(vptr, bad_data.str().size()),
       "Malformed Flatbuffer module");
 }
 

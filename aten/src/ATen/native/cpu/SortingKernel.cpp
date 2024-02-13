@@ -19,7 +19,7 @@
 #include <fbgemm/Utils.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 
 namespace {
 
@@ -246,4 +246,4 @@ static void topk_kernel(
 REGISTER_DISPATCH(sort_stub, &sort_kernel);
 REGISTER_DISPATCH(topk_stub, &topk_kernel);
 
-} //at::native
+}} //at::native

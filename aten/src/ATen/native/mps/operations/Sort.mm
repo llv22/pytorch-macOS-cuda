@@ -14,7 +14,7 @@
 #include <ATen/ops/sort.h>
 #include <ATen/ops/sort_native.h>
 #endif
-namespace at::native {
+namespace at{ namespace native {
 
 // sort
 TORCH_IMPL_FUNC(sort_stable_out_mps)
@@ -99,4 +99,4 @@ TORCH_IMPL_FUNC(sort_stable_out_mps)
     runMPSGraph(stream, cachedGraph->graph(), feeds, results);
   }
 }
-} // namespace at::native
+}} // namespace at::native

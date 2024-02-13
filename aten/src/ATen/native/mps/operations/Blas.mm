@@ -16,7 +16,7 @@
 #include <MetalPerformanceShaders/MetalPerformanceShaders.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 
 namespace mps {
 
@@ -207,4 +207,4 @@ TORCH_IMPL_FUNC(addmv_out_mps)
   addmv_out_mps_impl(self, mat, vec, beta_, alpha_, const_cast<Tensor&>(result));
 }
 
-} // namespace at::native
+}} // namespace at::native

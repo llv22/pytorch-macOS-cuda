@@ -345,15 +345,23 @@ void bgemm<at::BFloat16>(CUDABLAS_BGEMM_ARGTYPES(at::BFloat16)) {
   const float falpha = alpha;
   const float fbeta = beta;
   _cublasAdjustLdLevel3(transa, transb, m, n, k, &lda, &ldb, &ldc);
-#endif
-
-#if !defined(USE_ROCM) && CUDA_VERSION >= 11000
-  TORCH_CUDABLAS_CHECK(cublasGemmStridedBatchedEx(handle,
-                                  opa, opb, (int)m, (int)n, (int)k,
-                                  (void*)&falpha, a, CUDA_R_16BF, (int)lda, stridea,
-                                  b, CUDA_R_16BF, (int)ldb, strideb,
-                                  (void*)&fbeta, c, CUDA_R_16BF, (int)ldc, stridec,
-                                  (int)num_batches, CUDA_R_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP));
+#elif !defined(USE_ROCM) && CUDA_VERSION >= 11000
+    TORCH_CUDABLAS_CHECK(cublasGemmStridedBatchedExFix(handle,
+                                    opa, opb, (int)m, (int)n, (int)k,
+                                    (void*)&falpha, a, CUDA_R_16BF, (int)lda, stridea,
+                                    b, CUDA_R_16BF, (int)ldb, strideb,
+                                    (void*)&fbeta, c, CUDA_R_16BF, (int)ldc, stridec,
+                                    (int)num_batches, CUDA_R_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP));
+#elif defined(ROCM_VERSION) && ROCM_VERSION >= 21000
+    TORCH_CUDABLAS_CHECK(rocblas_gemm_strided_batched_ex(handle, opa, opb, (int)m, (int)n, (int)k,
+                                   (void*)&falpha, a, rocblas_datatype_bf16_r, (int)lda, stridea,
+                                   b, rocblas_datatype_bf16_r, (int)ldb, strideb,
+                                   (void*)&fbeta, c, rocblas_datatype_bf16_r, (int)ldc, stridec,
+                                   c, rocblas_datatype_bf16_r, (int)ldc, stridec,
+                                   (int) num_batches, rocblas_datatype_f32_r, rocblas_gemm_algo_standard,
+                                   0, 0, NULL, NULL));
+#else
+  AT_ERROR("Cublas_bfdot requires CUDA 11.0+");
 #endif
 }
 
@@ -519,46 +527,7 @@ void gemm<at::Half>(CUDABLAS_GEMM_ARGTYPES(at::Half)) {
 #endif
 }
 
-#ifdef USE_ROCM
-template <>
-void gemm<at::BFloat16>(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
-  cublasHandle_t handle = at::cuda::getCurrentCUDABlasHandle();
-  cublasOperation_t opa = _cublasOpFromChar(transa);
-  cublasOperation_t opb = _cublasOpFromChar(transb);
-  float falpha = alpha;
-  float fbeta = beta;
-  _cublasAdjustLdLevel3(transa, transb, m, n, k, &lda, &ldb, &ldc);
-  GEMM_CHECK_ARGVALUES(at::BFloat16);
-  TORCH_CUDABLAS_CHECK(rocblas_gemm_ex(
-      handle,
-      opa,
-      opb,
-      m,
-      n,
-      k,
-      &falpha,
-      a,
-      rocblas_datatype_bf16_r,
-      lda,
-      b,
-      rocblas_datatype_bf16_r,
-      ldb,
-      &fbeta,
-      c,
-      rocblas_datatype_bf16_r,
-      ldc,
-      c,
-      rocblas_datatype_bf16_r,
-      ldc,
-      rocblas_datatype_f32_r,
-      rocblas_gemm_algo_standard,
-      0,
-      0));
-}
-#endif
-
-#if !defined(USE_ROCM) 
-// #if !defined(USE_ROCM) && defined(CUDA_VERSION) && CUDA_VERSION >= 11000
+#if !defined(USE_ROCM)
 template <>
 void gemm<at::BFloat16>(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
   globalContext().alertCuBLASConfigNotDeterministic();
@@ -679,6 +648,8 @@ class CuBlasLtMatmulPreference : public CuBlasLtDescriptor<
 };
 } // namespace
 
+
+#if !defined(USE_ROCM) && CUDA_VERSION >= 11000
 template <typename Dtype>
 void gemm_and_bias(
     bool transpose_mat1,
@@ -881,6 +852,7 @@ template void gemm_and_bias(
     at::BFloat16* result_ptr,
     int64_t result_ld,
     GEMMAndBiasActivationEpilogue activation);
+#endif
 
 void scaled_gemm(
     char transa,

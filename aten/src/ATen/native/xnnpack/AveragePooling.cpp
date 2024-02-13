@@ -5,7 +5,7 @@
 #include <ATen/native/xnnpack/Engine.h>
 #include <ATen/native/xnnpack/Pooling.h>
 
-namespace at::native::xnnpack {
+namespace at{ namespace native { namespace xnnpack {
 
 bool use_global_average_pool(
   const Tensor& input) {
@@ -78,6 +78,6 @@ Tensor global_average_pool(
   return output.to(input.suggest_memory_format());
 }
 
-} // namespace at::native::xnnpack
+}}} // namespace at::native::xnnpack
 
 #endif /* USE_XNNPACK */

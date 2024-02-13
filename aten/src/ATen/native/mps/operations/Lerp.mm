@@ -9,10 +9,10 @@
 #include <ATen/ops/lerp_native.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 TORCH_IMPL_FUNC(lerp_Tensor_mps)(const Tensor& self, const Tensor& end, const Tensor& weight, const Tensor& out) {
   // TODO: Write a much better implementation
   at::add_out(const_cast<Tensor&>(out), self, weight.mul(end.sub(self)));
 }
 
-} // namespace at::native
+}} // namespace at::native

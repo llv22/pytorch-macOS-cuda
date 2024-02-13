@@ -11,7 +11,7 @@
 #include <ATen/ops/scalar_tensor.h>
 #endif
 
-namespace at::native::mps {
+namespace at{ namespace native { namespace mps {
 
 void dispatch_sync_with_rethrow(dispatch_queue_t queue, void (^block)()) {
   __block std::optional<std::exception_ptr> block_exception;
@@ -527,4 +527,4 @@ class MPSGraphCacheCallback : public IMpsAllocatorCallback {
 
 REGISTER_MPS_ALLOCATOR_CALLBACK("mps_graph_cache_callback", MPSGraphCacheCallback);
 
-} // namespace at::native::mps
+}}} // namespace at::native::mps

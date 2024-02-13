@@ -9,7 +9,7 @@
 
 #include <algorithm>
 
-namespace at::native {
+namespace at{ namespace native {
 namespace {
 
 // Load vector from a smaller type (more elements) to a larger type (fewer elements),
@@ -635,4 +635,4 @@ void nansum_kernel_impl(TensorIterator &iter) {
 REGISTER_DISPATCH(nansum_stub, &nansum_kernel_impl);
 REGISTER_DISPATCH(sum_stub, &sum_kernel_impl);
 
-}  // namespace at::native
+}}  // namespace at::native

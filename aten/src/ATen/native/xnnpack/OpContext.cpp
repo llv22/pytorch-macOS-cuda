@@ -5,7 +5,7 @@
 
 #include <ATen/Context.h>
 
-namespace at::native::xnnpack {
+namespace at{ namespace native { namespace xnnpack {
 
 c10::intrusive_ptr<LinearOpContext>
 XNNPackLinearOpContext::create_context(
@@ -154,6 +154,6 @@ void XNNPackTransposeConv2dOpContext::free_orig_weight_and_bias() {
   orig_bias_.reset();
 }
 
-} // namespace at::native::xnnpack
+}}} // namespace at::native::xnnpack
 
 #endif /* USE_XNNPACK */

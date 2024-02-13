@@ -10,7 +10,7 @@
 #include <ATen/ops/logical_not_native.h>
 #include <fmt/format.h>
 
-namespace at::native {
+namespace at{ namespace native {
 namespace mps {
 static const char* BITWISE_OPS_TEMPLATE = R"METAL(
 
@@ -353,4 +353,4 @@ TORCH_IMPL_FUNC(bitwise_xor_out_mps)(const Tensor& self, const Tensor& other, co
 TORCH_IMPL_FUNC(bitwise_not_out_mps)(const Tensor& self, const Tensor& output) {
   mps::_bitwise_not_out_mps(self, output);
 }
-} // namespace at::native
+}} // namespace at::native

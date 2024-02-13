@@ -6,7 +6,7 @@
 #include <ATen/cuda/detail/OffsetCalculator.cuh>
 #include <ATen/AccumulateType.h>
 
-namespace at::native {
+namespace at{ namespace native {
 
 namespace {
 
@@ -25,4 +25,4 @@ Tensor flatten_indices_cuda_kernel(const Tensor& indices, IntArrayRef size) {
 
 REGISTER_CUDA_DISPATCH(flatten_indices_stub, &flatten_indices_cuda_kernel);
 
-} // namespace at::native
+}} // namespace at::native

@@ -21,6 +21,7 @@
 #include <ATen/native/cuda/PersistentSoftmax.cuh>
 #include <ATen/native/cuda/block_reduce.cuh>
 #include <c10/util/Optional.h>
+#include <ATen/ops/arange.h>
 
 #ifndef AT_PER_OPERATOR_HEADERS
 #include <ATen/Functions.h>
@@ -676,6 +677,50 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt, Tensor, Ten
     bool is_causal,
     bool return_debug_mask,
     c10::optional<double> scale) {
+#if defined(__APPLE__) && defined(__MACH__)
+  // Used for tracking usage statistics
+  C10_LOG_API_USAGE_ONCE("torch.sdpa.flash_attention");
+  // Query (Batch x Num_heads x Q_seq_len  x Dim_per_head)
+  // Key   (Batch x Num_heads x KV_seq_len x Dim_per_head)
+  // Value (Batch x Num_heads x KV_seq_len x Dim_per_head)
+
+  const int64_t max_seqlen_batch_q = query.size(2);
+  const int64_t max_seqlen_batch_k = key.size(2);
+  const int64_t max_seqlen_batch_v = value.size(2);
+  TORCH_CHECK(
+      max_seqlen_batch_k == max_seqlen_batch_v,
+      "Key and Value must have the same sequence length");
+
+  // Query -> Query(Batch x Q_seq_len  x Num_heads x Dim_per_head)
+  // Key   -> Key  (Batch x KV_seq_len x Num_heads x Dim_per_head)
+  // Value -> Value(Batch x KV_seq_len x Num_heads x Dim_per_head)
+  Tensor q_t = query.transpose(1, 2);
+  Tensor k_t = key.transpose(1, 2);
+  Tensor v_t = value.transpose(1, 2);
+
+  Tensor output, logsumexp, philox_seed, philox_offset, debug_attn_mask;
+  std::tie(output,
+       logsumexp,
+       philox_seed,
+       philox_offset,
+       debug_attn_mask) =
+          at::_flash_attention_forward(
+              q_t,
+              k_t,
+              v_t,
+              c10::nullopt,
+              c10::nullopt,
+              max_seqlen_batch_q,
+              max_seqlen_batch_k,
+              dropout_p,
+              is_causal,
+              return_debug_mask,
+              scale);
+  // Reshape output to convert nnz to batch_size and seq_len
+  Tensor attention = output.transpose(1,2);
+
+  return std::make_tuple(attention, logsumexp, Tensor(), Tensor(), max_seqlen_batch_q, max_seqlen_batch_k, philox_seed, philox_offset, debug_attn_mask);
+#else
   // Used for tracking usage statistics
   C10_LOG_API_USAGE_ONCE("torch.sdpa.flash_attention");
   // Query (Batch x Num_heads x Q_seq_len  x Dim_per_head)
@@ -718,6 +763,7 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt, Tensor, Ten
   Tensor attention = output.transpose(1,2);
 
   return std::make_tuple(attention, logsumexp, Tensor(), Tensor(), max_seqlen_batch_q, max_seqlen_batch_k, philox_seed, philox_offset, debug_attn_mask);
+#endif
 }
 
 std::tuple<Tensor, Tensor, Tensor, Tensor> _scaled_dot_product_efficient_attention_cuda(
@@ -729,6 +775,37 @@ std::tuple<Tensor, Tensor, Tensor, Tensor> _scaled_dot_product_efficient_attenti
     double dropout_p,
     bool is_causal,
     c10::optional<double> scale) {
+#if defined(__APPLE__) && defined(__MACH__)
+  // Used for tracking usage statistics
+  C10_LOG_API_USAGE_ONCE("torch.sdpa.mem_efficient_attention");
+  // Query -> Query(Batch x Q_seq_len x Num_heads x Dim_per_head)
+  // Key   -> Key(Batch x KV_seq_len x Num_heads x Dim_per_head)
+  // Value -> Value(Batch x KV_seq_len x  Num_heads x Dim_per_head)
+  Tensor q_t = query.transpose(1, 2);
+  Tensor k_t = key.transpose(1, 2);
+  Tensor v_t = value.transpose(1, 2);
+
+  Tensor attention, log_sumexp, seed, offset;
+  c10::SymInt max_seqlen_batch_q, max_seqlen_batch_kv;
+  sdp::CustomMaskType custom_mask_type = is_causal
+      ? sdp::CustomMaskType::CausalFromTopLeft
+      : sdp::CustomMaskType::NoCustomMask;
+
+  std::tie(attention, log_sumexp, seed, offset, max_seqlen_batch_q, max_seqlen_batch_kv) = at::_efficient_attention_forward(
+      q_t,
+      k_t,
+      v_t,
+      attn_bias,
+      c10::nullopt,
+      c10::nullopt,
+      c10::nullopt,
+      dropout_p,
+      static_cast<int64_t>(custom_mask_type),
+      compute_log_sumexp,
+      scale);
+  attention = attention.transpose(1,2);
+  return std::make_tuple(std::move(attention), std::move(log_sumexp), std::move(seed), std::move(offset));
+#else
   // Used for tracking usage statistics
   C10_LOG_API_USAGE_ONCE("torch.sdpa.mem_efficient_attention");
   // Query -> Query(Batch x Q_seq_len x Num_heads x Dim_per_head)
@@ -757,6 +834,7 @@ std::tuple<Tensor, Tensor, Tensor, Tensor> _scaled_dot_product_efficient_attenti
 
   attention = attention.transpose(1, 2);
   return std::make_tuple(std::move(attention), std::move(log_sumexp), std::move(seed), std::move(offset));
+#endif
 }
 
 int64_t _fused_sdp_choice_cuda(const Tensor& query_, const Tensor& key, const Tensor& value,

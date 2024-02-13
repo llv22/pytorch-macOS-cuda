@@ -10,7 +10,7 @@
 #include <ATen/native/transformers/attention.h>
 #include <c10/util/irange.h>
 
-namespace at::native {
+namespace at{ namespace native {
 
 namespace {
 
@@ -108,4 +108,4 @@ void transform_bias_rescale_qkv_kernel_impl(
 
 REGISTER_DISPATCH(transform_bias_rescale_qkv_stub, &transform_bias_rescale_qkv_kernel_impl);
 
-} // at::native
+}} // at::native

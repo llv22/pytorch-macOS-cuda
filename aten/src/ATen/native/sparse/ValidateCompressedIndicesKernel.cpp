@@ -5,7 +5,7 @@
 #include <ATen/ops/_validate_compressed_sparse_indices_native.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 
 namespace {
 
@@ -46,4 +46,4 @@ void _validate_compressed_sparse_indices_cpu(
       is_crow, cidx, idx, cdim, dim, nnz);
 }
 
-} //namespace at::native
+}} //namespace at::native

@@ -10,7 +10,7 @@
 #include <ATen/native/cuda/Math.cuh>
 #include <limits>
 
-namespace at::native {
+namespace at{ namespace native {
 
 #if AT_USE_JITERATOR()
 CONSTEXPR_EXCEPT_WIN_CUDA char sinh_name[] = "sinh_impl";
@@ -55,4 +55,4 @@ void sinh_kernel_cuda(TensorIteratorBase& iter) {
 
 REGISTER_DISPATCH(sinh_stub, &sinh_kernel_cuda);
 
-} // namespace at::native
+}} // namespace at::native

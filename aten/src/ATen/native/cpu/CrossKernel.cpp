@@ -11,7 +11,7 @@
 #include <ATen/Parallel.h>
 #include <ATen/TensorIterator.h>
 #include <c10/util/irange.h>
-namespace at::native {
+namespace at{ namespace native {
 namespace {
 
 template<typename scalar_t>
@@ -78,4 +78,4 @@ static void cross_kernel_impl(const Tensor& result, const Tensor& a, const Tenso
 
 REGISTER_DISPATCH(cross_stub, &cross_kernel_impl);
 
-} // namespace at::native
+}} // namespace at::native

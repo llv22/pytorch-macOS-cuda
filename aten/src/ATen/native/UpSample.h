@@ -45,7 +45,7 @@
  *     src_idx + 0.5 = scale * (dst_index + 0.5)
  */
 
-namespace at::native {
+namespace at{ namespace native {
 
 namespace upsample {
 
@@ -498,4 +498,4 @@ void inline apply_grad_input(float* buffer_ptr, BFloat16* gin, int64_t size) {
   }
 }
 
-} // namespace at::native
+}} // namespace at::native

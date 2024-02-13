@@ -11,7 +11,7 @@
 #include <ATen/ops/empty.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 
 template <typename T>
 inline T storage_size_for(ArrayRef<T> size, ArrayRef<T> stride) {
@@ -72,4 +72,4 @@ inline const Tensor& fill_resize_deterministic_(const Tensor& tensor, int64_t ol
   return tensor;
 }
 
-} // namespace at::native
+}} // namespace at::native

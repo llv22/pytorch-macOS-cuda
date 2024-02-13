@@ -6,7 +6,7 @@
 #include <ATen/native/xnnpack/Common.h>
 #include <ATen/native/xnnpack/OpContext.h>
 
-namespace at::native::xnnpack {
+namespace at{ namespace native { namespace xnnpack {
 namespace internal::convolution2d {
 
 c10::intrusive_ptr<xnnpack::Conv2dOpContext>
@@ -67,6 +67,6 @@ Tensor convolution2d(
     const IntArrayRef stride,
     const IntArrayRef dilation,
     const int64_t groups);
-} // namespace at::native::xnnpack
+}}} // namespace at::native::xnnpack
 
 #endif /* USE_XNNPACK */

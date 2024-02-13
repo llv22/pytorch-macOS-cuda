@@ -19,7 +19,7 @@
       " but got input to be of shape ",              \
       T.sizes())
 
-namespace at::native::internal {
+namespace at{ namespace native { namespace internal {
 namespace {
 inline bool all_positive(IntArrayRef& arr) {
   return std::all_of(
@@ -226,4 +226,4 @@ void slow_conv_dilated_shape_check(
   }
 }
 
-} // namespace at::native::internal
+}}} // namespace at::native::internal

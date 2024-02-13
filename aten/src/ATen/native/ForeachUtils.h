@@ -17,7 +17,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace at::native {
+namespace at{ namespace native {
 namespace {
 // Check if tensor list has either a boolean tensor or a integer tensor
 inline bool has_integral_tensor(TensorList tensors, const bool includeBool) {
@@ -366,4 +366,4 @@ inline FlatMap _group_tensors_by_first_tensors_device_and_dtype(
 }
 
 } // namespace
-} // namespace at::native
+}} // namespace at::native

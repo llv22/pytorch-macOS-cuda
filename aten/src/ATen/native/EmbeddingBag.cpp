@@ -234,7 +234,7 @@ index_select_add(
       offsets_data = offsets_include_last.data();
     }
 #if defined(USE_FBGEMM)
-    constexpr bool isbf16 = std::is_same_v<data_t, at::Half> ? false : true;
+    constexpr bool isbf16 = std::is_same<data_t, at::Half>::value ? false : true;
     auto kernel_16bit_index_t = fbgemm_kernel_cache
         ? fbgemm_kernel_cache
               ->getCallback</* has_weight */ false, index_t, uint16_t>(ddim)
@@ -608,7 +608,7 @@ index_select_scale_add(
     auto* scale_data_fp32 = scale_fp32.mutable_data_ptr<float>();
 
 #if defined(USE_FBGEMM)
-    constexpr bool isbf16 = std::is_same_v<data_t, at::Half> ? false : true;
+    constexpr bool isbf16 = std::is_same<data_t, at::Half>::value ? false : true;
     if constexpr (isbf16) {
       fbgemm::Bfloat16ToFloat_simd(
           reinterpret_cast<const fbgemm::bfloat16*>(scale_data),

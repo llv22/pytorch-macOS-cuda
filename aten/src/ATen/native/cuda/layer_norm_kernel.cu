@@ -28,7 +28,7 @@
 #include <c10/util/env.h>
 
 
-namespace at::native {
+namespace at{ namespace native {
 
 namespace {
 
@@ -1459,4 +1459,4 @@ std::tuple<Tensor, Tensor, Tensor> layer_norm_backward_cuda(
 REGISTER_DISPATCH(LayerNormKernel, &LayerNormKernelImpl);
 REGISTER_DISPATCH(LayerNormBackwardKernel, &LayerNormBackwardKernelImpl);
 
-} // namespace at::native
+}} // namespace at::native

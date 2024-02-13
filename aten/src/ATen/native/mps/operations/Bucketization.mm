@@ -14,7 +14,7 @@
 #include <ATen/ops/searchsorted_native.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 namespace mps {
 
 static const char* METAL_BUCKETIZATION = R"BUCKETIZE_METAL(
@@ -392,4 +392,4 @@ Tensor bucketize_mps(const Scalar& self, const Tensor& boundaries, bool out_int3
   return bucketize_mps(mps::wrapped_scalar_tensor_mps(self, boundaries.device()), boundaries, out_int32, right);
 }
 
-} // namespace at::native
+}} // namespace at::native

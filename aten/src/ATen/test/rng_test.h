@@ -7,6 +7,14 @@
 #include <torch/all.h>
 #include <stdexcept>
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <type_traits>
+namespace std{
+  template< class T, class U >
+  inline constexpr bool is_same_v = ::std::is_same<T, U>::value;
+}
+#endif
+
 namespace {
 
 constexpr auto int64_min_val = std::numeric_limits<int64_t>::lowest();

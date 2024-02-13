@@ -1076,7 +1076,11 @@ std::vector<std::shared_ptr<Result>> PythonTracer::getEvents(
 
   PythonIDVisitor id_visitor;
   for (auto& i : out) {
+#if defined(__APPLE__) && defined(__MACH__)
+    c10::visit(id_visitor, i->extra_fields_);
+#else
     std::visit(id_visitor, i->extra_fields_);
+#endif
   }
 
   return out;

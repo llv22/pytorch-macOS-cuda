@@ -464,16 +464,19 @@ TEST_P(ChunkRecordIteratorTest, ChunkRead) {
   LOG(INFO) << "Testing chunk size " << chunkSize;
   PyTorchStreamReader reader(fileName);
   ASSERT_TRUE(reader.hasRecord(recordName));
-  auto chunkIterator = reader.createChunkReaderIter(
+  #if !defined(__APPLE__) && !defined(__MACH__)
+  //see: to avoid "error: call to implicitly-deleted copy constructor of 'caffe2::serialize::ChunkRecordIterator'"
+  caffe2::serialize::ChunkRecordIterator chunkIterator = reader.createChunkReaderIter(
       recordName, tensorDataSizeInBytes, chunkSize);
   std::vector<uint8_t> buffer(chunkSize);
   size_t totalReadSize = 0;
-  while (auto readSize = chunkIterator.next(buffer.data())) {
-    auto expectedData = std::vector<uint8_t>(readSize, 1);
+  while (size_t readSize = chunkIterator.next(buffer.data())) {
+    std::vector<uint8_t> expectedData = std::vector<uint8_t>(readSize, 1);
     ASSERT_EQ(memcmp(expectedData.data(), buffer.data(), readSize), 0);
     totalReadSize += readSize;
   }
   ASSERT_EQ(totalReadSize, tensorDataSizeInBytes);
+  #endif
   // clean up
   remove(fileName);
 }

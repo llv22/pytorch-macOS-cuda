@@ -37,7 +37,7 @@
 #include <ATen/ops/var_native.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 namespace mps {
 typedef MPSGraphTensor* (^NormOpBlock)(mps::MPSBinaryCachedGraph*, MPSGraphTensor*, MPSGraphTensor*);
 #define NormOpFn(graph, primary, secondary) \
@@ -1730,4 +1730,4 @@ TORCH_API ::std::tuple<at::Tensor&, at::Tensor&> median_out_mps(const at::Tensor
   return std::tuple<Tensor&, Tensor&>{values, indices};
 }
 
-} // namespace at::native
+}} // namespace at::native

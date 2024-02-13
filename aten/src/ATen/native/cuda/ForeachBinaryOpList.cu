@@ -20,7 +20,7 @@
 #include <ATen/ops/empty_like_native.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 
 template <typename T, template <class> class Op>
 std::vector<Tensor> foreach_tensor_list_op(
@@ -290,4 +290,4 @@ void foreach_tensor_copy_list_kernel_cuda_(
   increment_version(self);
 }
 
-} // namespace at::native
+}} // namespace at::native

@@ -11,7 +11,7 @@
 #include <ATen/ops/scatter_native.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 
 TORCH_IMPL_FUNC(gather_out_mps)
 (const Tensor& self_arg, int64_t dim, const Tensor& index, bool sparse_grad, const Tensor& output) {
@@ -350,4 +350,4 @@ TORCH_IMPL_FUNC(scatter_add_mps_out)
   scatter_mps_general(self, dim, index, src, output, "scatter_add_mps_out", "add");
 }
 
-} // namespace at::native
+}} // namespace at::native

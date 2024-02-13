@@ -4,7 +4,7 @@
 #include <ATen/native/cuda/MultiTensorApply.cuh>
 #include <ATen/native/cuda/Pow.cuh>
 
-namespace at::native {
+namespace at{ namespace native {
 
 namespace {
 
@@ -678,4 +678,4 @@ struct reverse_power_functor {
 };
 
 } // namespace
-} // namespace at::native
+}} // namespace at::native

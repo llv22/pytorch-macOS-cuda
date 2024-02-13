@@ -1066,10 +1066,31 @@ struct C10_EXPORT ivalue::Future final : c10::intrusive_ptr_target {
         "std::tuple<IValue, std::vector<Storage>>(Future&)");
 #endif
     auto childFut = createInstance(::std::move(type));
+#if defined(__APPLE__) && defined(__MACH__)
     addCallback([childFut,
                  cb = std::move(callback)](Future& parentFut) mutable {
       try {
-        if constexpr (::std::is_convertible_v<typename c10::invoke_result_t<T &&, Future&>, IValueWithStorages>) {
+        c10::guts::if_constexpr<std::is_convertible<
+            typename c10::invoke_result_t<T &&, Future&>,
+            IValueWithStorages>::value>(
+            [&](auto identity) {
+              IValue value;
+              std::vector<WeakStorage> storages;
+              std::tie(value, storages) = identity(cb)(parentFut);
+              childFut->markCompleted(std::move(value), std::move(storages));
+            },
+            [&](auto identity) {
+              childFut->markCompleted(identity(cb)(parentFut));
+            });
+      } catch (std::exception&) {
+        childFut->setError(std::current_exception());
+      }
+    });
+#else
+    addCallback([childFut,
+                 cb = std::move(callback)](Future& parentFut) mutable {
+      try {
+        if constexpr (::std::is_convertible<typename c10::invoke_result_t<T &&, Future&>, IValueWithStorages>::value) {
           auto [ivalue, storages] = cb(parentFut);
           childFut->markCompleted(::std::move(ivalue), ::std::move(storages));
         } else {
@@ -1079,6 +1100,7 @@ struct C10_EXPORT ivalue::Future final : c10::intrusive_ptr_target {
         childFut->setError(std::current_exception());
       }
     });
+#endif
     return childFut;
   }
 
@@ -1932,6 +1954,21 @@ Tuple generic_to_tuple_impl(
 }
 } // namespace detail
 
+#if defined(__APPLE__) && defined(__MACH__)
+template <
+    typename... Args,
+    typename Indices = std::make_index_sequence<sizeof...(Args)>,
+    std::enable_if_t<
+        !guts::disjunction<
+            std::is_lvalue_reference<Args>...,
+            guts::negation<std::is_constructible<IValue, Args>>...>::value,
+        std::nullptr_t> = nullptr>
+std::tuple<Args...> generic_to(const IValue& ivalue, _fake_type<std::tuple<Args...>>) {
+  const auto& vals = ivalue.toTupleRef().elements();
+  TORCH_CHECK(vals.size() == sizeof...(Args));
+  return detail::generic_to_tuple_impl<std::tuple<Args...>>(vals, Indices{});
+}
+#else
 template <
     typename... Args,
     typename Indices = std::make_index_sequence<sizeof...(Args)>,
@@ -1945,6 +1982,7 @@ std::tuple<Args...> generic_to(const IValue& ivalue, _fake_type<std::tuple<Args.
   TORCH_CHECK(vals.size() == sizeof...(Args));
   return detail::generic_to_tuple_impl<std::tuple<Args...>>(vals, Indices{});
 }
+#endif
 
 template <typename T>
 inline T IValue::to() && {
@@ -2113,6 +2151,19 @@ inline IValue::IValue(c10::intrusive_ptr<ivalue::Tuple> v)
     : tag(Tag::Tuple) {
   payload.u.as_intrusive_ptr = null_to_undefined_tensor(v.release());
 }
+
+#if defined(__APPLE__) && defined(__MACH__)
+template <
+    typename... Args,
+    std::enable_if_t<
+        !guts::disjunction<
+            std::is_lvalue_reference<Args>...,
+            guts::negation<std::is_constructible<IValue, Args>>...>::value,
+        std::nullptr_t>>
+inline IValue::IValue(const std::tuple<Args...>& t)
+    : IValue(c10::guts::apply(c10::ivalue::Tuple::create<const Args&...>, t)) {
+}
+#else
 template <
     typename... Args,
     std::enable_if_t<
@@ -2123,7 +2174,20 @@ template <
 inline IValue::IValue(const std::tuple<Args...>& t)
     : IValue(c10::guts::apply(c10::ivalue::Tuple::create<const Args&...>, t)) {
 }
+#endif
 
+#if defined(__APPLE__) && defined(__MACH__)
+template <
+    typename... Args,
+    std::enable_if_t<
+        !guts::disjunction<
+            std::is_lvalue_reference<Args>...,
+            guts::negation<std::is_constructible<IValue, Args>>...>::value,
+        std::nullptr_t>>
+inline IValue::IValue(std::tuple<Args...>&& t)
+    : IValue(c10::guts::apply(c10::ivalue::Tuple::create<Args&&...>, std::move(t))) {
+}
+#else
 template <
     typename... Args,
     std::enable_if_t<
@@ -2134,6 +2198,7 @@ template <
 inline IValue::IValue(std::tuple<Args...>&& t)
     : IValue(c10::guts::apply(c10::ivalue::Tuple::create<Args&&...>, std::move(t))) {
 }
+#endif
 
 inline IValue::IValue(c10::intrusive_ptr<ivalue::ConstantString> v)
     : tag(Tag::String) {

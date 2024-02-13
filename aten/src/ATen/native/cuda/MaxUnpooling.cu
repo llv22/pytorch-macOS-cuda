@@ -18,7 +18,7 @@
 #include <ATen/ops/empty_like.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 
 using namespace at::cuda::detail;
 
@@ -609,4 +609,4 @@ at::Tensor max_unpooling3d_backward_cuda(
   return grad_input;
 }
 
-} // namespace at::native
+}} // namespace at::native

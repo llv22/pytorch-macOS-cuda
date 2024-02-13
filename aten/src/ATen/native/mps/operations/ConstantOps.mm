@@ -11,7 +11,7 @@
 #include <ATen/ops/zero_native.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 
 static Tensor& fill_scalar_mps_impl(Tensor& self, const Scalar& value) {
   using namespace mps;
@@ -122,4 +122,4 @@ Tensor& zero_mps_(Tensor& self) {
   return fill_scalar_mps(self, 0.0f);
 }
 
-} // namespace at::native
+}} // namespace at::native

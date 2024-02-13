@@ -20,8 +20,11 @@
 #if defined(__APPLE__) and defined(__MACH__)
 #include <type_traits>
 namespace std{
+  template< class T, class U >
+    inline constexpr bool is_same_v = is_same<T, U>::value;
   template< class T >
     inline constexpr bool is_integral_v = is_integral<T>::value;
+    
 }
 #endif
 

@@ -3,7 +3,7 @@
 #include <ATen/cuda/CUDAUtils.h>
 #include <ATen/Dispatch.h>
 
-#ifndef USE_ROCM
+#if !defined(USE_ROCM) && !defined(__APPLE__) && !defined(__MACH__)
 #include <cuda_runtime.h>
 #include <cutlass/cutlass.h>
 #include <cutlass/layout/layout.h>
@@ -11,10 +11,17 @@
 #include <cutlass/epilogue/thread/linear_combination.h>
 #include <cutlass/epilogue/thread/linear_combination_relu.h>
 #include <cutlass/epilogue/thread/linear_combination_silu.h>
+#include <cutlass/gemm/gemm.h>
 #include <cutlass/gemm/device/gemm_sparse_row_broadcast.h>
 #endif
 
 #include <type_traits>
+#if defined(__APPLE__) && defined(__MACH__)
+namespace std {
+    template< class T, class U >
+    inline constexpr bool is_same_v = is_same<T, U>::value;
+}
+#endif
 #include <tuple>
 
 #ifndef USE_ROCM
@@ -28,7 +35,7 @@
 namespace at {
 namespace native {
 
-#ifndef USE_ROCM
+#if !defined(USE_ROCM) && !defined(__APPLE__) && !defined(__MACH__)
 // Wrapper function for CUTLASS sparse GEMM implementation, used
 // solely to simplify dispatching from
 // _sparse_semi_structured_linear() function below.
@@ -484,7 +491,7 @@ Tensor _sparse_semi_structured_linear(
       const Tensor& input, const Tensor& weight,
       const Tensor& meta, const c10::optional<Tensor>& bias_opt,
       const c10::optional<c10::string_view> activation_opt) {
-#ifndef USE_ROCM
+#if !defined(USE_ROCM) && !defined(__APPLE__) && !defined(__MACH__)
     // No need to check that all tensors are on CUDA device, as this
     // is provided by dispatch.
 
@@ -577,31 +584,22 @@ Tensor _sparse_semi_structured_linear(
         AT_DISPATCH_CASE(
             at::ScalarType::Char,
             [&]() {
-                using ElementInputA = int8_t;
-                using ElementInputB = int8_t;
-                using ElementOutput = int32_t;
-                using ElementAccumulator = int32_t;
-                using ElementComputeEpilogue = int32_t;
-                using ThreadblockShape =
-                    cutlass::gemm::GemmShape<128, 128, 128>;
-                using WarpShape = cutlass::gemm::GemmShape<64, 64, 128>;
-                using InstructionShape = cutlass::gemm::GemmShape<16, 8, 64>;
-                const auto EnableRowMajorRowMajorLayouts = false;
-                const auto EnableRowMajorColumnMajorLayouts = true;
-                const auto EnableColumnMajorRowMajorLayouts = false;
-                const auto EnableColumnMajorColumnMajorLayouts = false;
-                const auto EnableActivationNone = true;
-                const auto EnableActivationReLU = true;
-                const auto EnableActivationSiLU = false;
+                const bool EnableRowMajorRowMajorLayouts = false;
+                const bool EnableRowMajorColumnMajorLayouts = true;
+                const bool EnableColumnMajorRowMajorLayouts = false;
+                const bool EnableColumnMajorColumnMajorLayouts = false;
+                const bool EnableActivationNone = true;
+                const bool EnableActivationReLU = true;
+                const bool EnableActivationSiLU = false;
                 output = two_four_sgemm_cutlass_dispatch_layouts_activation<
-                    ElementInputA,
-                    ElementInputB,
-                    ElementOutput,
-                    ElementAccumulator,
-                    ElementComputeEpilogue,
-                    ThreadblockShape,
-                    WarpShape,
-                    InstructionShape,
+                    int8_t,
+                    int8_t,
+                    int32_t,
+                    int32_t,
+                    int32_t,
+                    cutlass::gemm::GemmShape<128, 128, 128>,
+                    cutlass::gemm::GemmShape<64, 64, 128>,
+                    cutlass::gemm::GemmShape<16, 8, 64>,
                     EnableRowMajorRowMajorLayouts,
                     EnableRowMajorColumnMajorLayouts,
                     EnableColumnMajorRowMajorLayouts,
@@ -619,30 +617,22 @@ Tensor _sparse_semi_structured_linear(
         AT_DISPATCH_CASE(
             at::ScalarType::Half,
             [&]() {
-                using ElementInputA = cutlass::half_t;
-                using ElementInputB = cutlass::half_t;
-                using ElementOutput = cutlass::half_t;
-                using ElementAccumulator = float;
-                using ElementComputeEpilogue = float;
-                using ThreadblockShape = cutlass::gemm::GemmShape<128, 128, 64>;
-                using WarpShape = cutlass::gemm::GemmShape<64, 64, 64>;
-                using InstructionShape = cutlass::gemm::GemmShape<16, 8, 32>;
-                const auto EnableRowMajorRowMajorLayouts = true;
-                const auto EnableRowMajorColumnMajorLayouts = true;
-                const auto EnableColumnMajorRowMajorLayouts = true;
-                const auto EnableColumnMajorColumnMajorLayouts = true;
-                const auto EnableActivationNone = true;
-                const auto EnableActivationReLU = true;
-                const auto EnableActivationSiLU = true;
+                const bool EnableRowMajorRowMajorLayouts = true;
+                const bool EnableRowMajorColumnMajorLayouts = true;
+                const bool EnableColumnMajorRowMajorLayouts = true;
+                const bool EnableColumnMajorColumnMajorLayouts = true;
+                const bool EnableActivationNone = true;
+                const bool EnableActivationReLU = true;
+                const bool EnableActivationSiLU = true;
                 output = two_four_sgemm_cutlass_dispatch_layouts_activation<
-                    ElementInputA,
-                    ElementInputB,
-                    ElementOutput,
-                    ElementAccumulator,
-                    ElementComputeEpilogue,
-                    ThreadblockShape,
-                    WarpShape,
-                    InstructionShape,
+                    cutlass::half_t,
+                    cutlass::half_t,
+                    cutlass::half_t,
+                    float,
+                    float,
+                    cutlass::gemm::GemmShape<128, 128, 64>,
+                    cutlass::gemm::GemmShape<64, 64, 64>,
+                    cutlass::gemm::GemmShape<16, 8, 32>,
                     EnableRowMajorRowMajorLayouts,
                     EnableRowMajorColumnMajorLayouts,
                     EnableColumnMajorRowMajorLayouts,
@@ -657,33 +647,25 @@ Tensor _sparse_semi_structured_linear(
                     activation);
                 return;
             })
-            AT_DISPATCH_CASE(
+        AT_DISPATCH_CASE(
             at::ScalarType::BFloat16,
             [&]() {
-                using ElementInputA = cutlass::bfloat16_t;
-                using ElementInputB = cutlass::bfloat16_t;
-                using ElementOutput = cutlass::bfloat16_t;
-                using ElementAccumulator = float;
-                using ElementComputeEpilogue = float;
-                using ThreadblockShape = cutlass::gemm::GemmShape<128, 128, 64>;
-                using WarpShape = cutlass::gemm::GemmShape<64, 64, 64>;
-                using InstructionShape = cutlass::gemm::GemmShape<16, 8, 32>;
-                const auto EnableRowMajorRowMajorLayouts = true;
-                const auto EnableRowMajorColumnMajorLayouts = true;
-                const auto EnableColumnMajorRowMajorLayouts = true;
-                const auto EnableColumnMajorColumnMajorLayouts = true;
-                const auto EnableActivationNone = true;
-                const auto EnableActivationReLU = true;
-                const auto EnableActivationSiLU = true;
+                const bool EnableRowMajorRowMajorLayouts = true;
+                const bool EnableRowMajorColumnMajorLayouts = true;
+                const bool EnableColumnMajorRowMajorLayouts = true;
+                const bool EnableColumnMajorColumnMajorLayouts = true;
+                const bool EnableActivationNone = true;
+                const bool EnableActivationReLU = true;
+                const bool EnableActivationSiLU = true;
                 output = two_four_sgemm_cutlass_dispatch_layouts_activation<
-                    ElementInputA,
-                    ElementInputB,
-                    ElementOutput,
-                    ElementAccumulator,
-                    ElementComputeEpilogue,
-                    ThreadblockShape,
-                    WarpShape,
-                    InstructionShape,
+                    cutlass::bfloat16_t,
+                    cutlass::bfloat16_t,
+                    cutlass::bfloat16_t,
+                    float,
+                    float,
+                    cutlass::gemm::GemmShape<128, 128, 64>,
+                    cutlass::gemm::GemmShape<64, 64, 64>,
+                    cutlass::gemm::GemmShape<16, 8, 32>,
                     EnableRowMajorRowMajorLayouts,
                     EnableRowMajorColumnMajorLayouts,
                     EnableColumnMajorRowMajorLayouts,
@@ -697,7 +679,8 @@ Tensor _sparse_semi_structured_linear(
                     meta,
                     activation);
                 return;
-            }));
+            })
+    );
 
     // Re-introduce batch dimensions into the output, and return.
     auto output_sizes = input_sizes;
@@ -716,7 +699,7 @@ Tensor _sparse_semi_structured_linear(
 namespace at {
 namespace native {
 
-#ifndef USE_ROCM
+#if !defined(USE_ROCM) && !defined(__APPLE__) && !defined(__MACH__)
 // Copied from tools/util/include/host_reorder.h, from CUTLASS source
 // tree.  This is for simplicity - namely, this file is not under
 // include/cutlass in this tree, as other CUTLASS include files
@@ -753,7 +736,7 @@ static void reorder_meta(cutlass::TensorRef<Element, LayoutDest> dest,
 
 std::tuple<Tensor, Tensor>
 _to_sparse_semi_structured(const Tensor& dense) {
-#ifndef USE_ROCM
+#if !defined(USE_ROCM) && !defined(__APPLE__) && !defined(__MACH__)
   // Check dimensions of the dense matrix.
   TORCH_CHECK(dense.dim() == 2,
               "_to_sparse_semi_structured: Expected dense argument to be 2D "

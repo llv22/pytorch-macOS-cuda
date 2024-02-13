@@ -9,7 +9,7 @@
 #include <ATen/ops/_weight_norm_interface_native.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 
 using namespace at::native::mps;
 
@@ -189,4 +189,4 @@ std::tuple<Tensor, Tensor> weight_norm_backward_mps(const Tensor& grad_w,
   return std::tuple<Tensor, Tensor>{grad_v, grad_g};
 }
 
-} // namespace at::native
+}} // namespace at::native

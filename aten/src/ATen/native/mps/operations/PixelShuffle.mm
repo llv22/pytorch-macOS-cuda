@@ -5,7 +5,7 @@
 
 using namespace at::mps;
 
-namespace at::native {
+namespace at{ namespace native {
 
 static Tensor pixel_shuffle_helper(const Tensor& self, int64_t factor, bool upscale) {
   using namespace mps;
@@ -111,4 +111,4 @@ Tensor pixel_unshuffle_mps(const Tensor& self, int64_t downscale_factor) {
   return pixel_shuffle_helper(self, downscale_factor, /*upscale=*/false);
 }
 
-} // namespace at::native
+}} // namespace at::native

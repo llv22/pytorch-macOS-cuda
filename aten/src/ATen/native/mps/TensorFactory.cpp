@@ -18,7 +18,7 @@
 #endif
 #include <ATen/ops/_efficientzerotensor_native.h>
 
-namespace at::native {
+namespace at{ namespace native {
 
 static inline void maybe_resize_storage_mps(TensorImpl* self, uint64_t new_size) {
   if (new_size == 0) {
@@ -161,4 +161,4 @@ Tensor _efficientzerotensor_mps(IntArrayRef size,
     return out;
 }
 
-} // namespace at::native
+}} // namespace at::native

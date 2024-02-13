@@ -46,7 +46,7 @@
 #include <ATen/ops/zeros.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 
 static cublasOperation_t to_cublas(TransposeType trans) {
   switch (trans) {
@@ -284,4 +284,4 @@ void gels_batched_cublas(const Tensor& a, Tensor& b, Tensor& infos) {
   });
 }
 
-} // namespace at::native
+}} // namespace at::native

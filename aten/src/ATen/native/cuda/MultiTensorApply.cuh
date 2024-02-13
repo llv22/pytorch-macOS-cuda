@@ -6,7 +6,7 @@
 #include <ATen/native/cuda/MemoryAccess.cuh>
 #include <vector>
 
-namespace at::native {
+namespace at{ namespace native {
 
 namespace {
 
@@ -376,4 +376,4 @@ void multi_tensor_apply_for_fused_optimizer(
   }
 }
 
-} // namespace at::native
+}} // namespace at::native

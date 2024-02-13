@@ -3,7 +3,7 @@
 #include <ATen/core/Tensor.h>
 #include <ATen/native/DispatchStub.h>
 
-namespace at::native {
+namespace at{ namespace native {
 
 using padding_fn = void (*)(const Tensor&, const Tensor&, IntArrayRef);
 
@@ -59,4 +59,4 @@ static inline void check_valid_input(const Tensor& input, IntArrayRef padding) {
 
 } // namespace padding
 
-} // at::native
+}} // at::native

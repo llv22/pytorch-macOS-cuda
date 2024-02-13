@@ -4,7 +4,7 @@
 #include <ATen/native/xnnpack/Engine.h>
 #include <ATen/native/utils/Factory.h>
 
-namespace at::native::xnnpack {
+namespace at{ namespace native { namespace xnnpack {
 
 bool use_channel_shuffle(
     const Tensor& input,
@@ -101,6 +101,6 @@ Tensor channel_shuffle(
   return output_padded_contig_nhwc.contiguous(input.suggest_memory_format());
 }
 
-} // namespace at::native::xnnpack
+}}} // namespace at::native::xnnpack
 
 #endif /* USE_XNNPACK */

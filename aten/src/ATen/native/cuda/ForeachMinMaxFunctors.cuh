@@ -2,7 +2,7 @@
 
 #include <ATen/NumericUtils.h>
 
-namespace at::native {
+namespace at{ namespace native {
 
 // std:: does not have clamp functors
 template <typename T>
@@ -19,4 +19,4 @@ struct maximum {
   }
 };
 
-} // namespace at::native
+}} // namespace at::native

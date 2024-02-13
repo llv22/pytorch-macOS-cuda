@@ -1,7 +1,8 @@
 #pragma once
 
-#if !defined(_MSC_VER) && __cplusplus < 201703L
-#error C++17 or later compatible compiler is required to use PyTorch.
+// see: refer to https://stackoverflow.com/questions/26089319/is-there-a-standard-definition-for-cplusplus-in-c14
+#if !defined(_MSC_VER) && __cplusplus < 201402L
+#error C++14 or later compatible compiler is required to use PyTorch.
 #endif
 
 #include <torch/autograd.h>

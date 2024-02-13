@@ -6,7 +6,7 @@
 #include <ATen/native/xnnpack/OpContext.h>
 #include <torch/custom_class.h>
 
-namespace at::native::xnnpack {
+namespace at{ namespace native { namespace xnnpack {
 
 using internal::linear::createLinearClampPrePackOpContext;
 using internal::convolution2d::createConv2dClampPrePackOpContext;
@@ -90,6 +90,6 @@ TORCH_LIBRARY_IMPL(prepacked, CPU, m) {
   m.impl(TORCH_SELECTIVE_NAME("prepacked::conv2d_transpose_clamp_run"), TORCH_FN(internal::convolution2d::conv2d_transpose_clamp_run));
 }
 
-} // namespace at::native::xnnpack
+}}} // namespace at::native::xnnpack
 
 #endif /* USE_XNNPACK */

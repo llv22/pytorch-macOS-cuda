@@ -7,7 +7,7 @@
 #include <ATen/native/TensorIterator.h>
 #include <ATen/native/cpu/Loops.h>
 
-namespace at::native {
+namespace at{ namespace native {
 inline namespace CPU_CAPABILITY {
     static void spherical_bessel_j0_kernel(TensorIteratorBase& iterator) {
         TORCH_INTERNAL_ASSERT(iterator.ntensors() == 2);
@@ -21,4 +21,4 @@ inline namespace CPU_CAPABILITY {
 } // namespace CPU_CAPABILITY
 
 REGISTER_DISPATCH(special_spherical_bessel_j0_stub, &CPU_CAPABILITY::spherical_bessel_j0_kernel);
-} // namespace at::native
+}} // namespace at::native

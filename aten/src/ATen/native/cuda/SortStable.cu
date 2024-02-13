@@ -15,7 +15,7 @@
 #include <c10/core/DeviceArray.h>
 #include <limits>
 
-namespace at::native {
+namespace at{ namespace native {
 
 namespace {
 
@@ -293,4 +293,4 @@ void launch_stable_sort_kernel(
       });
 }
 
-} // namespace at::native
+}} // namespace at::native

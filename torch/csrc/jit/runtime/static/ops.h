@@ -4,7 +4,7 @@
 #include <torch/csrc/jit/ir/ir.h>
 #include <torch/csrc/jit/runtime/static/impl.h>
 
-namespace at::native {
+namespace at{ namespace native {
 at::Tensor& reshape_copy_out(
     at::Tensor& out,
     const at::Tensor& self,
@@ -16,7 +16,7 @@ at::Tensor& to_copy_out(
     bool non_blocking,
     bool copy_strides,
     c10::optional<MemoryFormat> memory_format);
-} // namespace at::native
+}} // namespace at::native
 
 namespace torch::jit {
 

@@ -24,7 +24,7 @@
 #endif
 
 
-namespace at::native::sparse::impl {
+namespace at{ namespace native { namespace sparse{ namespace impl {
 
 namespace {
 
@@ -468,4 +468,4 @@ void triangular_solve_out_sparse_csr(
 }
 
 } // namespace cpu
-} // namespace at::native::sparse::impl
+}}}} // namespace at::native::sparse::impl

@@ -58,12 +58,12 @@ void quantize_tensor_per_tensor_affine_privateuse1(
     // do nothing
 }
 
-namespace at::native {
+namespace at{ namespace native {
 
 REGISTER_PRIVATEUSE1_DISPATCH(abs_stub, &abs_kernel);
 REGISTER_PRIVATEUSE1_DISPATCH(quantize_tensor_per_tensor_affine_stub, &quantize_tensor_per_tensor_affine_privateuse1);
 
-} // namespace at::native
+}} // namespace at::native
 struct CustomBackendMetadata : public c10::BackendMeta {
   // for testing this field will mutate when clone() is called by shallow_copy_from.
   int backend_version_format_{-1};

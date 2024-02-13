@@ -8,7 +8,15 @@
 // NOTE: CUDA on Windows requires that the enclosing function
 // of a __device__ lambda not have internal linkage.
 
-namespace at::native {
+#if defined(__APPLE__) && defined(__MACH__)
+#include <type_traits>
+namespace std {
+  template< class T >
+    inline constexpr bool is_signed_v = is_signed<T>::value;
+}
+#endif
+
+namespace at{ namespace native {
 
 
 void lshift_kernel_cuda(TensorIteratorBase& iter) {
@@ -41,4 +49,4 @@ void rshift_kernel_cuda(TensorIteratorBase& iter) {
 REGISTER_DISPATCH(lshift_stub, &lshift_kernel_cuda);
 REGISTER_DISPATCH(rshift_stub, &rshift_kernel_cuda);
 
-} // namespace at::native
+}} // namespace at::native

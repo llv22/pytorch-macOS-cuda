@@ -19,7 +19,7 @@
 
 using namespace at::native;
 
-namespace at::native {
+namespace at{ namespace native {
 
 // TODO: remove this when CUDA <11.6 is no longer supported
 bool disable_sort_for_topk() {
@@ -617,7 +617,7 @@ int get_items_per_thread(uint64_t num_slices, uint64_t slice_size) {
   int max_blocks_per_mp = 32;
 #else
   int regs_per_mp = prop->regsPerMultiprocessor;
-#if !defined(USE_ROCM)
+#if !defined(USE_ROCM) && defined(CUDA_VERSION) && CUDA_VERSION >= 11000
   int max_blocks_per_mp = prop->maxBlocksPerMultiProcessor;
 #else
   int max_blocks_per_mp = 32;
@@ -904,4 +904,4 @@ void launch_gather_topk_kernel(
 #undef RUN_K
 }
 
-} // at::native
+}} // at::native

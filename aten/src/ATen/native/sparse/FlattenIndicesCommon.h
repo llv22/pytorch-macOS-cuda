@@ -21,7 +21,7 @@
 #define NAME "flatten_indices_cpu"
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 
 namespace {
 
@@ -103,4 +103,4 @@ Tensor _flatten_indices(const Tensor& indices, IntArrayRef size) {
 
 }
 
-} // at::native
+}} // at::native

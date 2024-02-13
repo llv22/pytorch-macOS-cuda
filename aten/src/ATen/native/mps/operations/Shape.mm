@@ -16,7 +16,7 @@
 #include <ATen/ops/topk_native.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 namespace mps {
 
 // Produces a shape with the `dim` dimension set to 0.
@@ -397,4 +397,4 @@ TORCH_IMPL_FUNC(cat_out_mps)
   }
 }
 
-} // namespace at::native
+}} // namespace at::native

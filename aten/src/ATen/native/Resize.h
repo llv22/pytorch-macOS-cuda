@@ -10,7 +10,7 @@
 #include <utility>
 
 
-namespace at::native {
+namespace at{ namespace native {
 
 // TODO: make all operations that resize given outputs use this function
 //   for consistency and maintainability.
@@ -169,4 +169,4 @@ inline void setStrided(
   self_->set_sizes_and_strides(size, stride, c10::make_optional(storage_offset));
 }
 
-} // namespace at::native
+}} // namespace at::native

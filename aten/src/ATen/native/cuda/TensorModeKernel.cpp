@@ -11,7 +11,7 @@ constexpr int MAX_BLOCK_SIZE = AT_ROCM_ENABLED() ? 256 : 1024;
 // Maximum size per grid dimension that we assume (compute capability >= 2.0)
 constexpr int64_t MAX_GRID_SIZE = 65535LL;
 
-namespace at::native {
+namespace at{ namespace native {
 
 void mode_kernel_impl(
     Tensor& values,
@@ -99,4 +99,4 @@ void mode_kernel_impl(
 }
 
 REGISTER_CUDA_DISPATCH(mode_stub, &mode_kernel_impl);
-} // namespace at::native
+}} // namespace at::native

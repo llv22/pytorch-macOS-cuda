@@ -21,7 +21,7 @@
 #include <ATen/ops/replication_pad3d_native.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 namespace mps {
 
 // Pad operations (1D/2D/3D forward and backward)
@@ -479,4 +479,4 @@ Tensor constant_pad_nd_mps(const Tensor& self, IntArrayRef pad, const Scalar& va
       output, self, pad, c10::nullopt, MPSGraphPaddingModeConstant, value.toDouble(), __func__);
 }
 
-} // namespace at::native
+}} // namespace at::native

@@ -13,7 +13,7 @@
 #include <ATen/ops/empty_like_native.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 
 template <typename T>
 struct LerpFunctor {
@@ -156,4 +156,4 @@ void foreach_tensor_lerp_list_cuda_(
             weight.to<opmath_t>());
       });
 }
-} // namespace at::native
+}} // namespace at::native

@@ -286,7 +286,11 @@ PyObject* map_warning_to_python_type(const c10::Warning& warning) {
       return PyExc_DeprecationWarning;
     }
   };
+#if defined(__APPLE__) && defined(__MACH__)
+  return c10::visit(Visitor(), warning.type());
+#else
   return std::visit(Visitor(), warning.type());
+#endif
 }
 
 /// See NOTE [ Conversion Cpp Python Warning ] for noexcept justification

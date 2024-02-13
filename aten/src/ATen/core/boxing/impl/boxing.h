@@ -226,7 +226,7 @@ struct BoxedKernelWrapper<
     torch::jit::Stack stack = boxArgs<Args...>(std::forward<Args>(args)...);
     boxed_kernel_func.callBoxed(opHandle, dispatchKeySet, &stack);
 
-    if constexpr (!std::is_same_v<void, Result>) {
+    if constexpr (!std::is_same<void, Result>::value) {
         // op has pushed one or more values onto the stack.
         return PopResult<Result>::call(stack);
     } else {

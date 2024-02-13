@@ -32,7 +32,7 @@
 #include <ATen/ops/vdot_native.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 
 namespace {
 
@@ -795,7 +795,7 @@ _scaled_mm_out_cuda(const Tensor& mat1, const Tensor& mat2,
   at::native::resize_output(out, {mat1_sizes[0], mat2_sizes[1]});
   at::native::resize_output(amax, {});
 
-#if !defined(USE_ROCM) && !defined(_MSC_VER)
+#if !defined(USE_ROCM) && !defined(_MSC_VER) && !defined(__APPLE__) && !defined(__MACH__)
   cublasCommonArgs args(mat1, mat2, out);
   const auto out_dtype_ = args.result->scalar_type();
   TORCH_CHECK(args.transa == 't' && args.transb == 'n', "Only multiplication of row-major and column-major matrices is supported by cuBLASLt");
@@ -842,4 +842,4 @@ _scaled_mm_cuda(const Tensor& mat_a, const Tensor& mat_b,
   return _scaled_mm_out_cuda(mat_a, mat_b, bias, out_dtype, scale_a, scale_b, scale_result, use_fast_accum, out, amax);
 }
 
-} // namespace at::native
+}} // namespace at::native

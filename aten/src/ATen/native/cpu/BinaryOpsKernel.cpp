@@ -16,7 +16,7 @@
 #include <c10/util/TypeSafeSignMath.h>
 #include <c10/util/generic_math.h>
 
-namespace at::native {
+namespace at{ namespace native {
 
 namespace {
 
@@ -1441,4 +1441,4 @@ ALSO_REGISTER_AVX512_DISPATCH(hypot_stub, &hypot_kernel);
 ALSO_REGISTER_AVX512_DISPATCH(igamma_stub, &igamma_kernel);
 ALSO_REGISTER_AVX512_DISPATCH(igammac_stub, &igammac_kernel);
 
-} // namespace at::native
+}} // namespace at::native

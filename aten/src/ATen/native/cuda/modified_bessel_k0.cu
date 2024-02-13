@@ -18,7 +18,7 @@
 #include <c10/cuda/CUDAMathCompat.h>
 #include <c10/util/complex.h>
 
-namespace at::native {
+namespace at{ namespace native {
         namespace {
             CONSTEXPR_EXCEPT_WIN_CUDA char modified_bessel_k0_name[] = "modified_bessel_k0_forward";
 
@@ -38,4 +38,4 @@ namespace at::native {
         }
 
         REGISTER_DISPATCH(special_modified_bessel_k0_stub, &modified_bessel_k0_kernel_cuda);
-} // namespace at::native
+}} // namespace at::native

@@ -27,7 +27,17 @@
 #include <curand_philox4x32_x.h>
 #include <type_traits>
 
-namespace at::native {
+#if defined(__APPLE__) && defined(__MACH__)
+#include <type_traits>
+namespace std {
+  template< class T >
+    inline constexpr bool is_floating_point_v = is_floating_point<T>::value;
+  template< class From, class To >
+    inline constexpr bool is_convertible_v = is_convertible<From, To>::value;
+} // namespace std
+#endif
+
+namespace at{ namespace native {
 
 namespace {
 
@@ -460,4 +470,4 @@ void multinomial_with_replacement_kernel_impl(
 REGISTER_DISPATCH(
     multinomial_with_replacement_stub,
     &multinomial_with_replacement_kernel_impl);
-} // namespace at::native
+}} // namespace at::native

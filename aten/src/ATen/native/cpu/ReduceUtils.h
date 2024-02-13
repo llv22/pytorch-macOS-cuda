@@ -10,7 +10,7 @@
 #include <ATen/native/cpu/utils.h>
 #include <ATen/OpMathType.h>
 
-namespace at::native {
+namespace at{ namespace native {
 inline namespace CPU_CAPABILITY {
 
 using namespace vec;
@@ -237,4 +237,4 @@ inline void write(scalar_t* out, int64_t count, int64_t K) {
 }
 
 } // namespace CPU_CAPABILITY
-} // namespace at::native
+}} // namespace at::native

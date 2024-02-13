@@ -13,7 +13,7 @@
 #include <variant>
 #include <vector>
 
-namespace at::native {
+namespace at{ namespace native {
 
 
 #define AT_FOR_8_CASES(_)  \
@@ -113,7 +113,11 @@ struct OffsetCalculatorVariant {
   }
 
   void* data_ptr() {
+#if defined(__APPLE__) && defined(__MACH__)
+    return c10::visit([](auto & v){ return static_cast<void*>(v.get()); }, v);
+#else
     return std::visit([](auto & v){ return static_cast<void*>(v.get()); }, v);
+#endif
   }
 
  private:
@@ -142,15 +146,27 @@ struct ArrayVariant {
         TORCH_CHECK(false, "ArrayVariant is not implemented for ntensors = ", ntensors);
     }
 
+#if defined(__APPLE__) && defined(__MACH__)
+    c10::visit([&](auto& a) {
+      for (auto i = 0; i < ntensors; ++i) {
+        a[i] = (char*)iter.data_ptr(i);
+      }
+    }, array);
+#else
     std::visit([&](auto& a) {
       for (auto i = 0; i < ntensors; ++i) {
         a[i] = (char*)iter.data_ptr(i);
       }
     }, array);
+#endif
   }
 
   void* data_ptr() {
+#if defined(__APPLE__) && defined(__MACH__)
+    return c10::visit([](auto & a){ return static_cast<void*>(&a); }, array);
+#else
     return std::visit([](auto & a){ return static_cast<void*>(&a); }, array);
+#endif
   }
 
 private:
@@ -178,7 +194,11 @@ struct TrivialOffsetCalculatorVariant {
   }
 
   void* data_ptr() {
+#if defined(__APPLE__) && defined(__MACH__)
+    return c10::visit([](auto & v){ return static_cast<void*>(&v); }, v);
+#else
     return std::visit([](auto & v){ return static_cast<void*>(&v); }, v);
+#endif
   }
 
 private:
@@ -207,7 +227,11 @@ struct LoadWithCastVariant {
   }
 
   void* data_ptr() {
+#if defined(__APPLE__) && defined(__MACH__)
+    return c10::visit([](auto & v){ return static_cast<void*>(v.get()); }, v);
+#else
     return std::visit([](auto & v){ return static_cast<void*>(v.get()); }, v);
+#endif
   }
 
 private:
@@ -236,14 +260,18 @@ struct StoreWithCastVariant {
   }
 
   void* data_ptr() {
+#if defined(__APPLE__) && defined(__MACH__)
+    return c10::visit([](auto & v){ return static_cast<void*>(v.get()); }, v);
+#else
     return std::visit([](auto & v){ return static_cast<void*>(v.get()); }, v);
+#endif
   }
 
 private:
   StoreWithCastPtr v;
 };
 
-} // namespace at::native
+}} // namespace at::native
 
 
 #endif // AT_USE_JITERATOR()

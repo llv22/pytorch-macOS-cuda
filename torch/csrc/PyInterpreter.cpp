@@ -677,7 +677,7 @@ static c10::ArrayRef<T> get_set_cached_attr(
     TORCH_INTERNAL_ASSERT(curr_buffer_size >= new_size);
     for (auto it = obj.begin(); it != obj.end(); ++it, ++idx) {
       auto actual_val = py::cast<T>(*it);
-      if constexpr (std::is_same_v<T, c10::SymInt>) {
+      if constexpr (std::is_same<T, c10::SymInt>::value) {
         // if our SymInts are symbolic, we are *not* doing an equality check on
         // the symints. we just want to see if the nodes are the same. this is
         // because we don't want to introduce any guards here.

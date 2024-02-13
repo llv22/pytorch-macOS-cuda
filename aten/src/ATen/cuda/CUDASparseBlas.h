@@ -12,7 +12,7 @@
 #include <ATen/cuda/CUDAContext.h>
 #include <ATen/cuda/CUDASparse.h>
 
-namespace at::cuda::sparse {
+namespace at{ namespace cuda{ namespace sparse {
 
 #define CUSPARSE_CSRGEAM2_BUFFERSIZE_ARGTYPES(scalar_t)             \
   cusparseHandle_t handle, int m, int n, const scalar_t *alpha,     \
@@ -315,4 +315,4 @@ void bsrsm2_solve<c10::complex<double>>(
 
 #endif // AT_USE_HIPSPARSE_TRIANGULAR_SOLVE
 
-} // namespace at::cuda::sparse
+}}} // namespace at::cuda::sparse

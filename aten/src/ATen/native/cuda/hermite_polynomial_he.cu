@@ -8,7 +8,7 @@
 #include <ATen/native/cuda/Math.cuh>
 #include <ATen/native/cuda/jit_utils.h>
 
-namespace at::native {
+namespace at{ namespace native {
         namespace {
             CONSTEXPR_EXCEPT_WIN_CUDA char hermite_polynomial_he_name[] = "hermite_polynomial_he_forward";
 
@@ -28,4 +28,4 @@ namespace at::native {
         } // namespace (anonymous)
 
         REGISTER_DISPATCH(hermite_polynomial_he_stub, &hermite_polynomial_he_kernel_cuda);
-} // namespace at::native
+}} // namespace at::native

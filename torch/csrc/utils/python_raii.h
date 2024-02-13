@@ -1,6 +1,11 @@
 #include <c10/util/Optional.h>
 #include <torch/csrc/utils/pybind.h>
 #include <tuple>
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/C++17.h>
+#include <tuple>
+#include <c10/util/variant.h>
+#endif
 
 namespace torch {
 namespace impl {
@@ -14,7 +19,7 @@ struct RAIIContextManager {
     auto emplace = [&](Args... args) {
       guard_.emplace(std::forward<Args>(args)...);
     };
-    std::apply(std::move(emplace), args_);
+    c10::guts::apply(std::move(emplace), args_);
   }
 
   void exit() {

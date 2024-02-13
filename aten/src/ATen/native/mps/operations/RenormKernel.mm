@@ -12,7 +12,7 @@
 #include <ATen/ops/renorm_native.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 namespace {
 
 static const char* METAL_RENORM = R"RENORM_METAL(
@@ -137,4 +137,4 @@ TORCH_IMPL_FUNC(renorm_out_mps)
 (const Tensor& self, const Scalar& p, int64_t dim, const Scalar& maxnorm, const Tensor& out) {
   renorm_out_mps(self, p, dim, maxnorm, out);
 }
-} // namespace at::native
+}} // namespace at::native

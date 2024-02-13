@@ -11,7 +11,7 @@
 #include <ATen/ops/grid_sampler_2d_native.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 namespace mps {
 static void grid_sampler_2d_mps_impl(Tensor& output,
                                      const Tensor& input,
@@ -150,4 +150,4 @@ Tensor grid_sampler_2d_mps(const Tensor& input,
   return output;
 }
 
-} // namespace at::native
+}} // namespace at::native

@@ -12,7 +12,7 @@
 
 #include <fmt/format.h>
 
-namespace at::native {
+namespace at{ namespace native {
 static const std::string& getMetalType(const c10::ScalarType& t) {
   // Mapping from c10::ScalarType to integral type that can be used for unary ops
   static std::unordered_map<c10::ScalarType, std::string> scalar_to_metal_type = {
@@ -130,4 +130,4 @@ TORCH_IMPL_FUNC(erfinv_out_mps)(const Tensor& self, const Tensor& output_) {
     output_.copy_(outputTensor);
   }
 }
-} // namespace at::native
+}} // namespace at::native

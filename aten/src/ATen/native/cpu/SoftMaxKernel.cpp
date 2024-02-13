@@ -28,7 +28,7 @@
 //
 // We use a chunk size such that it'd fit in L1D.
 
-namespace at::native {
+namespace at{ namespace native {
 
 namespace {
 template <typename scalar_t>
@@ -107,7 +107,7 @@ inline void _vec_log_softmax_lastdim(
 }
 
 template<typename scalar_t>
-inline typename std::enable_if_t<std::is_same_v<scalar_t, at::opmath_type<scalar_t>>, void>
+inline typename std::enable_if_t<std::is_same<scalar_t, at::opmath_type<scalar_t>>::value, void>
 _vec_softmax_lastdim(
     scalar_t* input_data_base,
     scalar_t* output_data_base,
@@ -141,7 +141,7 @@ _vec_softmax_lastdim(
 }
 
 template<typename scalar_t>
-inline typename std::enable_if_t<!std::is_same_v<scalar_t, at::opmath_type<scalar_t>>, void>
+inline typename std::enable_if_t<!std::is_same<scalar_t, at::opmath_type<scalar_t>>::value, void>
 _vec_softmax_lastdim(
     scalar_t* input_data_base,
     scalar_t* output_data_base,
@@ -260,7 +260,7 @@ inline void _vec_host_softmax_backward_lastdim(
 }
 
 template<typename scalar_t>
-inline typename std::enable_if_t<std::is_same_v<scalar_t, at::opmath_type<scalar_t>>, void>
+inline typename std::enable_if_t<std::is_same<scalar_t, at::opmath_type<scalar_t>>::value, void>
 _vec_softmax_backward(
     scalar_t* grad_input_data_base,
     scalar_t* grad_output_data_base,
@@ -343,7 +343,7 @@ _vec_softmax_backward(
 }
 
 template<typename scalar_t>
-inline typename std::enable_if_t<!std::is_same_v<scalar_t, at::opmath_type<scalar_t>>, void>
+inline typename std::enable_if_t<!std::is_same<scalar_t, at::opmath_type<scalar_t>>::value, void>
 _vec_softmax_backward(
     scalar_t* grad_input_data_base,
     scalar_t* grad_output_data_base,
@@ -469,7 +469,7 @@ _vec_softmax_backward(
 }
 
 template<typename scalar_t>
-inline typename std::enable_if_t<std::is_same_v<scalar_t, at::opmath_type<scalar_t>>, void>
+inline typename std::enable_if_t<std::is_same<scalar_t, at::opmath_type<scalar_t>>::value, void>
 _vec_log_softmax_backward(
     scalar_t* grad_input_data_base,
     scalar_t* grad_output_data_base,
@@ -551,7 +551,7 @@ _vec_log_softmax_backward(
 }
 
 template<typename scalar_t>
-inline typename std::enable_if_t<!std::is_same_v<scalar_t, at::opmath_type<scalar_t>>, void>
+inline typename std::enable_if_t<!std::is_same<scalar_t, at::opmath_type<scalar_t>>::value, void>
 _vec_log_softmax_backward(
     scalar_t* grad_input_data_base,
     scalar_t* grad_output_data_base,
@@ -683,7 +683,7 @@ struct vec_host_softmax_lastdim {
 };
 
 template<typename scalar_t>
-inline typename std::enable_if_t<!std::is_same_v<scalar_t, at::opmath_type<scalar_t>>, void>
+inline typename std::enable_if_t<!std::is_same<scalar_t, at::opmath_type<scalar_t>>::value, void>
 _vec_softmax(
     scalar_t* input_data_base,
     scalar_t* output_data_base,
@@ -791,7 +791,7 @@ _vec_softmax(
 }
 
 template<typename scalar_t>
-inline typename std::enable_if_t<std::is_same_v<scalar_t, at::opmath_type<scalar_t>>, void>
+inline typename std::enable_if_t<std::is_same<scalar_t, at::opmath_type<scalar_t>>::value, void>
 _vec_softmax(
     scalar_t* input_data_base,
     scalar_t* output_data_base,
@@ -885,7 +885,7 @@ _vec_softmax(
 // {dim_size, CHUNK_SIZE}, block size (128KB) selected to be L2 hit.
 //
 template<typename scalar_t>
-inline typename std::enable_if_t<std::is_same_v<scalar_t, at::opmath_type<scalar_t>>, void>
+inline typename std::enable_if_t<std::is_same<scalar_t, at::opmath_type<scalar_t>>::value, void>
 _vec_logsoftmax(
     scalar_t* input_data_base,
     scalar_t* output_data_base,
@@ -989,7 +989,7 @@ _vec_logsoftmax(
 }
 
 template<typename scalar_t>
-inline typename std::enable_if_t<!std::is_same_v<scalar_t, at::opmath_type<scalar_t>>, void>
+inline typename std::enable_if_t<!std::is_same<scalar_t, at::opmath_type<scalar_t>>::value, void>
 _vec_logsoftmax(
     scalar_t* input_data_base,
     scalar_t* output_data_base,
@@ -1300,4 +1300,4 @@ ALSO_REGISTER_AVX512_DISPATCH(softmax_backward_kernel, &softmax_backward_kernel_
 ALSO_REGISTER_AVX512_DISPATCH(
     log_softmax_backward_kernel,
     &log_softmax_backward_kernel_impl);
-} // namespace at::native
+}} // namespace at::native

@@ -13,7 +13,7 @@
 // NOTE: CUDA on Windows requires that the enclosing function
 // of a __device__ lambda not have internal linkage.
 
-namespace at::native {
+namespace at{ namespace native {
 
 CONSTEXPR_EXCEPT_WIN_CUDA char sigmoid_backward_name[] = "sigmoid_backward";
 void sigmoid_backward_kernel_cuda(TensorIteratorBase& iter) {
@@ -128,4 +128,4 @@ REGISTER_DISPATCH(sigmoid_backward_stub, &sigmoid_backward_kernel_cuda);
 REGISTER_DISPATCH(logit_backward_stub, &logit_backward_kernel_cuda);
 REGISTER_DISPATCH(tanh_backward_stub, &tanh_backward_kernel_cuda);
 
-} // namespace at::native
+}} // namespace at::native

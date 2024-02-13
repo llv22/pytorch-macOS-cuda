@@ -20,7 +20,7 @@
 #include <numeric>
 #include <functional>
 
-namespace at::native {
+namespace at{ namespace native {
 
 namespace {
 
@@ -312,4 +312,4 @@ REGISTER_DISPATCH(histogramdd_stub, &histogramdd_kernel_impl);
 REGISTER_DISPATCH(histogramdd_linear_stub, &histogramdd_linear_kernel_impl);
 REGISTER_DISPATCH(histogram_select_outer_bin_edges_stub, &histogram_select_outer_bin_edges_impl);
 
-} // namespace at::native
+}} // namespace at::native

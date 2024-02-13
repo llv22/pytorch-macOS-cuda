@@ -13,7 +13,7 @@
 
 #include <type_traits>
 
-namespace at::native {
+namespace at{ namespace native {
 namespace binary_internal {
 
 CONSTEXPR_EXCEPT_WIN_CUDA char div_name[] = "div_kernel";
@@ -58,4 +58,4 @@ void div_true_kernel_cuda(TensorIteratorBase& iter) {
 
 REGISTER_DISPATCH(div_true_stub, &binary_internal::div_true_kernel_cuda);
 
-} // namespace at::native
+}} // namespace at::native

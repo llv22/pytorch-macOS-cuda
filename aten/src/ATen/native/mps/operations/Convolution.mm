@@ -7,7 +7,7 @@
 #include <ATen/ops/mps_convolution_backward_native.h>
 #include <ATen/ops/mps_convolution_transpose_backward_native.h>
 
-namespace at::native {
+namespace at{ namespace native {
 
 static void fill_depthwise_conv_desc(MPSGraphDepthwiseConvolution3DOpDescriptor* descriptor_,
                                      NSUInteger strideInX,
@@ -626,4 +626,4 @@ std::tuple<Tensor, Tensor> mps_convolution_transpose_backward(const Tensor& inpu
   return std::tuple<Tensor, Tensor>{grad_input, grad_weight};
 }
 
-} // namespace at::native
+}} // namespace at::native

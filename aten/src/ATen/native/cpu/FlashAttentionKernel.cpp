@@ -17,7 +17,7 @@
 #include <ATen/ops/empty.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 
 namespace {
 
@@ -627,4 +627,4 @@ void flash_attention_backward_kernel_impl(
 ALSO_REGISTER_AVX512_DISPATCH(flash_attention_kernel, &flash_attention_kernel_impl);
 ALSO_REGISTER_AVX512_DISPATCH(flash_attention_backward_kernel, &flash_attention_backward_kernel_impl);
 
-} // at::native
+}} // at::native

@@ -9,7 +9,7 @@
 #include <ATen/ops/lstm_mps_backward_native.h>
 #import <MetalPerformanceShadersGraph/MPSGraphRNNOps.h>
 
-namespace at::native {
+namespace at{ namespace native {
 
 static std::vector<long long> getTensorShape(MPSGraphTensor* mpsTensor) {
   std::vector<long long> output_dimensions = {};
@@ -771,4 +771,4 @@ std::tuple<Tensor, std::vector<Tensor>, std::vector<Tensor>> lstm_mps_backward(c
   }
 }
 
-} // namespace at::native
+}} // namespace at::native

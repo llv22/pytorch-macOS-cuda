@@ -18,7 +18,7 @@
 #include <ATen/ops/view_as_real.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 namespace mps {
 
 static const char* METAL_BINARY = R"BINARY_METAL(
@@ -401,4 +401,4 @@ Tensor& polar_out_mps(const Tensor& abs, const Tensor& angle, Tensor& output) {
   mps::binary_mps_impl(iter, "polar");
   return output;
 }
-} // namespace at::native
+}} // namespace at::native

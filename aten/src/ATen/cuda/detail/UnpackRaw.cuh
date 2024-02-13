@@ -2,7 +2,7 @@
 // Eager mode clients should not include this file directly, instead,
 // they should #include <ATen/cuda/PhiloxUtils.cuh>, which has a #pragma once.
 
-namespace at::cuda::philox {
+namespace at{ namespace cuda{ namespace philox {
 
 // In-kernel call to retrieve philox seed and offset from a PhiloxCudaState instance whether
 // that instance was created with graph capture underway or not.
@@ -25,4 +25,4 @@ unpack(at::PhiloxCudaState arg) {
   }
 }
 
-} // namespace at::cuda::philox
+}}} // namespace at::cuda::philox

@@ -73,7 +73,7 @@
 #include <ATen/ops/trunc_native.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 namespace {
 
 template <typename Ufunc>
@@ -280,4 +280,4 @@ Tensor& nan_to_num_sparse_(
   return nan_to_num_sparse_out(self, nan, posinf, neginf, self);
 }
 
-}  // namespace at::native
+}}  // namespace at::native

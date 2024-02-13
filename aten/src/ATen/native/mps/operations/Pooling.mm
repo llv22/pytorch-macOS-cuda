@@ -17,7 +17,7 @@
 #include <ATen/ops/max_pool2d_with_indices_native.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 namespace mps {
 
 struct PoolingCachedGraph : public MPSCachedGraph {
@@ -528,4 +528,4 @@ TORCH_IMPL_FUNC(avg_pool2d_backward_out_mps)
                            "avg_pool2d_backward");
 }
 
-} // namespace at::native
+}} // namespace at::native

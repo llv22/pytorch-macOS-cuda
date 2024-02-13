@@ -48,7 +48,7 @@ C10_DEFINE_bool(
     "If on, static runtime may use use optimizations that cause accuracy loss "
     "vs the jit interpreter");
 
-namespace at::native {
+namespace at{ namespace native {
 
 static void repeat_out(
     at::Tensor& result,
@@ -374,7 +374,7 @@ static at::Tensor& dequantize_copy_out(Tensor& out, const Tensor& self) {
   }
   return get_qtensorimpl(self)->quantizer()->dequantize_out(out, self);
 }
-} // namespace at::native
+}} // namespace at::native
 
 namespace torch::jit {
 

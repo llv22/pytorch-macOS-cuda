@@ -8,7 +8,7 @@
 #include <chrono>
 #include <thread>
 
-namespace at::cuda {
+namespace at{ namespace cuda {
 
 static bool _cuda_graphs_debug = false;
 constexpr int kSynchronizeBusyWaitMillis = 10;
@@ -353,4 +353,4 @@ CUDAGraph::~CUDAGraph() {
   reset();
 }
 
-} // namespace at::cuda
+}} // namespace at::cuda

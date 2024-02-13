@@ -28,7 +28,7 @@
 #include <ATen/ops/zeros.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 
 static cublasOperation_t to_cublas(TransposeType trans) {
   switch (trans) {
@@ -1540,4 +1540,4 @@ void lu_solve_looped_cusolver(const Tensor& LU, const Tensor& pivots, const Tens
 
 #endif  // USE_LINALG_SOLVER
 
-} // namespace at::native
+}} // namespace at::native

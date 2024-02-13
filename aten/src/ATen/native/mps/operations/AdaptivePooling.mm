@@ -20,7 +20,7 @@
 #include <ATen/ops/mul.h>
 #include <ATen/ops/ones_like.h>
 #endif
-namespace at::native {
+namespace at{ namespace native {
 namespace mps {
 static void set_kernel_params(int64_t isizeH,
                               int64_t isizeW,
@@ -233,4 +233,4 @@ TORCH_IMPL_FUNC(adaptive_max_pool2d_backward_out_mps)
                                            indices);
 }
 
-} // namespace at::native
+}} // namespace at::native

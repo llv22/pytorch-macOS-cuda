@@ -19,7 +19,7 @@
 #include <ATen/ops/empty.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 
 namespace {
 
@@ -620,4 +620,4 @@ void LayerNormBackwardKernelImpl(
 REGISTER_DISPATCH(LayerNormKernel, &LayerNormKernelImpl);
 REGISTER_DISPATCH(LayerNormBackwardKernel, &LayerNormBackwardKernelImpl);
 
-} // namespace at::native
+}} // namespace at::native

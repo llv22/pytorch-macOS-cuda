@@ -4,7 +4,7 @@
 #include <ATen/native/utils/Factory.h>
 #include <ATen/native/xnnpack/Linear.h>
 
-namespace at::native::xnnpack {
+namespace at{ namespace native { namespace xnnpack {
 namespace internal::linear {
 
 namespace {
@@ -215,6 +215,6 @@ Tensor linear(
       ContextLinear::kMax);
 }
 
-} // namespace at::native::xnnpack
+}}} // namespace at::native::xnnpack
 
 #endif /* USE_XNNPACK */

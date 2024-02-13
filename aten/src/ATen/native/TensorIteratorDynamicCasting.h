@@ -42,7 +42,7 @@ struct needs_dynamic_casting<func_t, 0> {
 
     // we could assert output numbers are correct here, but checks
     // (including arity) are currently pushed outside of this struct.
-    if constexpr (std::is_void_v<cpp_type>) {
+    if constexpr (std::is_void<cpp_type>::value) {
       return false;
     } else {
       return iter.dtype(0) != c10::CppTypeToScalarType<cpp_type>::value;

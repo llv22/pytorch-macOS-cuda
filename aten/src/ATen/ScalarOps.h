@@ -9,7 +9,7 @@
 #include <ATen/ops/scalar_tensor.h>
 #endif
 
-namespace at::detail {
+namespace at{ namespace detail {
 // When filling a number to 1-element CPU tensor, we want to skip
 // everything but manipulate data ptr directly.
 // Ideally this fast pass should be implemented in TensorIterator,
@@ -20,7 +20,7 @@ TORCH_API Tensor scalar_tensor_static(
     const Scalar& s,
     c10::optional<ScalarType> dtype_opt,
     c10::optional<Device> device_opt);
-} // namespace at::detail
+}} // namespace at::detail
 
 // This is in the c10 namespace because we use ADL to find the functions in it.
 namespace c10 {
@@ -58,7 +58,7 @@ inline at::Tensor scalar_to_tensor(
 
 } // namespace c10
 
-namespace at::native {
+namespace at{ namespace native {
 
 inline Tensor wrapped_scalar_tensor(
     const Scalar& scalar,
@@ -68,4 +68,4 @@ inline Tensor wrapped_scalar_tensor(
   return tensor;
 }
 
-} // namespace at::native
+}} // namespace at::native

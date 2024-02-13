@@ -56,7 +56,7 @@ C10_ALWAYS_INLINE bool mul_overflows(uint64_t a, uint64_t b, uint64_t* out) {
 }
 
 C10_ALWAYS_INLINE bool mul_overflows(int64_t a, int64_t b, int64_t* out) {
-#if C10_HAS_BUILTIN_OVERFLOW()
+#if C10_HAS_BUILTIN_OVERFLOW() and !defined(__APPLE__) and !defined(__MACH__)
   return __builtin_mul_overflow(a, b, out);
 #else
   volatile int64_t tmp = a * b;

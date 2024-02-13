@@ -10,7 +10,7 @@
 #include <ATen/native/xnnpack/Engine.h>
 #include <c10/util/irange.h>
 
-namespace at::native::xnnpack {
+namespace at{ namespace native { namespace xnnpack {
 namespace internal {
 namespace convolution2d {
 
@@ -494,6 +494,6 @@ Tensor convolution2d(
       ContextConv2D::kMax);
 }
 
-} // namespace at::native::xnnpack
+}}} // namespace at::native::xnnpack
 
 #endif /* USE_XNNPACK */

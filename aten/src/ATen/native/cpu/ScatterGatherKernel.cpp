@@ -24,7 +24,7 @@
 #include <ATen/ops/empty.h>
 #include <ATen/ops/zeros.h>
 #endif
-namespace at::native {
+namespace at{ namespace native {
 
 namespace {
 
@@ -968,4 +968,4 @@ REGISTER_DISPATCH(scatter_add_expanded_index_stub, &scatter_add_expanded_index_k
 REGISTER_DISPATCH(scatter_reduce_expanded_index_stub, &scatter_reduce_expanded_index_kernel);
 REGISTER_DISPATCH(gather_expanded_index_stub, &gather_expanded_index_kernel);
 
-} // namespace at::native
+}} // namespace at::native

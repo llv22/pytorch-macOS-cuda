@@ -1678,7 +1678,7 @@ static at::Tensor _quantized_convolution_onednn(
 
 #endif // #if AT_MKLDNN_ENABLED()
 
-namespace at::native {
+namespace at{ namespace native {
 namespace {
 
 /*
@@ -1952,4 +1952,4 @@ TORCH_LIBRARY_IMPL(onednn, MkldnnCPU, m) {
 }
 
 } // namespace
-} // namespace at::native
+}} // namespace at::native

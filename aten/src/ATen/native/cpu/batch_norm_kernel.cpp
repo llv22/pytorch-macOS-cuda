@@ -22,7 +22,7 @@
 #include <ATen/ops/zeros.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 namespace {
 
 using namespace vec;
@@ -71,7 +71,7 @@ void batch_norm_cpu_collect_linear_and_constant_terms(
 
 /// A fast path for CPU inference and training forward when all tensors are contiguous.
 template<typename scalar_t>
-typename std::enable_if_t<std::is_same_v<scalar_t, at::opmath_type<scalar_t>>, void>
+typename std::enable_if_t<std::is_same<scalar_t, at::opmath_type<scalar_t>>::value, void>
 batch_norm_cpu_contiguous_impl(Tensor& output, const Tensor& input,
     const Tensor& weight, const Tensor& bias, const Tensor& save_mean, const Tensor& save_invstd,
     const Tensor& running_mean, const Tensor& running_var, bool train, double eps) {
@@ -123,7 +123,7 @@ batch_norm_cpu_contiguous_impl(Tensor& output, const Tensor& input,
 }
 
 template <typename scalar_t>
-typename std::enable_if_t<std::is_same_v<scalar_t, at::opmath_type<scalar_t>>, void>
+typename std::enable_if_t<std::is_same<scalar_t, at::opmath_type<scalar_t>>::value, void>
 batch_norm_cpu_channels_last_impl(Tensor& output, const Tensor& input,
     const Tensor& weight, const Tensor& bias, const Tensor& save_mean, const Tensor& save_invstd,
     const Tensor& running_mean, const Tensor& running_var, bool train, double eps) {
@@ -173,7 +173,7 @@ batch_norm_cpu_channels_last_impl(Tensor& output, const Tensor& input,
 }
 
 template <typename scalar_t>
-typename std::enable_if_t<std::is_same_v<scalar_t, at::opmath_type<scalar_t>>, void>
+typename std::enable_if_t<std::is_same<scalar_t, at::opmath_type<scalar_t>>::value, void>
 batch_norm_cpu_collect_stats_contiguous_impl(
     Tensor& mean, Tensor& var_sum, const Tensor& input) {
 
@@ -218,7 +218,7 @@ batch_norm_cpu_collect_stats_contiguous_impl(
 }
 
 template <typename scalar_t>
-typename std::enable_if_t<std::is_same_v<scalar_t, at::opmath_type<scalar_t>>, void>
+typename std::enable_if_t<std::is_same<scalar_t, at::opmath_type<scalar_t>>::value, void>
 batch_norm_cpu_collect_stats_channels_last_impl(
     Tensor& mean, Tensor& var_sum, const Tensor& input) {
 
@@ -305,7 +305,7 @@ batch_norm_cpu_collect_stats_channels_last_impl(
 }
 
 template <typename scalar_t>
-typename std::enable_if_t<std::is_same_v<scalar_t, at::opmath_type<scalar_t>>, void>
+typename std::enable_if_t<std::is_same<scalar_t, at::opmath_type<scalar_t>>::value, void>
 batch_norm_cpu_backward_contiguous_impl(Tensor& grad_input, Tensor& grad_weight, Tensor& grad_bias,
     const Tensor& grad_output, const Tensor& input, const Tensor& weight,
     const Tensor& running_mean, const Tensor& running_var, const Tensor& save_mean, const Tensor& save_invstd,
@@ -428,7 +428,7 @@ batch_norm_cpu_backward_contiguous_impl(Tensor& grad_input, Tensor& grad_weight,
 }
 
 template <typename scalar_t>
-typename std::enable_if_t<std::is_same_v<scalar_t, at::opmath_type<scalar_t>>, void>
+typename std::enable_if_t<std::is_same<scalar_t, at::opmath_type<scalar_t>>::value, void>
 batch_norm_cpu_backward_channels_last_impl(Tensor& grad_input, Tensor& grad_weight, Tensor& grad_bias,
     const Tensor& grad_output, const Tensor& input, const Tensor& weight,
     const Tensor& running_mean, const Tensor& running_var, const Tensor& save_mean, const Tensor& save_invstd,
@@ -610,7 +610,7 @@ batch_norm_cpu_backward_channels_last_impl(Tensor& grad_input, Tensor& grad_weig
 
 /// bfloat16/Half kernels
 template<typename scalar_t>
-typename std::enable_if_t<!std::is_same_v<scalar_t, at::opmath_type<scalar_t>>, void>
+typename std::enable_if_t<!std::is_same<scalar_t, at::opmath_type<scalar_t>>::value, void>
 batch_norm_cpu_contiguous_impl(Tensor& output, const Tensor& input,
     const Tensor& weight, const Tensor& bias, const Tensor& save_mean, const Tensor& save_invstd,
     const Tensor& running_mean, const Tensor& running_var, bool train, double eps) {
@@ -675,7 +675,7 @@ batch_norm_cpu_contiguous_impl(Tensor& output, const Tensor& input,
 }
 
 template <typename scalar_t>
-typename std::enable_if_t<!std::is_same_v<scalar_t, at::opmath_type<scalar_t>>, void>
+typename std::enable_if_t<!std::is_same<scalar_t, at::opmath_type<scalar_t>>::value, void>
 batch_norm_cpu_channels_last_impl(Tensor& output, const Tensor& input,
     const Tensor& weight, const Tensor& bias, const Tensor& save_mean, const Tensor& save_invstd,
     const Tensor& running_mean, const Tensor& running_var, bool train, double eps) {
@@ -796,7 +796,7 @@ inline void batch_norm_cpu_collect_stats_contiguous_internal(
 }
 
 template <typename scalar_t>
-typename std::enable_if_t<!std::is_same_v<scalar_t, at::opmath_type<scalar_t>>, void>
+typename std::enable_if_t<!std::is_same<scalar_t, at::opmath_type<scalar_t>>::value, void>
 batch_norm_cpu_collect_stats_contiguous_impl(
     Tensor& mean, Tensor& var_sum, const Tensor& input) {
   const bool mixed_type = is_mixed_type(input, mean, var_sum);
@@ -893,7 +893,7 @@ inline void batch_norm_cpu_collect_stats_channels_last_internal(
 }
 
 template <typename scalar_t>
-typename std::enable_if_t<!std::is_same_v<scalar_t, at::opmath_type<scalar_t>>, void>
+typename std::enable_if_t<!std::is_same<scalar_t, at::opmath_type<scalar_t>>::value, void>
 batch_norm_cpu_collect_stats_channels_last_impl(
     Tensor& mean, Tensor& var_sum, const Tensor& input) {
   const bool mixed_type = is_mixed_type(input, mean, var_sum);
@@ -1015,7 +1015,7 @@ void batch_norm_cpu_backward_contiguous_internal(Tensor& grad_input, Tensor& gra
 }
 
 template <typename scalar_t>
-typename std::enable_if_t<!std::is_same_v<scalar_t, at::opmath_type<scalar_t>>, void>
+typename std::enable_if_t<!std::is_same<scalar_t, at::opmath_type<scalar_t>>::value, void>
 batch_norm_cpu_backward_contiguous_impl(Tensor& grad_input, Tensor& grad_weight, Tensor& grad_bias,
     const Tensor& grad_output, const Tensor& input, const Tensor& weight,
     const Tensor& running_mean, const Tensor& running_var, const Tensor& save_mean, const Tensor& save_invstd,
@@ -1228,7 +1228,7 @@ void batch_norm_cpu_backward_channels_last_internal(Tensor& grad_input, Tensor& 
 }
 
 template <typename scalar_t>
-typename std::enable_if_t<!std::is_same_v<scalar_t, at::opmath_type<scalar_t>>, void>
+typename std::enable_if_t<!std::is_same<scalar_t, at::opmath_type<scalar_t>>::value, void>
 batch_norm_cpu_backward_channels_last_impl(Tensor& grad_input, Tensor& grad_weight, Tensor& grad_bias,
     const Tensor& grad_output, const Tensor& input, const Tensor& weight,
     const Tensor& running_mean, const Tensor& running_var, const Tensor& save_mean, const Tensor& save_invstd,
@@ -1318,4 +1318,4 @@ REGISTER_DISPATCH(batch_norm_cpu_stub, &batch_norm_cpu_kernel);
 REGISTER_DISPATCH(batch_norm_cpu_collect_stats_stub, &batch_norm_cpu_collect_stats_kernel);
 REGISTER_DISPATCH(batch_norm_cpu_backward_stub, &batch_norm_cpu_backward_kernel);
 
-} // namespace at::native
+}} // namespace at::native

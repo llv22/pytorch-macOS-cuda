@@ -16,7 +16,7 @@
 #include <ATen/cuda/detail/OffsetCalculator.cuh>
 #include <ATen/native/cuda/Loops.cuh>
 
-namespace at::native {
+namespace at{ namespace native {
 namespace {
 
 void mish_kernel(TensorIteratorBase& iter) {
@@ -61,4 +61,4 @@ void mish_backward_kernel(TensorIterator& iter) {
 REGISTER_DISPATCH(mish_stub, &mish_kernel);
 REGISTER_DISPATCH(mish_backward_stub, &mish_backward_kernel);
 
-} // namespace at::native
+}} // namespace at::native

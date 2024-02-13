@@ -10,7 +10,7 @@
 #include <ATen/TensorIteratorInternal.h>
 #include <ATen/Parallel.h>
 
-namespace at::native {
+namespace at{ namespace native {
 inline namespace CPU_CAPABILITY {
 
 static void float_bfloat16_copy_kernel(TensorIteratorBase &iter, bool requires_neg) {
@@ -297,4 +297,4 @@ void copy_kernel(TensorIterator& iter, bool /*non_blocking*/) {
 
 REGISTER_DISPATCH(copy_stub, &copy_kernel);
 
-} // namespace at::native
+}} // namespace at::native

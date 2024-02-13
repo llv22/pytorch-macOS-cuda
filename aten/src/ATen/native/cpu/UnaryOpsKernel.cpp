@@ -28,7 +28,7 @@
 #include <mkl.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 
 inline namespace CPU_CAPABILITY {
 
@@ -884,4 +884,4 @@ STATIC_IMPLEMENT_COMPLEX_KERNEL_WITH_AVX512(log2);
 STATIC_IMPLEMENT_COMPLEX_KERNEL_WITH_AVX512(tanh);
 IMPLEMENT_FLOAT_KERNEL_WITH_AVX512(lgamma);
 
-} // namespace at::native
+}} // namespace at::native

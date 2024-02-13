@@ -8,7 +8,7 @@
 #include <c10/core/ScalarType.h>
 #include <c10/util/Exception.h>
 
-namespace at::native {
+namespace at{ namespace native {
 
 namespace {
 void _spdiags_kernel_cpu(
@@ -62,4 +62,4 @@ void _spdiags_kernel_cpu(
 
 REGISTER_DISPATCH(spdiags_kernel_stub, &_spdiags_kernel_cpu)
 
-} // namespace at::native
+}} // namespace at::native

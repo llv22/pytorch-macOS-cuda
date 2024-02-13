@@ -7,13 +7,7 @@
 
 #include <cusparse.h>
 
-// LIMITATION (cusparseSpMM):
-// The generic APIs are available on all platforms on CUDA 11.0
-// For CUDA 10.1+ it is available for all platforms except Windows.
-// Using these APIs in any other systems will result in compile-time or run-time failures.
-// Their support will be extended in the next releases.
-
-#if defined(CUDART_VERSION) && (CUSPARSE_VERSION >= 11000 || (!defined(_MSC_VER) && CUSPARSE_VERSION >= 10301))
+#if (defined(CUDART_VERSION) && (CUSPARSE_VERSION >= 11000 || (!defined(_MSC_VER) && CUSPARSE_VERSION >= 10301))) && !defined(__APPLE__) && !defined(__MACH__)
 #define IS_SPMM_AVAILABLE() 1
 #else
 #define IS_SPMM_AVAILABLE() 0

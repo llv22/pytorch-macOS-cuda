@@ -12,7 +12,7 @@
 #include <type_traits>
 #include <ATen/OpMathType.h>
 
-namespace at::native {
+namespace at{ namespace native {
 
 namespace {
 
@@ -752,4 +752,4 @@ REGISTER_DISPATCH(max_pool2d_kernel, &max_pool2d_kernel_impl);
 REGISTER_DISPATCH(max_pool2d_backward_kernel, &max_pool2d_backward_kernel_impl);
 REGISTER_DISPATCH(max_pool3d_kernel, &max_pool3d_kernel_impl);
 REGISTER_DISPATCH(max_pool3d_backward_kernel, &max_pool3d_backward_kernel_impl);
-} // at::native
+}} // at::native

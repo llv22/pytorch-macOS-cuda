@@ -16,7 +16,7 @@
 #include <ATen/ops/scalar_tensor.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 
 // Maximum and minimum possible scalar values, including infinities
 template <typename scalar_t>
@@ -344,9 +344,9 @@ inline ScalarType get_dtype_from_result(Tensor& result, c10::optional<ScalarType
 }
 
 
-} // namespace at::native
+}} // namespace at::native
 
-namespace at::meta {
+namespace at{ namespace meta {
 
 static C10_UNUSED DimVector get_reduction_shape(
     const Tensor& self,
@@ -445,4 +445,4 @@ static C10_UNUSED TensorIterator make_reduction_from_out_ty(
   return make_reduction(self, result, opt_dims, keepdim, in_dtype);
 }
 
-} // namespace at::meta
+}} // namespace at::meta

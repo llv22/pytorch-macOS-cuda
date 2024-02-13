@@ -8,7 +8,7 @@
 #include <ATen/native/cpu/utils.h>
 #include <c10/util/irange.h>
 
-namespace at::native {
+namespace at{ namespace native {
 
 namespace {
 
@@ -726,4 +726,4 @@ REGISTER_DISPATCH(replication_pad2d_backward_kernel, &replication_pad2d_backward
 REGISTER_DISPATCH(replication_pad3d_kernel, &replication_pad3d_kernel_impl);
 REGISTER_DISPATCH(replication_pad3d_backward_kernel, &replication_pad3d_backward_kernel_impl);
 
-} // at::native
+}} // at::native

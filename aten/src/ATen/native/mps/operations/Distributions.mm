@@ -26,7 +26,7 @@
 #include <ATen/ops/uniform_native.h>
 #endif
 
-namespace at::native {
+namespace at{ namespace native {
 namespace mps {
 
 struct RandomCachedGraph : public MPSCachedGraph {
@@ -642,4 +642,4 @@ Tensor multinomial_mps(const Tensor& self, int64_t n_sample, bool with_replaceme
   return result;
 }
 
-} // namespace at::native
+}} // namespace at::native

@@ -4,7 +4,7 @@
 #include <ATen/native/TensorIterator.h>
 #include <ATen/native/cpu/Loops.h>
 
-namespace at::native {
+namespace at{ namespace native {
 namespace {
 
 void complex_kernel(TensorIterator& iter) {
@@ -28,4 +28,4 @@ void polar_kernel(TensorIterator& iter) {
 REGISTER_DISPATCH(complex_stub, &complex_kernel);
 ALSO_REGISTER_AVX512_DISPATCH(polar_stub, &polar_kernel);
 
-} // namespace at::native
+}} // namespace at::native

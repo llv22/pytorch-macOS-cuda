@@ -16,7 +16,7 @@
 
 #include <cusparseLt.h>
 
-namespace at::native {
+namespace at{ namespace native {
 
 // Ideally we would use the same DeviceThreadHandlePool mechanism as used in aten/src/ATen/cuda/CuSparseHandlePool.cpp
 // which would handle this for us. However, the cuSPARSELt handle signature is different from that of cuSPARSE/cuBLAS,
@@ -311,11 +311,11 @@ at::Tensor _cslt_sparse_mm(
   return res;
 }
 
-} // namespace at::native
+}} // namespace at::native
 
 #else // No cuSPARSELt support, throw error if these functions are called.
 
-namespace at::native {
+namespace at{ namespace native {
 
 at::Tensor _cslt_compress(const Tensor& sparse_input){
     TORCH_CHECK(false, "cuSPARSELT not supported on your machine.");
@@ -332,6 +332,6 @@ at::Tensor _cslt_sparse_mm(
     TORCH_CHECK(false, "cuSPARSELT not supported on your machine.");
 }
 
-} // namespace at::native
+}} // namespace at::native
 
 #endif

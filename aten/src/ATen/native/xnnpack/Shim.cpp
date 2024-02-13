@@ -14,7 +14,7 @@
 // trigger an error.
 //
 
-namespace at::native::xnnpack {
+namespace at{ namespace native { namespace xnnpack {
 namespace internal {
 namespace {
 
@@ -89,6 +89,6 @@ Tensor max_pool2d(
   TORCH_CHECK(false, internal::kError);
 }
 
-} // namespace at::native::xnnpack
+}}} // namespace at::native::xnnpack
 
 #endif /* USE_XNNPACK */

@@ -38,12 +38,14 @@
 #include <c10/util/irange.h>
 #include <c10/util/Load.h>
 
-// #if defined(__APPLE__) and defined(__MACH__)
-// namespace std{
-//   template< class T >
-//   inline constexpr bool is_signed_v = is_signed<T>::value;
-// }
-// #endif
+#if defined(__APPLE__) and defined(__MACH__)
+namespace std{
+  // template< class T >
+  // inline constexpr bool is_signed_v = is_signed<T>::value;
+  // template <class T, class U>
+  // inline constexpr bool is_same_v = is_same<T, U>::value;
+}
+#endif
 
 // These macros helped us unify vec_base.h
 #ifdef CPU_CAPABILITY_AVX512
@@ -846,7 +848,7 @@ template <class T> Vectorized<T> inline operator<<(const Vectorized<T> &a, const
 
 template <class T> Vectorized<T> inline operator>>(const Vectorized<T> &a, const Vectorized<T> &b) {
   // right shift value to retain sign bit for signed and no bits for unsigned
-  constexpr T max_shift = sizeof(T) * CHAR_BIT - std::is_signed_v<T>;
+  constexpr T max_shift = sizeof(T) * CHAR_BIT - std::is_signed<T>::value;
   Vectorized<T> c;
   for (int i = 0; i != Vectorized<T>::size(); i++) {
     T shift = b[i];

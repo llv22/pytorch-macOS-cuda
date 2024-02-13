@@ -9,7 +9,7 @@
 #include <ATen/ops/lgamma_native.h>
 #include <ATen/ops/polygamma_native.h>
 
-namespace at::native {
+namespace at{ namespace native {
 namespace mps {
 
 /*
@@ -594,4 +594,4 @@ TORCH_IMPL_FUNC(polygamma_out_mps)(const int64_t order, const Tensor& self, cons
   }
 }
 
-} // namespace at::native
+}} // namespace at::native
