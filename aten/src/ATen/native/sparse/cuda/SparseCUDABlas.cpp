@@ -13,7 +13,8 @@
 // Using these APIs in any other systems will result in compile-time or run-time failures.
 // Their support will be extended in the next releases.
 
-#if defined(CUDART_VERSION) && (CUSPARSE_VERSION >= 11000 || (!defined(_MSC_VER) && CUSPARSE_VERSION >= 10301))
+// #if defined(CUDART_VERSION) && (CUSPARSE_VERSION >= 11000 || (!defined(_MSC_VER) && CUSPARSE_VERSION >= 10301))
+#if (defined(CUDART_VERSION) && (CUSPARSE_VERSION >= 11000 || (!defined(_MSC_VER) && CUSPARSE_VERSION >= 10301))) && !defined(__APPLE__) && !defined(__MACH__)
 #define IS_SPMM_AVAILABLE() 1
 #else
 #define IS_SPMM_AVAILABLE() 0
@@ -30,6 +31,7 @@
 #endif
 
 #if !defined(CUSPARSE_VERSION) || (CUSPARSE_VERSION < 10100)
+
 const char* cusparseGetErrorString(cusparseStatus_t status) {
   switch(status)
   {
@@ -154,6 +156,19 @@ void _csrmm2(
 
 
   auto handle = at::cuda::getCurrentCUDASparseHandle();
+
+  // typedef enum {
+  //   CUSPARSE_SPMM_ALG_DEFAULT = 0,
+  //   CUSPARSE_SPMM_COO_ALG1    = 1,
+  //   CUSPARSE_SPMM_COO_ALG2    = 2,
+  //   CUSPARSE_SPMM_COO_ALG3    = 3,
+  //   CUSPARSE_SPMM_COO_ALG4    = 5,
+  //   CUSPARSE_SPMM_CSR_ALG1    = 4,
+  //   CUSPARSE_SPMM_CSR_ALG2    = 6,
+  // } cusparseSpMMAlg_t;
+
+  // static int CUSPARSE_SPMM_CSR_ALG1 = 4;
+  // static int CUSPARSE_SPMM_CSR_ALG2 = 6;
 
   // cusparseSpMM_bufferSize returns the bufferSize that can be used by cusparseSpMM
   size_t bufferSize;
