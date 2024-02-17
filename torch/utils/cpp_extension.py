@@ -2119,7 +2119,7 @@ def _write_ninja_file(path,
 
     def replace_std17_with_std14(options):
         options = [c for c in options if c != "-std=c++17"]
-        if options.find("-std=c++14") == -1:
+        if "-std=c++14" not in options: #options.find("-std=c++14") == -1:
             options.append("-std=c++14")
         return options
 
