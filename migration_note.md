@@ -6,7 +6,9 @@ Preparation of building library:
 export CXXFLAGS=-D_LIBCPP_DISABLE_AVAILABILITY
 export CMAKE_PREFIX_PATH=${CONDA_PREFIX:-"$(dirname $(which conda))/../"}
 MAGMA_HOME="/usr/local/lib/magma2.6.1-cu101" MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ USE_LIBUV=1 USE_DISTRIBUTED=ON USE_MPI=ON USE_TENSORPIPE=ON USE_GLOO=ON USE_CUDA_MPI=ON python setup.py clean # prepare
-MAGMA_HOME="/usr/local/lib/magma2.6.1-cu101" MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ USE_LIBUV=1 USE_DISTRIBUTED=ON USE_MPI=ON USE_TENSORPIPE=ON USE_GLOO=ON USE_CUDA_MPI=ON python setup.py bdist_wheel
+MAGMA_HOME="/usr/local/lib/magma2.6.1-cu101" MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ CMAKE_BUILD_TYPE=1 USE_LIBUV=1 USE_DISTRIBUTED=ON USE_MPI=ON USE_TENSORPIPE=ON USE_GLOO=ON USE_CUDA_MPI=ON python setup.py bdist_wheel
+MAGMA_HOME="/usr/local/lib/magma2.6.1-cu101" MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ CMAKE_BUILD_TYPE=1 USE_LIBUV=1 USE_CUSPARSELT=1 USE_DISTRIBUTED=ON USE_MPI=ON USE_TENSORPIPE=ON USE_GLOO=ON USE_CUDA_MPI=ON python setup.py bdist_wheel
+MAGMA_HOME="/usr/local/lib/magma2.6.1-cu101" MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ USE_LIBUV=1 USE_CUSPARSELT=1 USE_DISTRIBUTED=ON USE_MPI=OFF USE_TENSORPIPE=ON USE_GLOO=ON USE_CUDA_MPI=ON python setup.py develop
 ```
 
 ## 1, Missing ATen cuda
@@ -103,4 +105,59 @@ Solution: correct the caffe2/CMakeLists.txt in Line 96 and switch cutlass to 2.1
 
 ```cmake
  list(APPEND Caffe2_GPU_INCLUDE ${ATen_CUDA_INCLUDE} /usr/local/cuda/include ${PROJECT_SOURCE_DIR}/third_party/cutlass/include)
+```
+
+## 4. Runtime issue
+
+torch 2.2.0
+
+```bash
+(base) Orlando:gpu-magma2.6.1-distributed-all-2.2.0-py3.10 llv23$ otool -L /Users/llv23/opt/miniconda3/lib/python3.10/site-packages/torch/lib/libtorch_python.dylib
+/Users/llv23/opt/miniconda3/lib/python3.10/site-packages/torch/lib/libtorch_python.dylib:
+	@rpath/libtorch_python.dylib (compatibility version 0.0.0, current version 0.0.0)
+	@rpath/libshm.dylib (compatibility version 0.0.0, current version 0.0.0)
+	@rpath/libtorch.dylib (compatibility version 0.0.0, current version 0.0.0)
+	@rpath/libtorch_cuda.dylib (compatibility version 0.0.0, current version 0.0.0)
+	@rpath/libnvToolsExt.1.dylib (compatibility version 0.0.0, current version 1.0.0)
+	@rpath/libtorch_cpu.dylib (compatibility version 0.0.0, current version 0.0.0)
+	@rpath/libmkl_intel_lp64.2.dylib (compatibility version 0.0.0, current version 0.0.0)
+	@rpath/libmkl_intel_thread.2.dylib (compatibility version 0.0.0, current version 0.0.0)
+	@rpath/libmkl_core.2.dylib (compatibility version 0.0.0, current version 0.0.0)
+	@rpath/libomp.dylib (compatibility version 5.0.0, current version 5.0.0)
+	/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1252.200.5)
+	@rpath/libc10_cuda.dylib (compatibility version 0.0.0, current version 0.0.0)
+	@rpath/libc10.dylib (compatibility version 0.0.0, current version 0.0.0)
+	@rpath/libcudart.10.2.dylib (compatibility version 0.0.0, current version 10.2.89)
+	@rpath/libcudnn.7.dylib (compatibility version 0.0.0, current version 7.6.5)
+	/usr/local/opt/open-mpi/lib/libmpi.40.dylib (compatibility version 71.0.0, current version 71.1.0)
+	/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 400.9.4)
+```
+
+torch 2.0.0
+
+```bash
+(base) Orlando:lib llv23$ otool -L /Users/llv23/opt/miniconda3/lib/python3.10/site-packages/torch/lib/libtorch_python.dylib
+/Users/llv23/opt/miniconda3/lib/python3.10/site-packages/torch/lib/libtorch_python.dylib:
+	@rpath/libtorch_python.dylib (compatibility version 0.0.0, current version 0.0.0)
+	@rpath/libshm.dylib (compatibility version 0.0.0, current version 0.0.0)
+	/usr/local/opt/open-mpi/lib/libmpi.40.dylib (compatibility version 71.0.0, current version 71.1.0)
+	@rpath/libtorch.dylib (compatibility version 0.0.0, current version 0.0.0)
+	@rpath/libtorch_cuda.dylib (compatibility version 0.0.0, current version 0.0.0)
+	@rpath/libnvrtc.10.1.dylib (compatibility version 0.0.0, current version 10.1.243)
+	@rpath/libnvToolsExt.1.dylib (compatibility version 0.0.0, current version 1.0.0)
+	@rpath/libtorch_cpu.dylib (compatibility version 0.0.0, current version 0.0.0)
+	@rpath/libmkl_intel_lp64.2.dylib (compatibility version 0.0.0, current version 0.0.0)
+	@rpath/libmkl_intel_thread.2.dylib (compatibility version 0.0.0, current version 0.0.0)
+	@rpath/libmkl_core.2.dylib (compatibility version 0.0.0, current version 0.0.0)
+	@rpath/libomp.dylib (compatibility version 5.0.0, current version 5.0.0)
+	/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1252.200.5)
+	@rpath/libc10_cuda.dylib (compatibility version 0.0.0, current version 0.0.0)
+	@rpath/libc10.dylib (compatibility version 0.0.0, current version 0.0.0)
+	@rpath/libcudart.10.1.dylib (compatibility version 0.0.0, current version 10.1.243)
+	@rpath/libcufft.10.dylib (compatibility version 0.0.0, current version 10.1.1)
+	@rpath/libcurand.10.dylib (compatibility version 0.0.0, current version 10.1.1)
+	@rpath/libcublas.10.dylib (compatibility version 0.0.0, current version 10.2.1)
+	@rpath/libcublasLt.10.dylib (compatibility version 0.0.0, current version 10.2.1)
+	@rpath/libcudnn.7.dylib (compatibility version 0.0.0, current version 7.6.5)
+	/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 400.9.4)
 ```

@@ -3,7 +3,7 @@
 #include <ATen/cuda/CUDAUtils.h>
 #include <ATen/Dispatch.h>
 
-#if !defined(USE_ROCM) && !defined(__APPLE__) && !defined(__MACH__)
+#if !defined(USE_ROCM)
 #include <cuda_runtime.h>
 #include <cutlass/cutlass.h>
 #include <cutlass/layout/layout.h>
@@ -12,7 +12,9 @@
 #include <cutlass/epilogue/thread/linear_combination_relu.h>
 #include <cutlass/epilogue/thread/linear_combination_silu.h>
 #include <cutlass/gemm/gemm.h>
+#if !defined(__APPLE__) && !defined(__MACH__)
 #include <cutlass/gemm/device/gemm_sparse_row_broadcast.h>
+#endif
 #endif
 
 #include <type_traits>
