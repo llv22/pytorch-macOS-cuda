@@ -464,7 +464,7 @@ TEST_P(ChunkRecordIteratorTest, ChunkRead) {
   LOG(INFO) << "Testing chunk size " << chunkSize;
   PyTorchStreamReader reader(fileName);
   ASSERT_TRUE(reader.hasRecord(recordName));
-  #if !defined(__APPLE__) && !defined(__MACH__)
+  // #if !defined(__APPLE__) && !defined(__MACH__)
   //see: to avoid "error: call to implicitly-deleted copy constructor of 'caffe2::serialize::ChunkRecordIterator'"
   caffe2::serialize::ChunkRecordIterator chunkIterator = reader.createChunkReaderIter(
       recordName, tensorDataSizeInBytes, chunkSize);
@@ -476,7 +476,7 @@ TEST_P(ChunkRecordIteratorTest, ChunkRead) {
     totalReadSize += readSize;
   }
   ASSERT_EQ(totalReadSize, tensorDataSizeInBytes);
-  #endif
+  // #endif
   // clean up
   remove(fileName);
 }

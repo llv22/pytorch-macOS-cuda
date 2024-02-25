@@ -109,12 +109,12 @@ class TORCH_API ChunkRecordIterator {
  ChunkRecordIterator(
       size_t recordSize,
       size_t chunkSize,
-      std::unique_ptr<MzZipReaderIterWrapper> iter);
+      std::shared_ptr<MzZipReaderIterWrapper> iter);
 
   const size_t recordSize_;
   const size_t chunkSize_;
   size_t offset_;
-  std::unique_ptr<MzZipReaderIterWrapper> iter_;
+  std::shared_ptr<MzZipReaderIterWrapper> iter_;
 
   friend class PyTorchStreamReader;
 };

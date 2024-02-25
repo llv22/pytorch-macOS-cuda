@@ -34,12 +34,14 @@ constexpr c10::string_view kDebugPklSuffix(".debug_pkl");
 struct MzZipReaderIterWrapper {
   MzZipReaderIterWrapper(mz_zip_reader_extract_iter_state* iter) : impl(iter) {}
   mz_zip_reader_extract_iter_state* impl;
+  // Disable the move constructor
+  MzZipReaderIterWrapper(MzZipReaderIterWrapper&& other) = delete;
 };
 
 ChunkRecordIterator::ChunkRecordIterator(
     size_t recordSize,
     size_t chunkSize,
-    std::unique_ptr<MzZipReaderIterWrapper> iter)
+    std::shared_ptr<MzZipReaderIterWrapper> iter)
     : recordSize_(recordSize),
       chunkSize_(chunkSize),
       offset_(0),

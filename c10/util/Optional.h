@@ -1,7 +1,7 @@
 #ifndef C10_UTIL_OPTIONAL_H_
 #define C10_UTIL_OPTIONAL_H_
 
-// #if defined(__APPLE__) && defined(__MACH__)
+#if defined(__APPLE__) && defined(__MACH__)
 
 #include <c10/macros/Macros.h>
 #include <c10/util/ArrayRef.h>
@@ -1235,7 +1235,7 @@ struct hash<c10::optional<T&>> {
 
 C10_CLANG_DIAGNOSTIC_POP()
 
-#if !defined(__APPLE__) && !defined(__MACH__)
+#else // !defined(__APPLE__) && !defined(__MACH__)
 
 #include <optional>
 #include <type_traits>
@@ -1250,7 +1250,6 @@ namespace c10 {
 using std::bad_optional_access;
 using std::in_place;
 using std::in_place_t;
-using std::make_optional;
 using std::nullopt;
 using std::nullopt_t;
 using std::optional;
@@ -1281,6 +1280,6 @@ constexpr T value_or_else(optional<T>&& v, F&& func) {
 }
 } // namespace c10
 
-#endif // !defined(__APPLE__) && !defined(__MACH__)
+#endif // defined(__APPLE__) && defined(__MACH__)
 
 #endif // C10_UTIL_OPTIONAL_H_

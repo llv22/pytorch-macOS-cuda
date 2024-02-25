@@ -107,6 +107,9 @@ namespace c10d {
 
 namespace {
 
+using ::c10::in_place;
+using ::c10::in_place_t;
+
 template <typename T>
 using shared_ptr_class_ = py::class_<T, std::shared_ptr<T>>;
 
@@ -1726,8 +1729,8 @@ Arguments:
               },
               py::arg("device"),
               py::arg("backend_type"),
-              py::arg("backend") = c10::optional<c10::intrusive_ptr<::c10d::Backend>>(),
             //   py::arg("backend"),
+              py::arg("backend") = c10::optional<c10::intrusive_ptr<::c10d::Backend>>(),
               py::call_guard<py::gil_scoped_release>())
           .def(
               "_get_backend",
