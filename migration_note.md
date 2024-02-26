@@ -109,7 +109,13 @@ Solution: correct the caffe2/CMakeLists.txt in Line 96 and switch cutlass to 2.1
 
 ## 4. Runtime issue
 
-torch 2.2.0
+torch 2.2.0's bash script result:
+
+```bash
+In [1]: import torch
+libc++abi.dylib: terminating with uncaught exception of type std::runtime_error: arg(): could not convert default argument 'backend: c10::optional<c10::intrusive_ptr<c10d::Backend, c10::detail::intrusive_target_default_null_type<c10d::Backend> > >' in method '<class 'torch._C._distributed_c10d.ProcessGroup'>._register_backend' into a Python object (type not registered yet?)
+Abort trap: 6
+```
 
 ```bash
 (base) Orlando:gpu-magma2.6.1-distributed-all-2.2.0-py3.10 llv23$ otool -L /Users/llv23/opt/miniconda3/lib/python3.10/site-packages/torch/lib/libtorch_python.dylib
@@ -161,3 +167,5 @@ torch 2.0.0
 	@rpath/libcudnn.7.dylib (compatibility version 0.0.0, current version 7.6.5)
 	/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 400.9.4)
 ```
+
+change torch/csrc/utils/pybind.h with 

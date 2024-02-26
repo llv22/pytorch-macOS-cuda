@@ -122,11 +122,7 @@ class C10_API Warning {
   class C10_API UserWarning {};
   class C10_API DeprecationWarning {};
 
-#if defined(__APPLE__) && defined(__MACH__)
-  using warning_variant_t = c10::variant<UserWarning, DeprecationWarning>;
-#else
   using warning_variant_t = std::variant<UserWarning, DeprecationWarning>;
-#endif
 
   Warning(
       warning_variant_t type,

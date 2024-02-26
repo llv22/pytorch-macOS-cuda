@@ -17,17 +17,11 @@ namespace std {
 namespace torch {
 namespace nn {
 
-#if defined(__APPLE__) && defined(__MACH__)
-using activation_t = c10::variant<
-    enumtype::kReLU,
-    enumtype::kGELU,
-    std::function<Tensor(const Tensor&)>>;
-#else
+
 using activation_t = std::variant<
     enumtype::kReLU,
     enumtype::kGELU,
     std::function<Tensor(const Tensor&)>>;
-#endif
 
 /// Options for the `TransformerEncoderLayer`
 ///

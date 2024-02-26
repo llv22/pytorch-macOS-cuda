@@ -10,10 +10,6 @@
 #include <torch/csrc/profiler/standalone/execution_trace_observer.h>
 #include <torch/csrc/utils/pybind.h>
 
-#if defined(__APPLE__) && defined(__MACH__)
-#include <c10/util/variant.h>
-#endif
-
 struct THPCapturedTraceback {
   PyObject_HEAD std::shared_ptr<torch::CapturedTraceback> data;
 };

@@ -20,22 +20,6 @@ namespace nn {
 namespace init {
 
 
-#if defined(__APPLE__) && defined(__MACH__)
-using NonlinearityType = c10::variant<
-    enumtype::kLinear,
-    enumtype::kConv1D,
-    enumtype::kConv2D,
-    enumtype::kConv3D,
-    enumtype::kConvTranspose1D,
-    enumtype::kConvTranspose2D,
-    enumtype::kConvTranspose3D,
-    enumtype::kSigmoid,
-    enumtype::kTanh,
-    enumtype::kReLU,
-    enumtype::kLeakyReLU>;
-
-using FanModeType = c10::variant<enumtype::kFanIn, enumtype::kFanOut>;
-#else
 using NonlinearityType = std::variant<
     enumtype::kLinear,
     enumtype::kConv1D,
@@ -50,7 +34,6 @@ using NonlinearityType = std::variant<
     enumtype::kLeakyReLU>;
 
 using FanModeType = std::variant<enumtype::kFanIn, enumtype::kFanOut>;
-#endif
 
 } // namespace init
 } // namespace nn

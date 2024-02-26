@@ -5,6 +5,9 @@
 #include <ATen/core/Tensor.h>
 #include <ATen/core/jit_type_base.h>
 #include <c10/util/irange.h>
+#if defined(__APPLE__) && defined(__MACH__)
+#include <c10/util/variant.h>
+#endif
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -323,6 +326,17 @@ struct type_caster<c10::complex<T>> {
     return handle(PyComplex_FromDoubles(complex.real(), complex.imag()));
   }
 };
+
+#if defined(__APPLE__) && defined(__MACH__)
+// Pybind11 bindings for our optional and variant types.
+// http://pybind11.readthedocs.io/en/stable/advanced/cast/stl.html#c-17-library-containers
+template <typename T>
+struct type_caster<c10::optional<T>> : optional_caster<c10::optional<T>> {};
+
+template <typename... Ts>
+struct C10_MPARK_VISIBILITY_HIDDEN type_caster<c10::variant<Ts...>>
+    : variant_caster<c10::variant<Ts...>> {};
+#endif
 
 } // namespace detail
 } // namespace pybind11

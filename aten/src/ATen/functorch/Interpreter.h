@@ -9,8 +9,8 @@
 #include <c10/util/variant.h>
 namespace std {
   using ::c10::variant;
-  using ::c10::get;
   using ::c10::holds_alternative;
+  using ::c10::get;
 } // namespace std
 #else
 #include <variant>

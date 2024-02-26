@@ -31,7 +31,6 @@
 #if defined(__APPLE__) && defined(__MACH__)
 #include <c10/util/variant.h>
 namespace std {
-  using ::c10::variant;
   using ::c10::holds_alternative;
   using ::c10::get;
   using ::c10::get_if;

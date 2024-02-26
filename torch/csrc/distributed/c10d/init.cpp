@@ -1729,7 +1729,7 @@ Arguments:
               },
               py::arg("device"),
               py::arg("backend_type"),
-            //   py::arg("backend"),
+              //see: pybind11 backend with optional
               py::arg("backend") = c10::optional<c10::intrusive_ptr<::c10d::Backend>>(),
               py::call_guard<py::gil_scoped_release>())
           .def(
@@ -2592,8 +2592,8 @@ Example::
       py::arg("bucket_size"),
       py::arg("expect_sparse_gradient") = std::vector<bool>(),
       py::arg("tensor_indices") = std::vector<int64_t>(),
+      //see: pybind11 Logger
       py::arg("logger") = c10::optional<std::shared_ptr<::c10d::Logger>>{},
-    //   py::arg("logger"), 
       py::call_guard<py::gil_scoped_release>());
 
   module.def(
@@ -2611,8 +2611,8 @@ Example::
       },
       py::arg("process_group"),
       py::arg("params"),
+      //see: pybind11 Logger
       py::arg("logger") = c10::optional<std::shared_ptr<::c10d::Logger>>{},
-    //   py::arg("logger"),
       py::call_guard<py::gil_scoped_release>());
 
   module.def(
