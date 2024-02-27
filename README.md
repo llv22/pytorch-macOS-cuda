@@ -1,3 +1,37 @@
+<!-- markdownlint-disable MD033 -->
+<!-- markdownlint-disable MD004 -->
+<!-- markdownlint-disable MD029 -->
+# Pytorch 2.0.0 with Nvidia GPU on macOS
+--------------------------------------------------------------------------------
+[Features of pytorch 2.0](https://pytorch.org/blog/Accelerating-Hugging-Face-and-TIMM-models/) requires trions of [openAI triton](https://github.com/openai/triton), which needs NVIDIA GPUs (Compute Capability 7.0+, refer to https://developer.nvidia.com/cuda-gpus). In order to support the compilation via cuda, the hardware of eGPU needs to upgrade to 2080i +, like sales in [gaming box of 2080i](https://www.amazon.com/Embedded-Thunderbolt-Waterforce-Controller-Gv-N208TIXEB-11GC/dp/B07ZS9GZRY/ref=sr_1_5?crid=38RK3T5BAKIGN&keywords=gigabyte+gaming+box&qid=1679248280&s=pc&sprefix=gigabyte+gaming+box%2Ccomputers%2C147&sr=1-5). 
+
+--------------------------------------------------------------------------------
+As officially Pytorch doesn't support for macOS cuda, I used this repository to build pytorch on macOS cuda. **This branch v2.2.0-tensorpipe-fixed branch is the current stable branch** with MPI+CUDA enabled.
+
+- macOS 10.13.6, cuda 10.1/10.2, cudnn 7.6.5 (cuda and cudnn is the last official version which Nvidia released to support macOS, now I setup cuda10.1 and cuda10.2 side by side in order to allow torch to access the memory management API exposed by cuda 10.2)
+- [NCCL on macOS 2.9.6.1](https://github.com/llv22/nccl-osx) and [test suite](https://github.com/llv22/nccl-tests-macOS-cuda)
+- Xcode 10.1, libuv 1.2.6
+- magma 2.6 built on macOS, providing by [cloned magma repository from The University of Tennessee, Knoxville](https://github.com/llv22/magma-macOS)
+- support distributed options with TENSORPIPE, which has been fixed via [Orlando's tensorpipe](https://github.com/llv22/tensorpipe-macos-cuda/tree/v2.0.0-tensorpipe-fixed)
+
+```bash
+--   USE_DISTRIBUTED       : ON
+--     USE_MPI               : ON
+--     USE_GLOO              : ON
+--     USE_TENSORPIPE        : ON
+--     USE_CUDA_MPI          : ON
+```
+
+Consolidating [torch-2.0.0-mac-with-tensorpipe-cuda-mpi-enabling.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v2.0.0-tensorpipe-fixed/torch-2.0.0-mac-with-tensorpipe-cuda-mpi-enabling.patch)) by
+
+```bash
+git format-patch -8 --stdout > torch-2.2.0-mac-with-tensorpipe-cuda10.1-10.2-support-memory-mpi-enabling.patch
+```
+
++refer to <https://www.ivankristianto.com/create-patch-files-from-multiple-commits-in-git/>
+
+--------------------------------------------------------------------------------
+
 ![PyTorch Logo](https://github.com/pytorch/pytorch/blob/main/docs/source/_static/img/pytorch-logo-dark.png)
 
 --------------------------------------------------------------------------------
