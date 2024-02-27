@@ -168,4 +168,19 @@ torch 2.0.0
 	/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 400.9.4)
 ```
 
-change torch/csrc/utils/pybind.h with 
+change torch/csrc/utils/pybind.h with cast_type.
+
+## 5. Building pytorch.vision 0.17.1
+
+Issue: not found  /usr/local/cuda/lib/libcudnn.a
+
+Try with the following solution:
+
+```bash
+sudo ln -s  /usr/local/torch/lib/libdnnl.a /usr/local/lib/libdnnl.a
+sudo ln -s  /usr/local/torch/lib/libc10_cuda.dylib /usr/local/lib/libc10_cuda.dylib
+sudo ln -s  /usr/local/torch/lib/libc10.dylib /usr/local/lib/libc10.dylib
+sudo ln -s  /usr/local/torch/lib/libtorch_cpu.dylib /usr/local/lib/libtorch_cpu.dylib
+sudo ln -s  /usr/local/torch/lib/libtorch_cuda.dylib  /usr/local/lib/libtorch_cuda.dylib
+sudo ln -s  /usr/local/torch/lib/libtorch.dylib  /usr/local/lib/libtorch.dylib
+```

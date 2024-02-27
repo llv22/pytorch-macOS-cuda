@@ -333,10 +333,11 @@ struct type_caster<c10::complex<T>> {
 template <typename T>
 struct type_caster<c10::optional<T>> : optional_caster<c10::optional<T>> {};
 
-template <typename... Ts>
-struct C10_MPARK_VISIBILITY_HIDDEN type_caster<c10::variant<Ts...>>
-    : variant_caster<c10::variant<Ts...>> {};
-#endif
+//see: redefinition /Users/llv23/opt/miniconda3/lib/python3.10/site-packages/torch/include/pybind11/stl.h:441:8: note: previous definition is here
+// template <typename... Ts>
+// struct C10_MPARK_VISIBILITY_HIDDEN type_caster<c10::variant<Ts...>>
+//     : variant_caster<c10::variant<Ts...>> {};
+// #endif
 
 } // namespace detail
 } // namespace pybind11
