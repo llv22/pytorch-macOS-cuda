@@ -1,0 +1,1432 @@
+From 39798de17b24a19ee22bb74b40c2a57ab8718c65 Mon Sep 17 00:00:00 2001
+From: Orlando Ding <xiandao.airs@gmail.com>
+Date: Mon, 12 Feb 2024 22:28:43 -0800
+Subject: [PATCH 1/8] orlando - for updates of settings
+
+---
+ third_party/cutlass | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/third_party/cutlass b/third_party/cutlass
+index 5a586c30b8..63fc6f05ff 160000
+--- a/third_party/cutlass
++++ b/third_party/cutlass
+@@ -1 +1 @@
+-Subproject commit 5a586c30b81629fcf391c16f4314bb85dc5f23ff
++Subproject commit 63fc6f05ffbfa66ca9e5548a041517bb6100e52c
+-- 
+2.17.2 (Apple Git-113)
+
+
+From 294eccdd7cdd9d2ac8c9758290c423fedf8dd277 Mon Sep 17 00:00:00 2001
+From: Orlando Ding <xiandao.airs@gmail.com>
+Date: Tue, 13 Feb 2024 10:06:23 -0800
+Subject: [PATCH 2/8] orlando - for updates of tensorpipe settings
+
+---
+ migration_note.md | 21 ++++++++++++++++++---
+ 1 file changed, 18 insertions(+), 3 deletions(-)
+
+diff --git a/migration_note.md b/migration_note.md
+index f063e72d4a..d0cf1e1d10 100644
+--- a/migration_note.md
++++ b/migration_note.md
+@@ -1,5 +1,7 @@
+ # Migration note
+ 
++Preparation of building library:
++
+ ```bash
+ export CXXFLAGS=-D_LIBCPP_DISABLE_AVAILABILITY
+ export CMAKE_PREFIX_PATH=${CONDA_PREFIX:-"$(dirname $(which conda))/../"}
+@@ -9,11 +11,14 @@ MAGMA_HOME="/usr/local/lib/magma2.6.1-cu101" MACOSX_DEPLOYMENT_TARGET=10.9 CC=cl
+ 
+ ## 1, Missing ATen cuda
+ 
++```bash
+ /usr/local/bin/ccache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++ -DHAVE_MMAP=1 -DHAVE_SHM_OPEN=1 -DHAVE_SHM_UNLINK=1 -DIDEEP_USE_MKL -DMINIZ_DISABLE_ZIP_READER_CRC32_CHECKS -DONNXIFI_ENABLE_EXT=1 -DONNX_ML=1 -DONNX_NAMESPACE=onnx_torch -DUSE_CUDA_MPI=1 -DUSE_EXTERNAL_MZCRC -D_FILE_OFFSET_BITS=64 -Dcaffe2_nvrtc_EXPORTS -I/Users/llv23/Documents/05_machine_learning/dl_gpu_mac/pytorch-2.2.0-tensorpipe/build/aten/src -I/Users/llv23/Documents/05_machine_learning/dl_gpu_mac/pytorch-2.2.0-tensorpipe/aten/src -I/Users/llv23/Documents/05_machine_learning/dl_gpu_mac/pytorch-2.2.0-tensorpipe/build -I/Users/llv23/Documents/05_machine_learning/dl_gpu_mac/pytorch-2.2.0-tensorpipe -I/Users/llv23/Documents/05_machine_learning/dl_gpu_mac/pytorch-2.2.0-tensorpipe/cmake/../third_party/benchmark/include -I/Users/llv23/Documents/05_machine_learning/dl_gpu_mac/pytorch-2.2.0-tensorpipe/third_party/onnx -I/Users/llv23/Documents/05_machine_learning/dl_gpu_mac/pytorch-2.2.0-tensorpipe/build/third_party/onnx -I/Users/llv23/Documents/05_machine_learning/dl_gpu_mac/pytorch-2.2.0-tensorpipe/third_party/foxi -I/Users/llv23/Documents/05_machine_learning/dl_gpu_mac/pytorch-2.2.0-tensorpipe/build/third_party/foxi -isystem /Users/llv23/Documents/05_machine_learning/dl_gpu_mac/pytorch-2.2.0-tensorpipe/build/third_party/gloo -isystem /Users/llv23/Documents/05_machine_learning/dl_gpu_mac/pytorch-2.2.0-tensorpipe/cmake/../third_party/gloo -isystem /Users/llv23/Documents/05_machine_learning/dl_gpu_mac/pytorch-2.2.0-tensorpipe/cmake/../third_party/tensorpipe/third_party/libuv/include -isystem /Users/llv23/Documents/05_machine_learning/dl_gpu_mac/pytorch-2.2.0-tensorpipe/cmake/../third_party/googletest/googlemock/include -isystem /Users/llv23/Documents/05_machine_learning/dl_gpu_mac/pytorch-2.2.0-tensorpipe/cmake/../third_party/googletest/googletest/include -isystem /Users/llv23/Documents/05_machine_learning/dl_gpu_mac/pytorch-2.2.0-tensorpipe/third_party/protobuf/src -isystem /Users/llv23/opt/miniconda3/include -isystem /Users/llv23/Documents/05_machine_learning/dl_gpu_mac/pytorch-2.2.0-tensorpipe/third_party/gemmlowp -isystem /Users/llv23/Documents/05_machine_learning/dl_gpu_mac/pytorch-2.2.0-tensorpipe/third_party/neon2sse -isystem /Users/llv23/Documents/05_machine_learning/dl_gpu_mac/pytorch-2.2.0-tensorpipe/third_party/XNNPACK/include -isystem /Users/llv23/Documents/05_machine_learning/dl_gpu_mac/pytorch-2.2.0-tensorpipe/third_party/ittapi/include -isystem /Users/llv23/Documents/05_machine_learning/dl_gpu_mac/pytorch-2.2.0-tensorpipe/cmake/../third_party/eigen -isystem /Users/llv23/Documents/05_machine_learning/dl_gpu_mac/pytorch-2.2.0-tensorpipe/cmake/../third_party/cub -isystem /usr/local/include -isystem /Users/llv23/Documents/05_machine_learning/dl_gpu_mac/pytorch-2.2.0-tensorpipe/third_party/ideep/include -D_LIBCPP_DISABLE_AVAILABILITY -fvisibility-inlines-hidden -DUSE_PTHREADPOOL -DNDEBUG -DUSE_KINETO -DLIBKINETO_NOCUPTI -DLIBKINETO_NOROCTRACER -DUSE_FBGEMM -DUSE_QNNPACK -DUSE_PYTORCH_QNNPACK -DUSE_XNNPACK -DSYMBOLICATE_MOBILE_DEBUG_HANDLE -O2 -fPIC -Wall -Wextra -Werror=return-type -Werror=non-virtual-dtor -Werror=braced-scalar-init -Wnarrowing -Wno-missing-field-initializers -Wno-type-limits -Wno-array-bounds -Wno-unknown-pragmas -Wno-unused-parameter -Wno-unused-function -Wno-unused-result -Wno-strict-overflow -Wno-strict-aliasing -Wvla-extension -Wnewline-eof -Winconsistent-missing-override -Winconsistent-missing-destructor-override -Wno-pass-failed -Wno-error=pedantic -Wno-error=old-style-cast -Wno-error=inconsistent-missing-override -Wno-error=inconsistent-missing-destructor-override -Wconstant-conversion -Wno-invalid-partial-specialization -Wno-aligned-allocation-unavailable -Wno-missing-braces -Qunused-arguments -fcolor-diagnostics -faligned-new -fno-math-errno -fno-trapping-math -Werror=format -Wno-unused-private-field -Wno-missing-braces -DHAVE_AVX2_CPU_DEFINITION -O3 -DNDEBUG -DNDEBUG -std=gnu++14 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk -mmacosx-version-min=10.9 -fPIC -DMKL_HAS_SBGEMM -DTORCH_USE_LIBUV -DCAFFE2_USE_GLOO -MD -MT caffe2/CMakeFiles/caffe2_nvrtc.dir/__/aten/src/ATen/cuda/nvrtc_stub/ATenNVRTC.cpp.o -MF caffe2/CMakeFiles/caffe2_nvrtc.dir/__/aten/src/ATen/cuda/nvrtc_stub/ATenNVRTC.cpp.o.d -o caffe2/CMakeFiles/caffe2_nvrtc.dir/__/aten/src/ATen/cuda/nvrtc_stub/ATenNVRTC.cpp.o -c /Users/llv23/Documents/05_machine_learning/dl_gpu_mac/pytorch-2.2.0-tensorpipe/aten/src/ATen/cuda/nvrtc_stub/ATenNVRTC.cpp
++```
+ 
+ ## 2, Migrating from c10 to std
+ 
+-#if defined(__APPLE__) && defined(__MACH__)
++```c++
++# if defined(__APPLE__) && defined(__MACH__)
+ #include <c10/util/variant.h>
+ namespace std {
+   using ::c10::variant;
+@@ -25,8 +30,9 @@ namespace std {
+ #else
+ #include <variant>
+ #endif
++```
+ 
+-
++```c++
+ #if defined(__APPLE__) && defined(__MACH__)
+ #include <c10/util/Optional.h>
+ namespace std {
+@@ -35,22 +41,30 @@ namespace std {
+ #else
+ #include <optional>
+ #endif
++```
+ 
++```c++
+ #if defined(__APPLE__) && defined(__MACH__)
+ #include <c10/util/variant.h>
+ #endif
++```
+ 
++```c++
+ #if defined(__APPLE__) && defined(__MACH__)
+ #include <c10/util/variant.h>
+ #else
+ #include <variant>
+ #endif
++```
+ 
++```c++
+ #if defined(__APPLE__) && defined(__MACH__)
+ c10::visit
+ #else
+ #endif 
++```
+ 
++```c++
+ MetadataShape compute_variant_shape(const at::Tensor& input) {
+   if (input.is_nested() && !input.unsafeGetTensorImpl()->is_python_dispatch()) {
+     auto nested_size = input._nested_tensor_size();
+@@ -66,6 +80,7 @@ MetadataShape compute_variant_shape(const at::Tensor& input) {
+   return MetadataShape{std::in_place_type<SymIntSmallVec>, input.sym_sizes()};
+ #endif
+ }
++```
+ 
+ ## 3, Issue of loading include headers
+ 
+@@ -84,7 +99,7 @@ FAILED: caffe2/CMakeFiles/torch_cuda.dir/__/aten/src/ATen/native/nested/cuda/Nes
+ #include <cutlass/gemm/device/default_gemm_configuration.h>
+ ```
+ 
+-solution: correct the caffe2/CMakeLists.txt in Line 96 by 
++Solution: correct the caffe2/CMakeLists.txt in Line 96 and switch cutlass to 2.11.0, a prior version to 3.0.0 for CUDA 11.x
+ 
+ ```cmake
+  list(APPEND Caffe2_GPU_INCLUDE ${ATen_CUDA_INCLUDE} /usr/local/cuda/include ${PROJECT_SOURCE_DIR}/third_party/cutlass/include)
+-- 
+2.17.2 (Apple Git-113)
+
+
+From 49f18e626e3c2a1c7e18fdca0dece3bf92b04d03 Mon Sep 17 00:00:00 2001
+From: Orlando Ding <xiandao.airs@gmail.com>
+Date: Fri, 16 Feb 2024 23:01:56 -0800
+Subject: [PATCH 3/8] orlando - for updates of torch 2.2.0, but meeting with
+ issues
+
+---
+ aten/src/ATen/cuda/CUDABlas.cpp               | 177 ++++++++++++++++--
+ .../sparse/cuda/SparseSemiStructuredLinear.cu |   4 +-
+ c10/util/Optional.cpp                         |  17 ++
+ c10/util/Optional.h                           |   6 +-
+ migration_note.md                             |  59 +++++-
+ third_party/cutlass                           |   2 +-
+ torch/csrc/distributed/c10d/init.cpp          |  10 +-
+ torch/csrc/distributed/rpc/init.cpp           |   6 +-
+ 8 files changed, 256 insertions(+), 25 deletions(-)
+
+diff --git a/aten/src/ATen/cuda/CUDABlas.cpp b/aten/src/ATen/cuda/CUDABlas.cpp
+index a161786074..c58a987680 100644
+--- a/aten/src/ATen/cuda/CUDABlas.cpp
++++ b/aten/src/ATen/cuda/CUDABlas.cpp
+@@ -15,6 +15,27 @@
+ // added bf16 support
+ #if !defined(USE_ROCM) && !defined(_MSC_VER)
+ #include <cublasLt.h>
++
++#if defined(__APPLE__) && defined(__MACH__)
++/** Semi-opaque descriptor for cublasLtMatmul() operation details
++ */
++typedef struct {
++  uint64_t data[32];
++} cublasLtMatmulDescOpaque_t;
++
++/** Semi-opaque descriptor for matrix memory layout
++ */
++typedef struct {
++  uint64_t data[8];
++} cublasLtMatrixLayoutOpaque_t;
++
++/** Semi-opaque descriptor for cublasLtMatmulPreference() operation details
++ */
++typedef struct {
++  uint64_t data[8];
++} cublasLtMatmulPreferenceOpaque_t;
++#endif
++
+ #endif
+ 
+ // refer to http://www.jcuda.org/jcuda/jcublas/doc/constant-values.html#jcuda.jcublas.cublasMath.CUBLAS_MATH_DISALLOW_REDUCED_PRECISION_REDUCTION
+@@ -205,10 +226,60 @@ static size_t _getWorkspaceSize() {
+ 
+ } // anonymous namespace
+ 
+-namespace at::cuda::blas {
++namespace at{ namespace cuda{ namespace blas {
+ 
+ /* LEVEL 3 BLAS FUNCTIONS */
+ 
++#ifndef USE_ROCM
++#if defined(CUDA_VERSION) && CUDA_VERSION >= 11020
++#define cublasGemmStridedBatchedExFix cublasGemmStridedBatchedEx
++#else
++// Workaround for https://github.com/pytorch/pytorch/issues/45724
++cublasStatus_t cublasGemmStridedBatchedExFix(cublasHandle_t &handle,
++  cublasOperation_t transa,
++  cublasOperation_t transb,
++  int m,
++  int n,
++  int k,
++  const void    *alpha,
++  const void     *A,
++  cudaDataType Atype,
++  int lda,
++  long long int strideA,
++  const void     *B,
++  cudaDataType Btype,
++  int ldb,
++  long long int strideB,
++  const void    *beta,
++  void           *C,
++  cudaDataType Ctype,
++  int ldc,
++  long long int strideC,
++  int64_t batchCount,
++  cudaDataType computeType,
++  cublasGemmAlgo_t algo)
++{
++  cudaDeviceProp* prop = at::cuda::getCurrentDeviceProperties();
++  if (prop->major != 7) {
++    return cublasGemmStridedBatchedEx(handle, transa, transb, m, n, k, alpha, A, Atype, lda, strideA, B, Btype, ldb, strideB, beta, C, Ctype, ldc, strideC, batchCount, computeType, algo);
++  }
++  cublasStatus_t result;
++  constexpr int64_t split = 63 * 1024;
++  for(int64_t i = 0; i < batchCount; i += split) {
++    int64_t count = std::min<int64_t>(split, batchCount - i);
++    result = cublasGemmStridedBatchedEx(handle, transa, transb, m, n, k, alpha,
++      (char *)A + i * strideA * 2, Atype, lda, strideA,
++      (char *)B + i * strideB * 2, Btype, ldb, strideB,
++      beta,
++      (char *)C + i * strideC * 2, Ctype, ldc, strideC,
++      (int)count, computeType, algo);
++    TORCH_CUDABLAS_CHECK(result);
++  }
++  return result;
++}
++#endif
++#endif
++
+ #define GEMM_CHECK_ARGVALUES(Dtype)           \
+   do {                                        \
+     CUDABLAS_NONNEGINT_CHECK(gemm<Dtype>, m); \
+@@ -527,7 +598,43 @@ void gemm<at::Half>(CUDABLAS_GEMM_ARGTYPES(at::Half)) {
+ #endif
+ }
+ 
+-#if !defined(USE_ROCM)
++#ifdef defined(USE_ROCM)
++template <>
++void gemm<at::BFloat16>(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
++  cublasHandle_t handle = at::cuda::getCurrentCUDABlasHandle();
++  cublasOperation_t opa = _cublasOpFromChar(transa);
++  cublasOperation_t opb = _cublasOpFromChar(transb);
++  float falpha = alpha;
++  float fbeta = beta;
++  _cublasAdjustLdLevel3(transa, transb, m, n, k, &lda, &ldb, &ldc);
++  GEMM_CHECK_ARGVALUES(at::BFloat16);
++  TORCH_CUDABLAS_CHECK(rocblas_gemm_ex(
++      handle,
++      opa,
++      opb,
++      m,
++      n,
++      k,
++      &falpha,
++      a,
++      rocblas_datatype_bf16_r,
++      lda,
++      b,
++      rocblas_datatype_bf16_r,
++      ldb,
++      &fbeta,
++      c,
++      rocblas_datatype_bf16_r,
++      ldc,
++      c,
++      rocblas_datatype_bf16_r,
++      ldc,
++      rocblas_datatype_f32_r,
++      rocblas_gemm_algo_standard,
++      0,
++      0));
++}
++#else
+ template <>
+ void gemm<at::BFloat16>(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
+   globalContext().alertCuBLASConfigNotDeterministic();
+@@ -567,7 +674,7 @@ void gemm<at::BFloat16>(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
+ }
+ #endif // !defined(USE_ROCM)
+ 
+-#if !defined(USE_ROCM) && !defined(_MSC_VER) && defined(CUDA_VERSION) && CUDA_VERSION >= 11000
++#if !defined(USE_ROCM) && !defined(_MSC_VER)
+ 
+ namespace {
+ // Following the pattern of CuSparseDescriptor
+@@ -597,6 +704,24 @@ class CuBlasLtDescriptor {
+   std::unique_ptr<T, CuBlasLtDeleter<T, destructor>> descriptor_;
+ };
+ 
++#if defined(__APPLE__) && defined(__MACH__)
++class CuBlasLtMatmulDescriptor : public CuBlasLtDescriptor<
++                                     cublasLtMatmulDescStruct,
++                                     &cublasLtMatmulDescDestroy> {
++ public:
++  CuBlasLtMatmulDescriptor(
++      cudaDataType_t scale_type) {
++    cublasLtMatmulDesc_t raw_descriptor = nullptr;
++    TORCH_CUDABLAS_CHECK(
++        cublasLtMatmulDescCreate(&raw_descriptor, scale_type));
++    descriptor_.reset(raw_descriptor);
++  }
++  template <typename T>
++  inline void setAttribute(cublasLtMatmulDescAttributes_t attr, const T value) {
++    TORCH_CUDABLAS_CHECK(::cublasLtMatmulDescSetAttribute(descriptor(), attr, &value, sizeof(T)));
++  }
++};
++#else
+ class CuBlasLtMatmulDescriptor : public CuBlasLtDescriptor<
+                                      cublasLtMatmulDescOpaque_t,
+                                      &cublasLtMatmulDescDestroy> {
+@@ -614,9 +739,10 @@ class CuBlasLtMatmulDescriptor : public CuBlasLtDescriptor<
+     TORCH_CUDABLAS_CHECK(::cublasLtMatmulDescSetAttribute(descriptor(), attr, &value, sizeof(T)));
+   }
+ };
++#endif
+ 
+ class CuBlasLtMatrixLayout : public CuBlasLtDescriptor<
+-                                 cublasLtMatrixLayoutOpaque_t,
++                                 cublasLtMatrixLayoutStruct,
+                                  &cublasLtMatrixLayoutDestroy> {
+  public:
+   CuBlasLtMatrixLayout(
+@@ -633,7 +759,7 @@ class CuBlasLtMatrixLayout : public CuBlasLtDescriptor<
+ };
+ 
+ class CuBlasLtMatmulPreference : public CuBlasLtDescriptor<
+-                                     cublasLtMatmulPreferenceOpaque_t,
++                                     cublasLtMatmulPreferenceStruct,
+                                      &cublasLtMatmulPreferenceDestroy> {
+  public:
+   CuBlasLtMatmulPreference() {
+@@ -648,8 +774,6 @@ class CuBlasLtMatmulPreference : public CuBlasLtDescriptor<
+ };
+ } // namespace
+ 
+-
+-#if !defined(USE_ROCM) && CUDA_VERSION >= 11000
+ template <typename Dtype>
+ void gemm_and_bias(
+     bool transpose_mat1,
+@@ -670,24 +794,38 @@ void gemm_and_bias(
+   opmath_t beta_val = 0; // bias is added in epilogue
+ 
+   cudaDataType_t abcType = CUDA_R_32F;
++#if !defined(__APPLE__) && !defined(__MACH__)
+   cublasComputeType_t computeType = CUBLAS_COMPUTE_32F;
++#endif
+   cudaDataType_t scaleType = CUDA_R_32F;
+-  if constexpr (std::is_same_v<Dtype, double>) {
++  if constexpr (std::is_same<Dtype, double>::value) {
+     abcType = CUDA_R_64F;
++#if !defined(__APPLE__) && !defined(__MACH__)
+     computeType = CUBLAS_COMPUTE_64F;
++#endif
+     scaleType = CUDA_R_64F;
+-  } else if constexpr (std::is_same_v<Dtype, float>) {
++  } else if constexpr (std::is_same<Dtype, float>::value) {
++#if !defined(__APPLE__) && !defined(__MACH__)
+     if (at::globalContext().allowTF32CuBLAS()) {
+       computeType = CUBLAS_COMPUTE_32F_FAST_TF32;
+     }
++#endif
+     abcType = CUDA_R_32F;
+-  } else if constexpr (std::is_same_v<Dtype, at::Half>) {
++  } else if constexpr (std::is_same<Dtype, at::Half>::value) {
+     abcType = CUDA_R_16F;
+-  } else if constexpr (std::is_same_v<Dtype, at::BFloat16>) {
++  } else if constexpr (std::is_same<Dtype, at::BFloat16>::value) {
++#if !defined(__APPLE__) && !defined(__MACH__)
+     abcType = CUDA_R_16BF;
++#else
++    abcType = CUDA_R_16F;
++#endif
+   }
+ 
++#if defined(__APPLE__) && defined(__MACH__)
++  CuBlasLtMatmulDescriptor computeDesc(scaleType);
++#else
+   CuBlasLtMatmulDescriptor computeDesc(computeType, scaleType);
++#endif
+   cublasOperation_t transa = transpose_mat1 ? CUBLAS_OP_T : CUBLAS_OP_N;
+   computeDesc.setAttribute(CUBLASLT_MATMUL_DESC_TRANSA, transa);
+   cublasOperation_t transb = transpose_mat2 ? CUBLAS_OP_T : CUBLAS_OP_N;
+@@ -783,8 +921,10 @@ void gemm_and_bias(
+       result_ld,
+       " abcType ",
+       abcType,
++#if !defined(__APPLE__) && !defined(__MACH__)
+       " computeType ",
+       computeType,
++#endif
+       " scaleType ",
+       scaleType);
+ }
+@@ -852,7 +992,6 @@ template void gemm_and_bias(
+     at::BFloat16* result_ptr,
+     int64_t result_ld,
+     GEMMAndBiasActivationEpilogue activation);
+-#endif
+ 
+ void scaled_gemm(
+     char transa,
+@@ -880,7 +1019,11 @@ void scaled_gemm(
+   const auto computeType = CUBLAS_COMPUTE_32F;
+   const auto scaleType = CUDA_R_32F;
+   const int8_t fastAccuMode = use_fast_accum ? 1 : 0;
++#if defined(__APPLE__) && defined(__MACH__)
++  CuBlasLtMatmulDescriptor computeDesc(scaleType);
++#else
+   CuBlasLtMatmulDescriptor computeDesc(computeType, scaleType);
++#endif
+   computeDesc.setAttribute(CUBLASLT_MATMUL_DESC_TRANSA, _cublasOpFromChar(transa));
+   computeDesc.setAttribute(CUBLASLT_MATMUL_DESC_TRANSB, _cublasOpFromChar(transb));
+   computeDesc.setAttribute(CUBLASLT_MATMUL_DESC_A_SCALE_POINTER, mat1_scale_ptr);
+@@ -982,13 +1125,19 @@ void int8_gemm(
+     int32_t* result_ptr,
+     int64_t result_ld) {
+ 
++#if !defined(__APPLE__) && !defined(__MACH__)
+   cublasComputeType_t computeType = CUBLAS_COMPUTE_32I;
++#endif
+   cudaDataType_t scaleType = CUDA_R_32I;
+ 
+   cudaDataType_t abType = CUDA_R_8I;
+   cudaDataType_t cType = CUDA_R_32I;
+ 
++#if defined(__APPLE__) && defined(__MACH__)
++  CuBlasLtMatmulDescriptor computeDesc(scaleType);
++#else
+   CuBlasLtMatmulDescriptor computeDesc(computeType, scaleType);
++#endif
+   cublasOperation_t transa = transpose_mat1 ? CUBLAS_OP_T : CUBLAS_OP_N;
+   computeDesc.setAttribute(CUBLASLT_MATMUL_DESC_TRANSA, transa);
+   cublasOperation_t transb = transpose_mat2 ? CUBLAS_OP_T : CUBLAS_OP_N;
+@@ -1047,8 +1196,10 @@ void int8_gemm(
+       abType,
+       " cType ",
+       cType,
++#if !defined(__APPLE__) && !defined(__MACH__)
+       " computeType ",
+       computeType,
++#endif
+       " scaleType ",
+       scaleType);
+ }
+@@ -1591,4 +1742,4 @@ void gelsBatched<c10::complex<float>>(CUDABLAS_GELS_BATCHED_ARGTYPES(c10::comple
+       batchSize));
+ }
+ 
+-} // namespace at::cuda::blas
++}}} // namespace at::cuda::blas
+diff --git a/aten/src/ATen/native/sparse/cuda/SparseSemiStructuredLinear.cu b/aten/src/ATen/native/sparse/cuda/SparseSemiStructuredLinear.cu
+index 3ea75cc84d..03d1c4319e 100644
+--- a/aten/src/ATen/native/sparse/cuda/SparseSemiStructuredLinear.cu
++++ b/aten/src/ATen/native/sparse/cuda/SparseSemiStructuredLinear.cu
+@@ -3,7 +3,7 @@
+ #include <ATen/cuda/CUDAUtils.h>
+ #include <ATen/Dispatch.h>
+ 
+-#if !defined(USE_ROCM) && !defined(__APPLE__) && !defined(__MACH__)
++#if !defined(USE_ROCM)
+ #include <cuda_runtime.h>
+ #include <cutlass/cutlass.h>
+ #include <cutlass/layout/layout.h>
+@@ -12,8 +12,10 @@
+ #include <cutlass/epilogue/thread/linear_combination_relu.h>
+ #include <cutlass/epilogue/thread/linear_combination_silu.h>
+ #include <cutlass/gemm/gemm.h>
++#if !defined(__APPLE__) && !defined(__MACH__)
+ #include <cutlass/gemm/device/gemm_sparse_row_broadcast.h>
+ #endif
++#endif
+ 
+ #include <type_traits>
+ #if defined(__APPLE__) && defined(__MACH__)
+diff --git a/c10/util/Optional.cpp b/c10/util/Optional.cpp
+index 7389393e66..c83614d448 100644
+--- a/c10/util/Optional.cpp
++++ b/c10/util/Optional.cpp
+@@ -1 +1,18 @@
++#include <c10/util/ArrayRef.h>
+ #include <c10/util/Optional.h>
++
++#include <type_traits>
++
++static_assert(
++    C10_IS_TRIVIALLY_COPYABLE(c10::optional<int>),
++    "c10::optional<int> should be trivially copyable");
++static_assert(
++    C10_IS_TRIVIALLY_COPYABLE(c10::optional<bool>),
++    "c10::optional<bool> should be trivially copyable");
++static_assert(
++    C10_IS_TRIVIALLY_COPYABLE(c10::optional<c10::IntArrayRef>),
++    "c10::optional<IntArrayRef> should be trivially copyable");
++static_assert(
++    sizeof(c10::optional<c10::IntArrayRef>) == sizeof(c10::IntArrayRef),
++    "c10::optional<IntArrayRef> should be size-optimized");
++
+diff --git a/c10/util/Optional.h b/c10/util/Optional.h
+index 45d58282e3..23eac9e0ec 100644
+--- a/c10/util/Optional.h
++++ b/c10/util/Optional.h
+@@ -1,7 +1,7 @@
+ #ifndef C10_UTIL_OPTIONAL_H_
+ #define C10_UTIL_OPTIONAL_H_
+ 
+-#if defined(__APPLE__) && defined(__MACH__)
++// #if defined(__APPLE__) && defined(__MACH__)
+ 
+ #include <c10/macros/Macros.h>
+ #include <c10/util/ArrayRef.h>
+@@ -1235,7 +1235,7 @@ struct hash<c10::optional<T&>> {
+ 
+ C10_CLANG_DIAGNOSTIC_POP()
+ 
+-#else
++#if !defined(__APPLE__) && !defined(__MACH__)
+ 
+ #include <optional>
+ #include <type_traits>
+@@ -1281,6 +1281,6 @@ constexpr T value_or_else(optional<T>&& v, F&& func) {
+ }
+ } // namespace c10
+ 
+-#endif // defined(__APPLE__) && defined(__MACH__)
++#endif // !defined(__APPLE__) && !defined(__MACH__)
+ 
+ #endif // C10_UTIL_OPTIONAL_H_
+diff --git a/migration_note.md b/migration_note.md
+index d0cf1e1d10..4ea0691f13 100644
+--- a/migration_note.md
++++ b/migration_note.md
+@@ -6,7 +6,9 @@ Preparation of building library:
+ export CXXFLAGS=-D_LIBCPP_DISABLE_AVAILABILITY
+ export CMAKE_PREFIX_PATH=${CONDA_PREFIX:-"$(dirname $(which conda))/../"}
+ MAGMA_HOME="/usr/local/lib/magma2.6.1-cu101" MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ USE_LIBUV=1 USE_DISTRIBUTED=ON USE_MPI=ON USE_TENSORPIPE=ON USE_GLOO=ON USE_CUDA_MPI=ON python setup.py clean # prepare
+-MAGMA_HOME="/usr/local/lib/magma2.6.1-cu101" MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ USE_LIBUV=1 USE_DISTRIBUTED=ON USE_MPI=ON USE_TENSORPIPE=ON USE_GLOO=ON USE_CUDA_MPI=ON python setup.py bdist_wheel
++MAGMA_HOME="/usr/local/lib/magma2.6.1-cu101" MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ CMAKE_BUILD_TYPE=1 USE_LIBUV=1 USE_DISTRIBUTED=ON USE_MPI=ON USE_TENSORPIPE=ON USE_GLOO=ON USE_CUDA_MPI=ON python setup.py bdist_wheel
++MAGMA_HOME="/usr/local/lib/magma2.6.1-cu101" MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ CMAKE_BUILD_TYPE=1 USE_LIBUV=1 USE_CUSPARSELT=1 USE_DISTRIBUTED=ON USE_MPI=ON USE_TENSORPIPE=ON USE_GLOO=ON USE_CUDA_MPI=ON python setup.py bdist_wheel
++MAGMA_HOME="/usr/local/lib/magma2.6.1-cu101" MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ USE_LIBUV=1 USE_CUSPARSELT=1 USE_DISTRIBUTED=ON USE_MPI=OFF USE_TENSORPIPE=ON USE_GLOO=ON USE_CUDA_MPI=ON python setup.py develop
+ ```
+ 
+ ## 1, Missing ATen cuda
+@@ -104,3 +106,58 @@ Solution: correct the caffe2/CMakeLists.txt in Line 96 and switch cutlass to 2.1
+ ```cmake
+  list(APPEND Caffe2_GPU_INCLUDE ${ATen_CUDA_INCLUDE} /usr/local/cuda/include ${PROJECT_SOURCE_DIR}/third_party/cutlass/include)
+ ```
++
++## 4. Runtime issue
++
++torch 2.2.0
++
++```bash
++(base) Orlando:gpu-magma2.6.1-distributed-all-2.2.0-py3.10 llv23$ otool -L /Users/llv23/opt/miniconda3/lib/python3.10/site-packages/torch/lib/libtorch_python.dylib
++/Users/llv23/opt/miniconda3/lib/python3.10/site-packages/torch/lib/libtorch_python.dylib:
++	@rpath/libtorch_python.dylib (compatibility version 0.0.0, current version 0.0.0)
++	@rpath/libshm.dylib (compatibility version 0.0.0, current version 0.0.0)
++	@rpath/libtorch.dylib (compatibility version 0.0.0, current version 0.0.0)
++	@rpath/libtorch_cuda.dylib (compatibility version 0.0.0, current version 0.0.0)
++	@rpath/libnvToolsExt.1.dylib (compatibility version 0.0.0, current version 1.0.0)
++	@rpath/libtorch_cpu.dylib (compatibility version 0.0.0, current version 0.0.0)
++	@rpath/libmkl_intel_lp64.2.dylib (compatibility version 0.0.0, current version 0.0.0)
++	@rpath/libmkl_intel_thread.2.dylib (compatibility version 0.0.0, current version 0.0.0)
++	@rpath/libmkl_core.2.dylib (compatibility version 0.0.0, current version 0.0.0)
++	@rpath/libomp.dylib (compatibility version 5.0.0, current version 5.0.0)
++	/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1252.200.5)
++	@rpath/libc10_cuda.dylib (compatibility version 0.0.0, current version 0.0.0)
++	@rpath/libc10.dylib (compatibility version 0.0.0, current version 0.0.0)
++	@rpath/libcudart.10.2.dylib (compatibility version 0.0.0, current version 10.2.89)
++	@rpath/libcudnn.7.dylib (compatibility version 0.0.0, current version 7.6.5)
++	/usr/local/opt/open-mpi/lib/libmpi.40.dylib (compatibility version 71.0.0, current version 71.1.0)
++	/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 400.9.4)
++```
++
++torch 2.0.0
++
++```bash
++(base) Orlando:lib llv23$ otool -L /Users/llv23/opt/miniconda3/lib/python3.10/site-packages/torch/lib/libtorch_python.dylib
++/Users/llv23/opt/miniconda3/lib/python3.10/site-packages/torch/lib/libtorch_python.dylib:
++	@rpath/libtorch_python.dylib (compatibility version 0.0.0, current version 0.0.0)
++	@rpath/libshm.dylib (compatibility version 0.0.0, current version 0.0.0)
++	/usr/local/opt/open-mpi/lib/libmpi.40.dylib (compatibility version 71.0.0, current version 71.1.0)
++	@rpath/libtorch.dylib (compatibility version 0.0.0, current version 0.0.0)
++	@rpath/libtorch_cuda.dylib (compatibility version 0.0.0, current version 0.0.0)
++	@rpath/libnvrtc.10.1.dylib (compatibility version 0.0.0, current version 10.1.243)
++	@rpath/libnvToolsExt.1.dylib (compatibility version 0.0.0, current version 1.0.0)
++	@rpath/libtorch_cpu.dylib (compatibility version 0.0.0, current version 0.0.0)
++	@rpath/libmkl_intel_lp64.2.dylib (compatibility version 0.0.0, current version 0.0.0)
++	@rpath/libmkl_intel_thread.2.dylib (compatibility version 0.0.0, current version 0.0.0)
++	@rpath/libmkl_core.2.dylib (compatibility version 0.0.0, current version 0.0.0)
++	@rpath/libomp.dylib (compatibility version 5.0.0, current version 5.0.0)
++	/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1252.200.5)
++	@rpath/libc10_cuda.dylib (compatibility version 0.0.0, current version 0.0.0)
++	@rpath/libc10.dylib (compatibility version 0.0.0, current version 0.0.0)
++	@rpath/libcudart.10.1.dylib (compatibility version 0.0.0, current version 10.1.243)
++	@rpath/libcufft.10.dylib (compatibility version 0.0.0, current version 10.1.1)
++	@rpath/libcurand.10.dylib (compatibility version 0.0.0, current version 10.1.1)
++	@rpath/libcublas.10.dylib (compatibility version 0.0.0, current version 10.2.1)
++	@rpath/libcublasLt.10.dylib (compatibility version 0.0.0, current version 10.2.1)
++	@rpath/libcudnn.7.dylib (compatibility version 0.0.0, current version 7.6.5)
++	/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 400.9.4)
++```
+diff --git a/third_party/cutlass b/third_party/cutlass
+index 63fc6f05ff..b72cbf957d 160000
+--- a/third_party/cutlass
++++ b/third_party/cutlass
+@@ -1 +1 @@
+-Subproject commit 63fc6f05ffbfa66ca9e5548a041517bb6100e52c
++Subproject commit b72cbf957df8cf84a6d0ff91c190ad51a9c1d24a
+diff --git a/torch/csrc/distributed/c10d/init.cpp b/torch/csrc/distributed/c10d/init.cpp
+index 3296bd3754..0206be063d 100644
+--- a/torch/csrc/distributed/c10d/init.cpp
++++ b/torch/csrc/distributed/c10d/init.cpp
+@@ -1726,8 +1726,8 @@ Arguments:
+               },
+               py::arg("device"),
+               py::arg("backend_type"),
+-              py::arg("backend") =
+-                  c10::optional<c10::intrusive_ptr<::c10d::Backend>>(),
++            //   py::arg("backend") = c10::optional<c10::intrusive_ptr<::c10d::Backend>>(),
++              py::arg("backend"),
+               py::call_guard<py::gil_scoped_release>())
+           .def(
+               "_get_backend",
+@@ -2589,7 +2589,8 @@ Example::
+       py::arg("bucket_size"),
+       py::arg("expect_sparse_gradient") = std::vector<bool>(),
+       py::arg("tensor_indices") = std::vector<int64_t>(),
+-      py::arg("logger") = c10::optional<std::shared_ptr<::c10d::Logger>>{},
++    //   py::arg("logger") = c10::optional<std::shared_ptr<::c10d::Logger>>{},
++      py::arg("logger"),
+       py::call_guard<py::gil_scoped_release>());
+ 
+   module.def(
+@@ -2607,7 +2608,8 @@ Example::
+       },
+       py::arg("process_group"),
+       py::arg("params"),
+-      py::arg("logger") = c10::optional<std::shared_ptr<::c10d::Logger>>{},
++    //   py::arg("logger") = c10::optional<std::shared_ptr<::c10d::Logger>>{},
++      py::arg("logger"),
+       py::call_guard<py::gil_scoped_release>());
+ 
+   module.def(
+diff --git a/torch/csrc/distributed/rpc/init.cpp b/torch/csrc/distributed/rpc/init.cpp
+index 7b8a2d1f18..69ac2a13ce 100644
+--- a/torch/csrc/distributed/rpc/init.cpp
++++ b/torch/csrc/distributed/rpc/init.cpp
+@@ -544,8 +544,10 @@ PyObject* rpc_init(PyObject* _unused, PyObject* noargs) {
+               std::unordered_map<std::string, DeviceMap>,
+               std::vector<c10::Device>>(),
+           py::arg("num_worker_threads") = kDefaultNumWorkerThreads,
+-          py::arg("_transports") = optional<std::vector<std::string>>(),
+-          py::arg("_channels") = optional<std::vector<std::string>>(),
++        //   py::arg("_transports") = optional<std::vector<std::string>>(),
++          py::arg("_transports"),
++        //   py::arg("_channels") = optional<std::vector<std::string>>(),
++          py::arg("_channels"),
+           py::arg("rpc_timeout") = kDefaultRpcTimeoutSeconds,
+           py::arg("init_method") = kDefaultInitMethod,
+           py::arg("device_maps") = std::unordered_map<std::string, DeviceMap>(),
+-- 
+2.17.2 (Apple Git-113)
+
+
+From 46b15b281dabf8ea5974ceb12670d113bdc94cf5 Mon Sep 17 00:00:00 2001
+From: orlando <xiandao.airs@gmail.com>
+Date: Sun, 18 Feb 2024 21:07:47 -0800
+Subject: [PATCH 4/8] Update intrusive_ptr.h
+
+updates of headers
+---
+ c10/util/intrusive_ptr.h | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/c10/util/intrusive_ptr.h b/c10/util/intrusive_ptr.h
+index 8e43dbd876..704cc486bb 100644
+--- a/c10/util/intrusive_ptr.h
++++ b/c10/util/intrusive_ptr.h
+@@ -1,10 +1,13 @@
+ #pragma once
+ 
++#include <c10/util/C++17.h>
+ #include <c10/util/Exception.h>
++#include <c10/util/ExclusivelyOwned.h>
+ #include <c10/util/MaybeOwned.h>
+ #include <atomic>
+ #include <climits>
+ #include <memory>
++#include <stdexcept>
+ 
+ namespace pybind11 {
+ template <typename, typename...>
+-- 
+2.17.2 (Apple Git-113)
+
+
+From 9c9075760717f51df205bc16623abee398131651 Mon Sep 17 00:00:00 2001
+From: Orlando Ding <xiandao.airs@gmail.com>
+Date: Thu, 22 Feb 2024 14:20:26 -0800
+Subject: [PATCH 5/8] orlando - for fixing the issue of pocketfft invalid url
+
+---
+ migration_note.md                    |  4 ++--
+ third_party/pocketfft                |  2 +-
+ torch/csrc/distributed/c10d/init.cpp | 12 ++++++------
+ torch/csrc/distributed/rpc/init.cpp  |  8 ++++----
+ 4 files changed, 13 insertions(+), 13 deletions(-)
+
+diff --git a/migration_note.md b/migration_note.md
+index 4ea0691f13..6907bf5c79 100644
+--- a/migration_note.md
++++ b/migration_note.md
+@@ -5,9 +5,9 @@ Preparation of building library:
+ ```bash
+ export CXXFLAGS=-D_LIBCPP_DISABLE_AVAILABILITY
+ export CMAKE_PREFIX_PATH=${CONDA_PREFIX:-"$(dirname $(which conda))/../"}
+-MAGMA_HOME="/usr/local/lib/magma2.6.1-cu101" MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ USE_LIBUV=1 USE_DISTRIBUTED=ON USE_MPI=ON USE_TENSORPIPE=ON USE_GLOO=ON USE_CUDA_MPI=ON python setup.py clean # prepare
++MAGMA_HOME="/usr/local/lib/magma2.6.1-cu101" MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ USE_LIBUV=1 USE_DISTRIBUTED=ON USE_MPI=ON USE_TENSORPIPE=ON USE_GLOO=ON USE_CUDA_MPI=ON python setup.py clean
+ MAGMA_HOME="/usr/local/lib/magma2.6.1-cu101" MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ CMAKE_BUILD_TYPE=1 USE_LIBUV=1 USE_DISTRIBUTED=ON USE_MPI=ON USE_TENSORPIPE=ON USE_GLOO=ON USE_CUDA_MPI=ON python setup.py bdist_wheel
+-MAGMA_HOME="/usr/local/lib/magma2.6.1-cu101" MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ CMAKE_BUILD_TYPE=1 USE_LIBUV=1 USE_CUSPARSELT=1 USE_DISTRIBUTED=ON USE_MPI=ON USE_TENSORPIPE=ON USE_GLOO=ON USE_CUDA_MPI=ON python setup.py bdist_wheel
++MAGMA_HOME="/usr/local/lib/magma2.6.1-cu101" MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ CMAKE_BUILD_TYPE=1 DEBUG=1 USE_LIBUV=1 USE_CUSPARSELT=1 USE_DISTRIBUTED=ON USE_MPI=ON USE_TENSORPIPE=ON USE_GLOO=ON USE_CUDA_MPI=ON python setup.py bdist_wheel # current running
+ MAGMA_HOME="/usr/local/lib/magma2.6.1-cu101" MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ USE_LIBUV=1 USE_CUSPARSELT=1 USE_DISTRIBUTED=ON USE_MPI=OFF USE_TENSORPIPE=ON USE_GLOO=ON USE_CUDA_MPI=ON python setup.py develop
+ ```
+ 
+diff --git a/third_party/pocketfft b/third_party/pocketfft
+index ad1eec0fb2..81d171a6d5 160000
+--- a/third_party/pocketfft
++++ b/third_party/pocketfft
+@@ -1 +1 @@
+-Subproject commit ad1eec0fb2f8bfb28e287c559a29bc16d059abf0
++Subproject commit 81d171a6d5562e3aaa2c73489b70f564c633ff81
+diff --git a/torch/csrc/distributed/c10d/init.cpp b/torch/csrc/distributed/c10d/init.cpp
+index 0206be063d..a9662a975d 100644
+--- a/torch/csrc/distributed/c10d/init.cpp
++++ b/torch/csrc/distributed/c10d/init.cpp
+@@ -1726,8 +1726,8 @@ Arguments:
+               },
+               py::arg("device"),
+               py::arg("backend_type"),
+-            //   py::arg("backend") = c10::optional<c10::intrusive_ptr<::c10d::Backend>>(),
+-              py::arg("backend"),
++              py::arg("backend") = c10::optional<c10::intrusive_ptr<::c10d::Backend>>(),
++            //   py::arg("backend"),
+               py::call_guard<py::gil_scoped_release>())
+           .def(
+               "_get_backend",
+@@ -2589,8 +2589,8 @@ Example::
+       py::arg("bucket_size"),
+       py::arg("expect_sparse_gradient") = std::vector<bool>(),
+       py::arg("tensor_indices") = std::vector<int64_t>(),
+-    //   py::arg("logger") = c10::optional<std::shared_ptr<::c10d::Logger>>{},
+-      py::arg("logger"),
++      py::arg("logger") = c10::optional<std::shared_ptr<::c10d::Logger>>{},
++    //   py::arg("logger"), 
+       py::call_guard<py::gil_scoped_release>());
+ 
+   module.def(
+@@ -2608,8 +2608,8 @@ Example::
+       },
+       py::arg("process_group"),
+       py::arg("params"),
+-    //   py::arg("logger") = c10::optional<std::shared_ptr<::c10d::Logger>>{},
+-      py::arg("logger"),
++      py::arg("logger") = c10::optional<std::shared_ptr<::c10d::Logger>>{},
++    //   py::arg("logger"),
+       py::call_guard<py::gil_scoped_release>());
+ 
+   module.def(
+diff --git a/torch/csrc/distributed/rpc/init.cpp b/torch/csrc/distributed/rpc/init.cpp
+index 69ac2a13ce..aa8f0d7a87 100644
+--- a/torch/csrc/distributed/rpc/init.cpp
++++ b/torch/csrc/distributed/rpc/init.cpp
+@@ -544,10 +544,10 @@ PyObject* rpc_init(PyObject* _unused, PyObject* noargs) {
+               std::unordered_map<std::string, DeviceMap>,
+               std::vector<c10::Device>>(),
+           py::arg("num_worker_threads") = kDefaultNumWorkerThreads,
+-        //   py::arg("_transports") = optional<std::vector<std::string>>(),
+-          py::arg("_transports"),
+-        //   py::arg("_channels") = optional<std::vector<std::string>>(),
+-          py::arg("_channels"),
++          py::arg("_transports") = optional<std::vector<std::string>>(),
++        //   py::arg("_transports"),
++          py::arg("_channels") = optional<std::vector<std::string>>(),
++        //   py::arg("_channels"),
+           py::arg("rpc_timeout") = kDefaultRpcTimeoutSeconds,
+           py::arg("init_method") = kDefaultInitMethod,
+           py::arg("device_maps") = std::unordered_map<std::string, DeviceMap>(),
+-- 
+2.17.2 (Apple Git-113)
+
+
+From 43ad1043be66454df9c5fc9eb3ce7679a2ee8baa Mon Sep 17 00:00:00 2001
+From: Orlando Ding <xiandao.airs@gmail.com>
+Date: Sat, 24 Feb 2024 22:58:08 -0800
+Subject: [PATCH 6/8] orlando - for fixing issues of init.cpp and avoid issue
+
+---
+ c10/util/Optional.h                       |  7 +++----
+ caffe2/serialize/inline_container.cc      |  4 +++-
+ caffe2/serialize/inline_container.h       |  4 ++--
+ caffe2/serialize/inline_container_test.cc |  4 ++--
+ torch/csrc/distributed/c10d/init.cpp      |  5 ++++-
+ torch/csrc/distributed/rpc/init.cpp       | 10 +++++-----
+ 6 files changed, 19 insertions(+), 15 deletions(-)
+
+diff --git a/c10/util/Optional.h b/c10/util/Optional.h
+index 23eac9e0ec..e2ae1f81e5 100644
+--- a/c10/util/Optional.h
++++ b/c10/util/Optional.h
+@@ -1,7 +1,7 @@
+ #ifndef C10_UTIL_OPTIONAL_H_
+ #define C10_UTIL_OPTIONAL_H_
+ 
+-// #if defined(__APPLE__) && defined(__MACH__)
++#if defined(__APPLE__) && defined(__MACH__)
+ 
+ #include <c10/macros/Macros.h>
+ #include <c10/util/ArrayRef.h>
+@@ -1235,7 +1235,7 @@ struct hash<c10::optional<T&>> {
+ 
+ C10_CLANG_DIAGNOSTIC_POP()
+ 
+-#if !defined(__APPLE__) && !defined(__MACH__)
++#else // !defined(__APPLE__) && !defined(__MACH__)
+ 
+ #include <optional>
+ #include <type_traits>
+@@ -1250,7 +1250,6 @@ namespace c10 {
+ using std::bad_optional_access;
+ using std::in_place;
+ using std::in_place_t;
+-using std::make_optional;
+ using std::nullopt;
+ using std::nullopt_t;
+ using std::optional;
+@@ -1281,6 +1280,6 @@ constexpr T value_or_else(optional<T>&& v, F&& func) {
+ }
+ } // namespace c10
+ 
+-#endif // !defined(__APPLE__) && !defined(__MACH__)
++#endif // defined(__APPLE__) && defined(__MACH__)
+ 
+ #endif // C10_UTIL_OPTIONAL_H_
+diff --git a/caffe2/serialize/inline_container.cc b/caffe2/serialize/inline_container.cc
+index 533fd42a04..20ea4e6923 100644
+--- a/caffe2/serialize/inline_container.cc
++++ b/caffe2/serialize/inline_container.cc
+@@ -34,12 +34,14 @@ constexpr c10::string_view kDebugPklSuffix(".debug_pkl");
+ struct MzZipReaderIterWrapper {
+   MzZipReaderIterWrapper(mz_zip_reader_extract_iter_state* iter) : impl(iter) {}
+   mz_zip_reader_extract_iter_state* impl;
++  // Disable the move constructor
++  MzZipReaderIterWrapper(MzZipReaderIterWrapper&& other) = delete;
+ };
+ 
+ ChunkRecordIterator::ChunkRecordIterator(
+     size_t recordSize,
+     size_t chunkSize,
+-    std::unique_ptr<MzZipReaderIterWrapper> iter)
++    std::shared_ptr<MzZipReaderIterWrapper> iter)
+     : recordSize_(recordSize),
+       chunkSize_(chunkSize),
+       offset_(0),
+diff --git a/caffe2/serialize/inline_container.h b/caffe2/serialize/inline_container.h
+index aa0cb8e043..d4b98b41a6 100644
+--- a/caffe2/serialize/inline_container.h
++++ b/caffe2/serialize/inline_container.h
+@@ -109,12 +109,12 @@ class TORCH_API ChunkRecordIterator {
+  ChunkRecordIterator(
+       size_t recordSize,
+       size_t chunkSize,
+-      std::unique_ptr<MzZipReaderIterWrapper> iter);
++      std::shared_ptr<MzZipReaderIterWrapper> iter);
+ 
+   const size_t recordSize_;
+   const size_t chunkSize_;
+   size_t offset_;
+-  std::unique_ptr<MzZipReaderIterWrapper> iter_;
++  std::shared_ptr<MzZipReaderIterWrapper> iter_;
+ 
+   friend class PyTorchStreamReader;
+ };
+diff --git a/caffe2/serialize/inline_container_test.cc b/caffe2/serialize/inline_container_test.cc
+index 4fe2c236e0..2e597a01fc 100644
+--- a/caffe2/serialize/inline_container_test.cc
++++ b/caffe2/serialize/inline_container_test.cc
+@@ -464,7 +464,7 @@ TEST_P(ChunkRecordIteratorTest, ChunkRead) {
+   LOG(INFO) << "Testing chunk size " << chunkSize;
+   PyTorchStreamReader reader(fileName);
+   ASSERT_TRUE(reader.hasRecord(recordName));
+-  #if !defined(__APPLE__) && !defined(__MACH__)
++  // #if !defined(__APPLE__) && !defined(__MACH__)
+   //see: to avoid "error: call to implicitly-deleted copy constructor of 'caffe2::serialize::ChunkRecordIterator'"
+   caffe2::serialize::ChunkRecordIterator chunkIterator = reader.createChunkReaderIter(
+       recordName, tensorDataSizeInBytes, chunkSize);
+@@ -476,7 +476,7 @@ TEST_P(ChunkRecordIteratorTest, ChunkRead) {
+     totalReadSize += readSize;
+   }
+   ASSERT_EQ(totalReadSize, tensorDataSizeInBytes);
+-  #endif
++  // #endif
+   // clean up
+   remove(fileName);
+ }
+diff --git a/torch/csrc/distributed/c10d/init.cpp b/torch/csrc/distributed/c10d/init.cpp
+index a9662a975d..d81f7c2087 100644
+--- a/torch/csrc/distributed/c10d/init.cpp
++++ b/torch/csrc/distributed/c10d/init.cpp
+@@ -107,6 +107,9 @@ namespace c10d {
+ 
+ namespace {
+ 
++using ::c10::in_place;
++using ::c10::in_place_t;
++
+ template <typename T>
+ using shared_ptr_class_ = py::class_<T, std::shared_ptr<T>>;
+ 
+@@ -1726,8 +1729,8 @@ Arguments:
+               },
+               py::arg("device"),
+               py::arg("backend_type"),
+-              py::arg("backend") = c10::optional<c10::intrusive_ptr<::c10d::Backend>>(),
+             //   py::arg("backend"),
++              py::arg("backend") = c10::optional<c10::intrusive_ptr<::c10d::Backend>>(),
+               py::call_guard<py::gil_scoped_release>())
+           .def(
+               "_get_backend",
+diff --git a/torch/csrc/distributed/rpc/init.cpp b/torch/csrc/distributed/rpc/init.cpp
+index aa8f0d7a87..b90fe6c387 100644
+--- a/torch/csrc/distributed/rpc/init.cpp
++++ b/torch/csrc/distributed/rpc/init.cpp
+@@ -537,16 +537,16 @@ PyObject* rpc_init(PyObject* _unused, PyObject* noargs) {
+       .def(
+           py::init<
+               int,
+-              optional<std::vector<std::string>>,
+-              optional<std::vector<std::string>>,
++              c10::optional<std::vector<std::string>>,
++              c10::optional<std::vector<std::string>>,
+               float,
+               std::string,
+               std::unordered_map<std::string, DeviceMap>,
+               std::vector<c10::Device>>(),
+           py::arg("num_worker_threads") = kDefaultNumWorkerThreads,
+-          py::arg("_transports") = optional<std::vector<std::string>>(),
++          py::arg("_transports") = c10::optional<std::vector<std::string>>(),
+         //   py::arg("_transports"),
+-          py::arg("_channels") = optional<std::vector<std::string>>(),
++          py::arg("_channels") = c10::optional<std::vector<std::string>>(),
+         //   py::arg("_channels"),
+           py::arg("rpc_timeout") = kDefaultRpcTimeoutSeconds,
+           py::arg("init_method") = kDefaultInitMethod,
+@@ -579,7 +579,7 @@ PyObject* rpc_init(PyObject* _unused, PyObject* noargs) {
+               [](const c10::intrusive_ptr<::c10d::Store>& store,
+                  std::string selfName,
+                  worker_id_t selfId,
+-                 optional<int> worldSize,
++                 c10::optional<int> worldSize,
+                  TensorPipeRpcBackendOptions opts,
+                  std::unordered_map<std::string, DeviceMap> reverseDeviceMaps,
+                  std::vector<c10::Device> devices) {
+-- 
+2.17.2 (Apple Git-113)
+
+
+From 3322cd3fa1d8189275f6e4b96fdee2526f9358d5 Mon Sep 17 00:00:00 2001
+From: Orlando Ding <xiandao.airs@gmail.com>
+Date: Sun, 25 Feb 2024 22:24:58 -0800
+Subject: [PATCH 7/8] orlando - for updates of torch init.cpp and library.h
+
+---
+ aten/src/ATen/functorch/Interpreter.h         |  2 +-
+ aten/src/ATen/native/LinearAlgebra.cpp        |  1 +
+ c10/util/Exception.h                          |  4 ---
+ migration_note.md                             | 10 ++++++-
+ .../include/torch/nn/functional/upsampling.h  |  1 -
+ torch/csrc/api/include/torch/nn/init.h        | 17 ------------
+ .../csrc/api/include/torch/nn/modules/conv.h  |  1 -
+ .../torch/nn/options/transformerlayer.h       |  8 +-----
+ .../api/include/torch/nn/options/upsampling.h | 26 +++----------------
+ torch/csrc/api/src/nn/modules/conv.cpp        |  1 -
+ torch/csrc/autograd/profiler_kineto.cpp       |  1 -
+ torch/csrc/distributed/c10d/init.cpp          |  6 ++---
+ torch/csrc/distributed/rpc/init.cpp           |  8 +++---
+ torch/csrc/profiler/python/init.cpp           |  4 ---
+ torch/csrc/profiler/util.h                    |  2 --
+ torch/csrc/utils/pybind.h                     | 14 ++++++++++
+ torch/library.h                               |  1 +
+ 17 files changed, 38 insertions(+), 69 deletions(-)
+
+diff --git a/aten/src/ATen/functorch/Interpreter.h b/aten/src/ATen/functorch/Interpreter.h
+index 11cb41ee79..c4ccbee17c 100644
+--- a/aten/src/ATen/functorch/Interpreter.h
++++ b/aten/src/ATen/functorch/Interpreter.h
+@@ -9,8 +9,8 @@
+ #include <c10/util/variant.h>
+ namespace std {
+   using ::c10::variant;
+-  using ::c10::get;
+   using ::c10::holds_alternative;
++  using ::c10::get;
+ } // namespace std
+ #else
+ #include <variant>
+diff --git a/aten/src/ATen/native/LinearAlgebra.cpp b/aten/src/ATen/native/LinearAlgebra.cpp
+index 530f2ed3ca..c1ebcb2fd1 100644
+--- a/aten/src/ATen/native/LinearAlgebra.cpp
++++ b/aten/src/ATen/native/LinearAlgebra.cpp
+@@ -26,6 +26,7 @@ namespace std {
+   // Define is_nothrow_move_assignable_v for C++ versions before C++17 where it might not be available.
+   using ::c10::variant;
+   using ::c10::get_if;
++  using ::c10::get;
+ }// namespace std
+ #else
+ #include <variant>
+diff --git a/c10/util/Exception.h b/c10/util/Exception.h
+index fa5e67ddda..9f003c7730 100644
+--- a/c10/util/Exception.h
++++ b/c10/util/Exception.h
+@@ -122,11 +122,7 @@ class C10_API Warning {
+   class C10_API UserWarning {};
+   class C10_API DeprecationWarning {};
+ 
+-#if defined(__APPLE__) && defined(__MACH__)
+-  using warning_variant_t = c10::variant<UserWarning, DeprecationWarning>;
+-#else
+   using warning_variant_t = std::variant<UserWarning, DeprecationWarning>;
+-#endif
+ 
+   Warning(
+       warning_variant_t type,
+diff --git a/migration_note.md b/migration_note.md
+index 6907bf5c79..d26c6c2100 100644
+--- a/migration_note.md
++++ b/migration_note.md
+@@ -109,7 +109,13 @@ Solution: correct the caffe2/CMakeLists.txt in Line 96 and switch cutlass to 2.1
+ 
+ ## 4. Runtime issue
+ 
+-torch 2.2.0
++torch 2.2.0's bash script result:
++
++```bash
++In [1]: import torch
++libc++abi.dylib: terminating with uncaught exception of type std::runtime_error: arg(): could not convert default argument 'backend: c10::optional<c10::intrusive_ptr<c10d::Backend, c10::detail::intrusive_target_default_null_type<c10d::Backend> > >' in method '<class 'torch._C._distributed_c10d.ProcessGroup'>._register_backend' into a Python object (type not registered yet?)
++Abort trap: 6
++```
+ 
+ ```bash
+ (base) Orlando:gpu-magma2.6.1-distributed-all-2.2.0-py3.10 llv23$ otool -L /Users/llv23/opt/miniconda3/lib/python3.10/site-packages/torch/lib/libtorch_python.dylib
+@@ -161,3 +167,5 @@ torch 2.0.0
+ 	@rpath/libcudnn.7.dylib (compatibility version 0.0.0, current version 7.6.5)
+ 	/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 400.9.4)
+ ```
++
++change torch/csrc/utils/pybind.h with 
+\ No newline at end of file
+diff --git a/torch/csrc/api/include/torch/nn/functional/upsampling.h b/torch/csrc/api/include/torch/nn/functional/upsampling.h
+index fb8a343f44..a8ad434cbb 100644
+--- a/torch/csrc/api/include/torch/nn/functional/upsampling.h
++++ b/torch/csrc/api/include/torch/nn/functional/upsampling.h
+@@ -10,7 +10,6 @@
+ #if defined(__APPLE__) && defined(__MACH__)
+ #include <c10/util/variant.h>
+ namespace std {
+-  using ::c10::variant;
+   using ::c10::holds_alternative;
+   using ::c10::get_if;
+ }// namespace std
+diff --git a/torch/csrc/api/include/torch/nn/init.h b/torch/csrc/api/include/torch/nn/init.h
+index 7f36db896d..2ff0a51146 100644
+--- a/torch/csrc/api/include/torch/nn/init.h
++++ b/torch/csrc/api/include/torch/nn/init.h
+@@ -20,22 +20,6 @@ namespace nn {
+ namespace init {
+ 
+ 
+-#if defined(__APPLE__) && defined(__MACH__)
+-using NonlinearityType = c10::variant<
+-    enumtype::kLinear,
+-    enumtype::kConv1D,
+-    enumtype::kConv2D,
+-    enumtype::kConv3D,
+-    enumtype::kConvTranspose1D,
+-    enumtype::kConvTranspose2D,
+-    enumtype::kConvTranspose3D,
+-    enumtype::kSigmoid,
+-    enumtype::kTanh,
+-    enumtype::kReLU,
+-    enumtype::kLeakyReLU>;
+-
+-using FanModeType = c10::variant<enumtype::kFanIn, enumtype::kFanOut>;
+-#else
+ using NonlinearityType = std::variant<
+     enumtype::kLinear,
+     enumtype::kConv1D,
+@@ -50,7 +34,6 @@ using NonlinearityType = std::variant<
+     enumtype::kLeakyReLU>;
+ 
+ using FanModeType = std::variant<enumtype::kFanIn, enumtype::kFanOut>;
+-#endif
+ 
+ } // namespace init
+ } // namespace nn
+diff --git a/torch/csrc/api/include/torch/nn/modules/conv.h b/torch/csrc/api/include/torch/nn/modules/conv.h
+index f61a9fab2d..2b7809d18e 100644
+--- a/torch/csrc/api/include/torch/nn/modules/conv.h
++++ b/torch/csrc/api/include/torch/nn/modules/conv.h
+@@ -20,7 +20,6 @@
+ #if defined(__APPLE__) && defined(__MACH__)
+ #include <c10/util/variant.h>
+ namespace std {
+-  using ::c10::variant;
+   using ::c10::holds_alternative;
+   using ::c10::get_if;
+ }// namespace std
+diff --git a/torch/csrc/api/include/torch/nn/options/transformerlayer.h b/torch/csrc/api/include/torch/nn/options/transformerlayer.h
+index 84e6221588..ded2018806 100644
+--- a/torch/csrc/api/include/torch/nn/options/transformerlayer.h
++++ b/torch/csrc/api/include/torch/nn/options/transformerlayer.h
+@@ -17,17 +17,11 @@ namespace std {
+ namespace torch {
+ namespace nn {
+ 
+-#if defined(__APPLE__) && defined(__MACH__)
+-using activation_t = c10::variant<
+-    enumtype::kReLU,
+-    enumtype::kGELU,
+-    std::function<Tensor(const Tensor&)>>;
+-#else
++
+ using activation_t = std::variant<
+     enumtype::kReLU,
+     enumtype::kGELU,
+     std::function<Tensor(const Tensor&)>>;
+-#endif
+ 
+ /// Options for the `TransformerEncoderLayer`
+ ///
+diff --git a/torch/csrc/api/include/torch/nn/options/upsampling.h b/torch/csrc/api/include/torch/nn/options/upsampling.h
+index 122df40912..898280ae85 100644
+--- a/torch/csrc/api/include/torch/nn/options/upsampling.h
++++ b/torch/csrc/api/include/torch/nn/options/upsampling.h
+@@ -10,6 +10,9 @@
+ 
+ #if defined(__APPLE__) && defined(__MACH__)
+ #include <c10/util/variant.h>
++namespace std {
++  using ::c10::variant;
++}// namespace std
+ #else
+ #include <variant>
+ #endif
+@@ -33,15 +36,6 @@ struct TORCH_API UpsampleOptions {
+ 
+   /// the upsampling algorithm: one of "nearest", "linear", "bilinear",
+   /// "bicubic" and "trilinear". Default: "nearest"
+-#if defined(__APPLE__) && defined(__MACH__)
+-  typedef c10::variant<
+-      enumtype::kNearest,
+-      enumtype::kLinear,
+-      enumtype::kBilinear,
+-      enumtype::kBicubic,
+-      enumtype::kTrilinear>
+-      mode_t;
+-#else
+   typedef std::variant<
+       enumtype::kNearest,
+       enumtype::kLinear,
+@@ -49,7 +43,7 @@ struct TORCH_API UpsampleOptions {
+       enumtype::kBicubic,
+       enumtype::kTrilinear>
+       mode_t;
+-#endif
++  
+   TORCH_ARG(mode_t, mode) = torch::kNearest;
+ 
+   /// if "True", the corner pixels of the input and output tensors are
+@@ -70,17 +64,6 @@ namespace functional {
+ /// F::InterpolateFuncOptions().size(std::vector<int64_t>({4})).mode(torch::kNearest));
+ /// ```
+ struct TORCH_API InterpolateFuncOptions {
+-#if defined(__APPLE__) && defined(__MACH__)
+-  typedef c10::variant<
+-      enumtype::kNearest,
+-      enumtype::kLinear,
+-      enumtype::kBilinear,
+-      enumtype::kBicubic,
+-      enumtype::kTrilinear,
+-      enumtype::kArea,
+-      enumtype::kNearestExact>
+-      mode_t;
+-#else
+   typedef std::variant<
+       enumtype::kNearest,
+       enumtype::kLinear,
+@@ -90,7 +73,6 @@ struct TORCH_API InterpolateFuncOptions {
+       enumtype::kArea,
+       enumtype::kNearestExact>
+       mode_t;
+-#endif
+ 
+   /// output spatial sizes.
+   TORCH_ARG(c10::optional<std::vector<int64_t>>, size) = c10::nullopt;
+diff --git a/torch/csrc/api/src/nn/modules/conv.cpp b/torch/csrc/api/src/nn/modules/conv.cpp
+index b1a9ddb116..4cb106546f 100644
+--- a/torch/csrc/api/src/nn/modules/conv.cpp
++++ b/torch/csrc/api/src/nn/modules/conv.cpp
+@@ -18,7 +18,6 @@
+ #if defined(__APPLE__) && defined(__MACH__)
+ #include <c10/util/variant.h>
+ namespace std {
+-  using ::c10::variant;
+   using ::c10::holds_alternative;
+   using ::c10::get_if;
+ }// namespace std
+diff --git a/torch/csrc/autograd/profiler_kineto.cpp b/torch/csrc/autograd/profiler_kineto.cpp
+index 3bb25ecc0e..02670dad96 100644
+--- a/torch/csrc/autograd/profiler_kineto.cpp
++++ b/torch/csrc/autograd/profiler_kineto.cpp
+@@ -31,7 +31,6 @@
+ #if defined(__APPLE__) && defined(__MACH__)
+ #include <c10/util/variant.h>
+ namespace std {
+-  using ::c10::variant;
+   using ::c10::holds_alternative;
+   using ::c10::get;
+   using ::c10::get_if;
+diff --git a/torch/csrc/distributed/c10d/init.cpp b/torch/csrc/distributed/c10d/init.cpp
+index d81f7c2087..4a8edf3356 100644
+--- a/torch/csrc/distributed/c10d/init.cpp
++++ b/torch/csrc/distributed/c10d/init.cpp
+@@ -1729,7 +1729,7 @@ Arguments:
+               },
+               py::arg("device"),
+               py::arg("backend_type"),
+-            //   py::arg("backend"),
++              //see: pybind11 backend with optional
+               py::arg("backend") = c10::optional<c10::intrusive_ptr<::c10d::Backend>>(),
+               py::call_guard<py::gil_scoped_release>())
+           .def(
+@@ -2592,8 +2592,8 @@ Example::
+       py::arg("bucket_size"),
+       py::arg("expect_sparse_gradient") = std::vector<bool>(),
+       py::arg("tensor_indices") = std::vector<int64_t>(),
++      //see: pybind11 Logger
+       py::arg("logger") = c10::optional<std::shared_ptr<::c10d::Logger>>{},
+-    //   py::arg("logger"), 
+       py::call_guard<py::gil_scoped_release>());
+ 
+   module.def(
+@@ -2611,8 +2611,8 @@ Example::
+       },
+       py::arg("process_group"),
+       py::arg("params"),
++      //see: pybind11 Logger
+       py::arg("logger") = c10::optional<std::shared_ptr<::c10d::Logger>>{},
+-    //   py::arg("logger"),
+       py::call_guard<py::gil_scoped_release>());
+ 
+   module.def(
+diff --git a/torch/csrc/distributed/rpc/init.cpp b/torch/csrc/distributed/rpc/init.cpp
+index b90fe6c387..e7529bb53c 100644
+--- a/torch/csrc/distributed/rpc/init.cpp
++++ b/torch/csrc/distributed/rpc/init.cpp
+@@ -544,10 +544,10 @@ PyObject* rpc_init(PyObject* _unused, PyObject* noargs) {
+               std::unordered_map<std::string, DeviceMap>,
+               std::vector<c10::Device>>(),
+           py::arg("num_worker_threads") = kDefaultNumWorkerThreads,
+-          py::arg("_transports") = c10::optional<std::vector<std::string>>(),
+-        //   py::arg("_transports"),
+-          py::arg("_channels") = c10::optional<std::vector<std::string>>(),
+-        //   py::arg("_channels"),
++        //  see: pybind11 py::arg("_transports"),
++          py::arg("_transports") = optional<std::vector<std::string>>(),
++        //  see: pybind11 py::arg("_channels"),
++          py::arg("_channels") = optional<std::vector<std::string>>(),
+           py::arg("rpc_timeout") = kDefaultRpcTimeoutSeconds,
+           py::arg("init_method") = kDefaultInitMethod,
+           py::arg("device_maps") = std::unordered_map<std::string, DeviceMap>(),
+diff --git a/torch/csrc/profiler/python/init.cpp b/torch/csrc/profiler/python/init.cpp
+index 2c5635c720..5bc1354eeb 100644
+--- a/torch/csrc/profiler/python/init.cpp
++++ b/torch/csrc/profiler/python/init.cpp
+@@ -10,10 +10,6 @@
+ #include <torch/csrc/profiler/standalone/execution_trace_observer.h>
+ #include <torch/csrc/utils/pybind.h>
+ 
+-#if defined(__APPLE__) && defined(__MACH__)
+-#include <c10/util/variant.h>
+-#endif
+-
+ struct THPCapturedTraceback {
+   PyObject_HEAD std::shared_ptr<torch::CapturedTraceback> data;
+ };
+diff --git a/torch/csrc/profiler/util.h b/torch/csrc/profiler/util.h
+index c35da5a16d..161b912d32 100644
+--- a/torch/csrc/profiler/util.h
++++ b/torch/csrc/profiler/util.h
+@@ -18,8 +18,6 @@
+ #include <c10/util/variant.h>
+ namespace std {
+   using ::c10::variant;
+-  using ::c10::holds_alternative;
+-  using ::c10::get;
+ }// namespace std
+ #else
+ #include <variant>
+diff --git a/torch/csrc/utils/pybind.h b/torch/csrc/utils/pybind.h
+index 4f3871d3ea..9dc45109d3 100644
+--- a/torch/csrc/utils/pybind.h
++++ b/torch/csrc/utils/pybind.h
+@@ -5,6 +5,9 @@
+ #include <ATen/core/Tensor.h>
+ #include <ATen/core/jit_type_base.h>
+ #include <c10/util/irange.h>
++#if defined(__APPLE__) && defined(__MACH__)
++#include <c10/util/variant.h>
++#endif
+ #include <pybind11/pybind11.h>
+ #include <pybind11/stl.h>
+ 
+@@ -324,6 +327,17 @@ struct type_caster<c10::complex<T>> {
+   }
+ };
+ 
++#if defined(__APPLE__) && defined(__MACH__)
++// Pybind11 bindings for our optional and variant types.
++// http://pybind11.readthedocs.io/en/stable/advanced/cast/stl.html#c-17-library-containers
++template <typename T>
++struct type_caster<c10::optional<T>> : optional_caster<c10::optional<T>> {};
++
++template <typename... Ts>
++struct C10_MPARK_VISIBILITY_HIDDEN type_caster<c10::variant<Ts...>>
++    : variant_caster<c10::variant<Ts...>> {};
++#endif
++
+ } // namespace detail
+ } // namespace pybind11
+ 
+diff --git a/torch/library.h b/torch/library.h
+index e74b409bcc..8e584e6222 100644
+--- a/torch/library.h
++++ b/torch/library.h
+@@ -73,6 +73,7 @@
+ namespace std {
+   // Define is_nothrow_move_assignable_v for C++ versions before C++17 where it might not be available.
+   using ::c10::holds_alternative;
++  using ::c10::get;
+ }
+ #endif
+ 
+-- 
+2.17.2 (Apple Git-113)
+
+
+From c3959b7600acba1f44dac58c81691131877bc836 Mon Sep 17 00:00:00 2001
+From: Orlando Ding <xiandao.airs@gmail.com>
+Date: Mon, 26 Feb 2024 18:02:36 -0800
+Subject: [PATCH 8/8] orlando - for updates of support 2.2.0
+
+---
+ migration_note.md            | 17 ++++++++++++++++-
+ torch/csrc/utils/pybind.h    |  9 +++++----
+ torch/utils/cpp_extension.py |  2 +-
+ 3 files changed, 22 insertions(+), 6 deletions(-)
+
+diff --git a/migration_note.md b/migration_note.md
+index d26c6c2100..e847b0be6b 100644
+--- a/migration_note.md
++++ b/migration_note.md
+@@ -168,4 +168,19 @@ torch 2.0.0
+ 	/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 400.9.4)
+ ```
+ 
+-change torch/csrc/utils/pybind.h with 
+\ No newline at end of file
++change torch/csrc/utils/pybind.h with cast_type.
++
++## 5. Building pytorch.vision 0.17.1
++
++Issue: not found  /usr/local/cuda/lib/libcudnn.a
++
++Try with the following solution:
++
++```bash
++sudo ln -s  /usr/local/torch/lib/libdnnl.a /usr/local/lib/libdnnl.a
++sudo ln -s  /usr/local/torch/lib/libc10_cuda.dylib /usr/local/lib/libc10_cuda.dylib
++sudo ln -s  /usr/local/torch/lib/libc10.dylib /usr/local/lib/libc10.dylib
++sudo ln -s  /usr/local/torch/lib/libtorch_cpu.dylib /usr/local/lib/libtorch_cpu.dylib
++sudo ln -s  /usr/local/torch/lib/libtorch_cuda.dylib  /usr/local/lib/libtorch_cuda.dylib
++sudo ln -s  /usr/local/torch/lib/libtorch.dylib  /usr/local/lib/libtorch.dylib
++```
+diff --git a/torch/csrc/utils/pybind.h b/torch/csrc/utils/pybind.h
+index 9dc45109d3..da7175bd4f 100644
+--- a/torch/csrc/utils/pybind.h
++++ b/torch/csrc/utils/pybind.h
+@@ -333,10 +333,11 @@ struct type_caster<c10::complex<T>> {
+ template <typename T>
+ struct type_caster<c10::optional<T>> : optional_caster<c10::optional<T>> {};
+ 
+-template <typename... Ts>
+-struct C10_MPARK_VISIBILITY_HIDDEN type_caster<c10::variant<Ts...>>
+-    : variant_caster<c10::variant<Ts...>> {};
+-#endif
++//see: redefinition /Users/llv23/opt/miniconda3/lib/python3.10/site-packages/torch/include/pybind11/stl.h:441:8: note: previous definition is here
++// template <typename... Ts>
++// struct C10_MPARK_VISIBILITY_HIDDEN type_caster<c10::variant<Ts...>>
++//     : variant_caster<c10::variant<Ts...>> {};
++// #endif
+ 
+ } // namespace detail
+ } // namespace pybind11
+diff --git a/torch/utils/cpp_extension.py b/torch/utils/cpp_extension.py
+index b490d262a4..7feb1774aa 100644
+--- a/torch/utils/cpp_extension.py
++++ b/torch/utils/cpp_extension.py
+@@ -2312,7 +2312,7 @@ def _write_ninja_file(path,
+         
+     def replace_std17_with_std14(options):
+             options = [c for c in options if c != "-std=c++17"]
+-            if options.find("-std=c++14") == -1:
++            if "-std=c++14" not in options:
+                 options.append("-std=c++14")
+             return options
+ 
+-- 
+2.17.2 (Apple Git-113)
+
