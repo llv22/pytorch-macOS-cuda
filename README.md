@@ -1,7 +1,8 @@
 <!-- markdownlint-disable MD033 -->
 <!-- markdownlint-disable MD004 -->
 <!-- markdownlint-disable MD029 -->
-# Pytorch 2.2.0 with Nvidia GPU on macOS
+# Pytorch 2.2.1 with Nvidia GPU on macOS
+
 --------------------------------------------------------------------------------
 [Features of pytorch 2.0](https://pytorch.org/blog/Accelerating-Hugging-Face-and-TIMM-models/) requires trions of [openAI triton](https://github.com/openai/triton), which needs NVIDIA GPUs (Compute Capability 7.0+, refer to https://developer.nvidia.com/cuda-gpus). In order to support the compilation via cuda, the hardware of eGPU needs to upgrade to 2080i +, like sales in [gaming box of 2080i](https://www.amazon.com/Embedded-Thunderbolt-Waterforce-Controller-Gv-N208TIXEB-11GC/dp/B07ZS9GZRY/ref=sr_1_5?crid=38RK3T5BAKIGN&keywords=gigabyte+gaming+box&qid=1679248280&s=pc&sprefix=gigabyte+gaming+box%2Ccomputers%2C147&sr=1-5). 
 
@@ -46,33 +47,34 @@ Our trunk health (Continuous Integration signals) can be found at [hud.pytorch.o
 
 <!-- toc -->
 
-- [More About PyTorch](#more-about-pytorch)
-  - [A GPU-Ready Tensor Library](#a-gpu-ready-tensor-library)
-  - [Dynamic Neural Networks: Tape-Based Autograd](#dynamic-neural-networks-tape-based-autograd)
-  - [Python First](#python-first)
-  - [Imperative Experiences](#imperative-experiences)
-  - [Fast and Lean](#fast-and-lean)
-  - [Extensions Without Pain](#extensions-without-pain)
-- [Installation](#installation)
-  - [Binaries](#binaries)
-    - [NVIDIA Jetson Platforms](#nvidia-jetson-platforms)
-  - [From Source](#from-source)
-    - [Prerequisites](#prerequisites)
-    - [Install Dependencies](#install-dependencies)
-    - [Get the PyTorch Source](#get-the-pytorch-source)
-    - [Install PyTorch](#install-pytorch)
-      - [Adjust Build Options (Optional)](#adjust-build-options-optional)
-  - [Docker Image](#docker-image)
-    - [Using pre-built images](#using-pre-built-images)
-    - [Building the image yourself](#building-the-image-yourself)
-  - [Building the Documentation](#building-the-documentation)
-  - [Previous Versions](#previous-versions)
-- [Getting Started](#getting-started)
-- [Resources](#resources)
-- [Communication](#communication)
-- [Releases and Contributing](#releases-and-contributing)
-- [The Team](#the-team)
-- [License](#license)
+- [Pytorch 2.2.1 with Nvidia GPU on macOS](#pytorch-221-with-nvidia-gpu-on-macos)
+  - [More About PyTorch](#more-about-pytorch)
+    - [A GPU-Ready Tensor Library](#a-gpu-ready-tensor-library)
+    - [Dynamic Neural Networks: Tape-Based Autograd](#dynamic-neural-networks-tape-based-autograd)
+    - [Python First](#python-first)
+    - [Imperative Experiences](#imperative-experiences)
+    - [Fast and Lean](#fast-and-lean)
+    - [Extensions Without Pain](#extensions-without-pain)
+  - [Installation](#installation)
+    - [Binaries](#binaries)
+      - [NVIDIA Jetson Platforms](#nvidia-jetson-platforms)
+    - [From Source](#from-source)
+      - [Prerequisites](#prerequisites)
+      - [Install Dependencies](#install-dependencies)
+      - [Get the PyTorch Source](#get-the-pytorch-source)
+      - [Install PyTorch](#install-pytorch)
+        - [Adjust Build Options (Optional)](#adjust-build-options-optional)
+    - [Docker Image](#docker-image)
+      - [Using pre-built images](#using-pre-built-images)
+      - [Building the image yourself](#building-the-image-yourself)
+    - [Building the Documentation](#building-the-documentation)
+    - [Previous Versions](#previous-versions)
+  - [Getting Started](#getting-started)
+  - [Resources](#resources)
+  - [Communication](#communication)
+  - [Releases and Contributing](#releases-and-contributing)
+  - [The Team](#the-team)
+  - [License](#license)
 
 <!-- tocstop -->
 

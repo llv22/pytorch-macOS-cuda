@@ -184,3 +184,40 @@ sudo ln -s  /usr/local/torch/lib/libtorch_cpu.dylib /usr/local/lib/libtorch_cpu.
 sudo ln -s  /usr/local/torch/lib/libtorch_cuda.dylib  /usr/local/lib/libtorch_cuda.dylib
 sudo ln -s  /usr/local/torch/lib/libtorch.dylib  /usr/local/lib/libtorch.dylib
 ```
+
+## 6, Upgrade from v2.2.0 to v2.2.1
+
+1. CMakeLists.txt
+2. cmake/Modules/FindMKLDNN.cmake
+3. torch/__init__.py
+4. torch/_dynamo/trace_rules.py
+5. torch/_inductor/codecache.py
+6. torch/_inductor/kernel/mm.py
+7. torch/csrc/distributed/c10d/TCPStoreBackend.cpp
+8. torch/csrc/lazy/core/shape_inference.cpp
+9. torch/distributed/_shard/sharded_tensor/__init__.py
+10. torch/distributed/_shard/sharded_tensor/api.py
+11. torch/distributed/_tensor/__init__.py
+12. torch/distributed/_tensor/ops/tensor_ops.py
+13. torch/distributed/checkpoint/_state_dict_utils.py
+14. torch/distributed/checkpoint/state_dict.py
+15. torch/distributed/fsdp/_flat_param.py
+16. torch/distributed/fsdp/_init_utils.py
+17. torch/distributed/fsdp/_runtime_utils.py
+18. torch/distributed/fsdp/fully_sharded_data_parallel.py
+19. torch/distributed/tensor/parallel/_data_parallel_utils.py
+20. torch/distributed/tensor/parallel/fsdp.py
+21. torch/distributed/tensor/parallel/style.py
+22. torch/fx/passes/split_module.py
+23. torch/testing/_internal/common_dist_composable.py
+24. docs/source/community/contribution_guide.rst
+25. docs/source/nn.rst
+26. test/distributed/_tensor/test_dtensor_compile.py
+27. test/distributed/_tensor/test_tensor_ops.py
+28. test/distributed/checkpoint/test_state_dict.py
+29. test/distributed/fsdp/test_fsdp_freezing_weights.py
+30. test/distributed/fsdp/test_fsdp_hybrid_shard.py
+31. test/distributed/fsdp/test_fsdp_tp_integration.py
+32. test/distributed/fsdp/test_hsdp_dtensor_state_dict.py
+33. test/distributed/test_dynamo_distributed.py
+34. test/lazy/test_meta_kernel.py

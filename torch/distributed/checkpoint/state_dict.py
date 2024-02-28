@@ -157,7 +157,7 @@ def _get_fqns(model: nn.Module, name: str, skip_ddp_prefix: bool = True) -> FQNS
             if not skip_ddp_prefix:
                 fqn_obj_names.append(curr_obj_name)
         elif isinstance(curr_obj, FSDP):
-            if obj_names[i + 1] == FLAT_PARAM:
+            if i < len(obj_names) - 1 and obj_names[i + 1] == FLAT_PARAM:
                 prefix = ".".join(fqn_obj_names)
                 flat_param = getattr(curr_obj, FLAT_PARAM)
                 if prefix:
@@ -196,7 +196,7 @@ def _verify_options(
         Union[str, torch.Tensor], Union[Set[str], torch.Tensor]
     ] = {}
     all_fqns = set()
-    for name, param in model.named_parameters():
+    for name, param in chain(model.named_parameters(), model.named_buffers()):
         fqns = _get_fqns(model, name)
         fqn_param_mapping[param] = fqns
         for fqn in fqns:
@@ -395,7 +395,7 @@ def _load_model_state_dict(
     if not info.handle_model or not state_dict:
         return _IncompatibleKeys({}, {})
 
-    for key, _ in model.named_parameters():
+    for key, _ in chain(model.named_parameters(), model.named_buffers()):
         fqns = _get_fqns(model, key)
         fqns_with_ddp_prefix = _get_fqns(model, key, skip_ddp_prefix=False)
         for fqn, fqn_with_ddp_prefix in zip(fqns, fqns_with_ddp_prefix):
@@ -678,25 +678,25 @@ def get_state_dict(
     optimizer parameter IDs to the canonical FQNs.
 
     Example:
+        >>> # xdoctest: +SKIP
+        >>> import torch
+        >>> from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+        >>> from torch.nn.parallel import DistributedDataParallel as DDP
+        >>> from torch.distributed.checkpoint.state_dict import get_state_dict
 
-        import torch
-        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-        from torch.nn.parallel import DistributedDataParallel as DDP
-        from torch.distributed.checkpoint.state_dict import get_state_dict
-
-        fsdp_model = FSDP(copy.deepcopy(model))
-        fsdp_optim = torch.optim.Adam(model.parameters(), lr=1e-3)
-        ddp_model = DDP(copy.deepcopy(model))
-        ddp_optim = torch.optim.Adam(model.parameters(), lr=1e-3)
+        >>> fsdp_model = FSDP(copy.deepcopy(model))
+        >>> fsdp_optim = torch.optim.Adam(model.parameters(), lr=1e-3)
+        >>> ddp_model = DDP(copy.deepcopy(model))
+        >>> ddp_optim = torch.optim.Adam(model.parameters(), lr=1e-3)
 
 
-        ddp_state_dict, ddp_optim_state_dict = get_state_dict(ddp_model, ddp_optim)
-        fsdp_state_dict, fsdp_optim_state_dict = get_state_dict(fsdp_model, fsdp_optim)
+        >>> ddp_state_dict, ddp_optim_state_dict = get_state_dict(ddp_model, ddp_optim)
+        >>> fsdp_state_dict, fsdp_optim_state_dict = get_state_dict(fsdp_model, fsdp_optim)
 
-        # if we simply call ddp_model.state_dict() and fsdp_model.state_dict(),
-        # the asserts will fail.
-        assert ddp_state_dict == fsdp_state_dict
-        assert ddp_optim_state == fsdp_optim_state_dict
+        >>> # if we simply call ddp_model.state_dict() and fsdp_model.state_dict(),
+        >>> # the asserts will fail.
+        >>> assert ddp_state_dict == fsdp_state_dict
+        >>> assert ddp_optim_state == fsdp_optim_state_dict
 
 
     Args:
@@ -711,6 +711,8 @@ def get_state_dict(
 
     Returns:
         ``Tuple`` that contain model state_dict and optimizer state_dict.
+
+    :rtype: typing.Tuple[typing.Dict[str, ValueType], OptimizerStateType]
     """
 
     with gc_context():
