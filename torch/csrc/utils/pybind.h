@@ -337,7 +337,7 @@ struct type_caster<c10::optional<T>> : optional_caster<c10::optional<T>> {};
 // template <typename... Ts>
 // struct C10_MPARK_VISIBILITY_HIDDEN type_caster<c10::variant<Ts...>>
 //     : variant_caster<c10::variant<Ts...>> {};
-// #endif
+#endif
 
 } // namespace detail
 } // namespace pybind11
