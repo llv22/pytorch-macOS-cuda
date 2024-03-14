@@ -1,3 +1,5 @@
+<!-- markdownlint-disable MD010 -->
+<!-- markdownlint-disable MD029 -->
 # Migration note
 
 Preparation of building library:
@@ -8,7 +10,7 @@ export CMAKE_PREFIX_PATH=${CONDA_PREFIX:-"$(dirname $(which conda))/../"}
 MAGMA_HOME="/usr/local/lib/magma2.6.1-cu101" MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ USE_LIBUV=1 USE_DISTRIBUTED=ON USE_MPI=ON USE_TENSORPIPE=ON USE_GLOO=ON USE_CUDA_MPI=ON python setup.py clean
 MAGMA_HOME="/usr/local/lib/magma2.6.1-cu101" MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ CMAKE_BUILD_TYPE=1 USE_LIBUV=1 USE_DISTRIBUTED=ON USE_MPI=ON USE_TENSORPIPE=ON USE_GLOO=ON USE_CUDA_MPI=ON python setup.py bdist_wheel
 MAGMA_HOME="/usr/local/lib/magma2.6.1-cu101" MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ CMAKE_BUILD_TYPE=1 DEBUG=1 USE_LIBUV=1 USE_CUSPARSELT=1 USE_DISTRIBUTED=ON USE_MPI=ON USE_TENSORPIPE=ON USE_GLOO=ON USE_CUDA_MPI=ON BUILD_BUNDLE_PTXAS=1 python setup.py bdist_wheel
-MAGMA_HOME="/usr/local/lib/magma2.6.1-cu101" MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ CMAKE_BUILD_TYPE=1 DEBUG=1 USE_LIBUV=1 USE_CUSPARSELT=1 USE_DISTRIBUTED=ON USE_MPI=ON USE_TENSORPIPE=ON USE_GLOO=ON USE_CUDA_MPI=ON python setup.py bdist_wheel # current running
+MAGMA_HOME="/usr/local/lib/magma2.6.1-cu101" MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ CMAKE_BUILD_TYPE=1 DEBUG=1 USE_LIBUV=1 USE_CUSPARSELT=1 USE_DISTRIBUTED=ON USE_MPI=ON USE_TENSORPIPE=ON USE_GLOO=ON USE_CUDA_MPI=ON python setup.py bdist_wheel # current running with removing libomp.dylib and libiomp5.dylib to /usr/local/lib
 MAGMA_HOME="/usr/local/lib/magma2.6.1-cu101" MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ USE_LIBUV=1 USE_CUSPARSELT=1 USE_DISTRIBUTED=ON USE_MPI=OFF USE_TENSORPIPE=ON USE_GLOO=ON USE_CUDA_MPI=ON python setup.py develop
 ```
 
@@ -121,7 +123,7 @@ Abort trap: 6
 ```bash
 (base) Orlando:gpu-magma2.6.1-distributed-all-2.2.0-py3.10 llv23$ otool -L /Users/llv23/opt/miniconda3/lib/python3.10/site-packages/torch/lib/libtorch_python.dylib
 /Users/llv23/opt/miniconda3/lib/python3.10/site-packages/torch/lib/libtorch_python.dylib:
-	@rpath/libtorch_python.dylib (compatibility version 0.0.0, current version 0.0.0)
+ @rpath/libtorch_python.dylib (compatibility version 0.0.0, current version 0.0.0)
 	@rpath/libshm.dylib (compatibility version 0.0.0, current version 0.0.0)
 	@rpath/libtorch.dylib (compatibility version 0.0.0, current version 0.0.0)
 	@rpath/libtorch_cuda.dylib (compatibility version 0.0.0, current version 0.0.0)
@@ -222,3 +224,51 @@ sudo ln -s  /usr/local/torch/lib/libtorch.dylib  /usr/local/lib/libtorch.dylib
 32. test/distributed/fsdp/test_hsdp_dtensor_state_dict.py
 33. test/distributed/test_dynamo_distributed.py
 34. test/lazy/test_meta_kernel.py
+
+## 6, Decouple with local openmp - avoid link to /Users/llv23/opt/miniconda3/lib/libomp.dylib and /Users/llv23/opt/intel/oneapi//compiler/2021.4.0/mac/compiler/lib/libiomp5.dylib explicitly
+
+For removing dependency with libraries /Users/llv23/opt/miniconda3/lib/libomp.dylib and /Users/llv23/opt/miniconda3/lib/libgomp.dylib.
+
+1, remove compilation dependencies
+
+* aten/src/ATen/CMakeLists.txt: Line 307 to Line 310
+
+```bash
+if(USE_OPENMP)
+  message("ATen is compiled with OPEN_MP (/Users/llv23/opt/miniconda3/lib/libomp.dylib)")
+  list(APPEND ATen_CPU_DEPENDENCY_LIBS /Users/llv23/opt/miniconda3/lib/libomp.dylib)
+endif()
+```
+
+* caffe2/CMakeLists.txt Line: Line 102 to Line 103
+* test/cpp/api/CMakeLists.txt Line 52 to Line 56 replacing with the following section  
+
+```bash
+list(APPEND Caffe2_CUDA_DEPENDENCY_LIBS ${ATen_CUDA_DEPENDENCY_LIBS})
+```
+
+2. Prepare libraries to /usr/local/include and /usr/local/lib:
+
+/Users/llv23/opt/intel/oneapi//compiler/2021.4.0/mac/compiler/lib/libiomp5.dylib
+/Users/llv23/opt/intel/oneapi//compiler/2021.4.0/mac/compiler/lib/libiomp5_db.dylib
+/Users/llv23/opt/intel/oneapi//compiler/2021.4.0/mac/compiler/lib/libiompstubs5.dylib
+/usr/local/Cellar/llvm/12.0.0_1//lib/libomp.dylib
+/usr/local/Cellar/llvm/12.0.0_1//Toolchains/LLVM12.0.0.xctoolchain/usr/lib/libomp.dylib
+/usr/local/Cellar/llvm/12.0.0_1//lib/clang/12.0.0/include/omp.h
+/usr/local/Cellar/llvm/12.0.0_1//Toolchains/LLVM12.0.0.xctoolchain/usr/lib/clang/12.0.0/include/omp.h
+
+We don't need "/Users/llv23/opt/miniconda3/lib/libomp.dylib -> /usr/local/Cellar//llvm/12.0.0_1/lib/libomp.dylib", if it has been compiled to /usr/local/include and /usr/local/lib.
+
+```bash
+rm -rf /usr/local/include/omp.h
+rm -rf /usr/local/lib/libiomp5.dylib
+rm -rf /usr/local/lib/libiomp5_db.dylib
+rm -rf /usr/local/lib/libiompstubs5.dylib
+rm -rf /usr/local/lib/libomp.dylib
+# temporarily remove previously existing libraries
+ln -s /usr/local/Cellar/llvm/12.0.0_1/lib/clang/12.0.0/include/omp.h /usr/local/include/omp.h
+ln -s /Users/llv23/opt/intel/oneapi//compiler/2021.4.0/mac/compiler/lib/libiomp5.dylib /usr/local/lib/libiomp5.dylib
+ln -s /Users/llv23/opt/intel/oneapi//compiler/2021.4.0/mac/compiler/lib/libiomp5_db.dylib /usr/local/lib/libiomp5_db.dylib
+ln -s /Users/llv23/opt/intel/oneapi//compiler/2021.4.0/mac/compiler/lib/libiompstubs5.dylib /usr/local/lib/libiompstubs5.dylib
+ln -s /usr/local/Cellar/llvm/12.0.0_1//Toolchains/LLVM12.0.0.xctoolchain/usr/lib/libomp.dylib /usr/local/lib/libomp.dylib
+```

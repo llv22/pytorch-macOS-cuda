@@ -1,10 +1,12 @@
 <!-- markdownlint-disable MD033 -->
 <!-- markdownlint-disable MD004 -->
 <!-- markdownlint-disable MD029 -->
+<!-- markdownlint-disable MD034 -->
+<!-- markdownlint-disable MD036 -->
 # Pytorch 2.2.1 with Nvidia GPU on macOS
 
 --------------------------------------------------------------------------------
-[Features of pytorch 2.0](https://pytorch.org/blog/Accelerating-Hugging-Face-and-TIMM-models/) requires trions of [openAI triton](https://github.com/openai/triton), which needs NVIDIA GPUs (Compute Capability 7.0+, refer to https://developer.nvidia.com/cuda-gpus). In order to support the compilation via cuda, the hardware of eGPU needs to upgrade to 2080i +, like sales in [gaming box of 2080i](https://www.amazon.com/Embedded-Thunderbolt-Waterforce-Controller-Gv-N208TIXEB-11GC/dp/B07ZS9GZRY/ref=sr_1_5?crid=38RK3T5BAKIGN&keywords=gigabyte+gaming+box&qid=1679248280&s=pc&sprefix=gigabyte+gaming+box%2Ccomputers%2C147&sr=1-5). 
+[Features of pytorch 2.0](https://pytorch.org/blog/Accelerating-Hugging-Face-and-TIMM-models/) requires trions of [openAI triton](https://github.com/openai/triton), which needs NVIDIA GPUs (Compute Capability 7.0+, refer to https://developer.nvidia.com/cuda-gpus). In order to support the compilation via cuda, the hardware of eGPU needs to upgrade to 2080i +, like sales in [gaming box of 2080i](https://www.amazon.com/Embedded-Thunderbolt-Waterforce-Controller-Gv-N208TIXEB-11GC/dp/B07ZS9GZRY/ref=sr_1_5?crid=38RK3T5BAKIGN&keywords=gigabyte+gaming+box&qid=1679248280&s=pc&sprefix=gigabyte+gaming+box%2Ccomputers%2C147&sr=1-5).
 
 --------------------------------------------------------------------------------
 As officially Pytorch doesn't support for macOS cuda, I used this repository to build pytorch on macOS cuda. **This branch v2.2.0-tensorpipe-fixed branch is the current stable branch** with MPI+CUDA enabled.
@@ -31,6 +33,40 @@ git format-patch -16 --stdout > torch-2.2.1-mac-with-tensorpipe-cuda10.1-10.2-su
 
 +refer to <https://www.ivankristianto.com/create-patch-files-from-multiple-commits-in-git/>
 
+## Decouple with local openmp
+
+For removing dependency with libraries /Users/llv23/opt/miniconda3/lib/libomp.dylib and /Users/llv23/opt/miniconda3/lib/libgomp.dylib.
+
+1, install libiomp5 of oneapi
+
+/Users/llv23/opt/intel/oneapi//compiler/2021.4.0/mac/compiler/lib/libiomp5.dylib
+/Users/llv23/opt/intel/oneapi//compiler/2021.4.0/mac/compiler/lib/libiomp5_db.dylib
+/Users/llv23/opt/intel/oneapi//compiler/2021.4.0/mac/compiler/lib/libiompstubs5.dylib
+
+2. install libomp.dylib inside llvm 12.0.0.1
+
+/usr/local/Cellar/llvm/12.0.0_1//lib/libomp.dylib
+/usr/local/Cellar/llvm/12.0.0_1//Toolchains/LLVM12.0.0.xctoolchain/usr/lib/libomp.dylib
+/usr/local/Cellar/llvm/12.0.0_1//lib/clang/12.0.0/include/omp.h
+/usr/local/Cellar/llvm/12.0.0_1//Toolchains/LLVM12.0.0.xctoolchain/usr/lib/clang/12.0.0/include/omp.h
+
+3. We don't need "/Users/llv23/opt/miniconda3/lib/libomp.dylib -> /usr/local/Cellar//llvm/12.0.0_1/lib/libomp.dylib", if it has been compiled to /usr/local/include and /usr/local/lib.
+
+```bash
+# clean-up
+rm -rf /usr/local/include/omp.h
+rm -rf /usr/local/lib/libiomp5.dylib
+rm -rf /usr/local/lib/libiomp5_db.dylib
+rm -rf /usr/local/lib/libiompstubs5.dylib
+rm -rf /usr/local/lib/libomp.dylib
+# temporarily remove previously existing libraries
+ln -s /usr/local/Cellar/llvm/12.0.0_1/lib/clang/12.0.0/include/omp.h /usr/local/include/omp.h
+ln -s /Users/llv23/opt/intel/oneapi//compiler/2021.4.0/mac/compiler/lib/libiomp5.dylib /usr/local/lib/libiomp5.dylib
+ln -s /Users/llv23/opt/intel/oneapi//compiler/2021.4.0/mac/compiler/lib/libiomp5_db.dylib /usr/local/lib/libiomp5_db.dylib
+ln -s /Users/llv23/opt/intel/oneapi//compiler/2021.4.0/mac/compiler/lib/libiompstubs5.dylib /usr/local/lib/libiompstubs5.dylib
+ln -s /usr/local/Cellar/llvm/12.0.0_1//Toolchains/LLVM12.0.0.xctoolchain/usr/lib/libomp.dylib /usr/local/lib/libomp.dylib
+```
+
 --------------------------------------------------------------------------------
 
 ![PyTorch Logo](https://github.com/pytorch/pytorch/blob/main/docs/source/_static/img/pytorch-logo-dark.png)
@@ -49,6 +85,7 @@ Our trunk health (Continuous Integration signals) can be found at [hud.pytorch.o
 <!-- toc -->
 
 - [Pytorch 2.2.1 with Nvidia GPU on macOS](#pytorch-221-with-nvidia-gpu-on-macos)
+  - [Decouple with local openmp](#decouple-with-local-openmp)
   - [More About PyTorch](#more-about-pytorch)
     - [A GPU-Ready Tensor Library](#a-gpu-ready-tensor-library)
     - [Dynamic Neural Networks: Tape-Based Autograd](#dynamic-neural-networks-tape-based-autograd)
@@ -176,30 +213,30 @@ You can write new neural network layers in Python using the torch API
 If you want to write your layers in C/C++, we provide a convenient extension API that is efficient and with minimal boilerplate.
 No wrapper code needs to be written. You can see [a tutorial here](https://pytorch.org/tutorials/advanced/cpp_extension.html) and [an example here](https://github.com/pytorch/extension-cpp).
 
-
 ## Installation
 
 ### Binaries
-Commands to install binaries via Conda or pip wheels are on our website: [https://pytorch.org/get-started/locally/](https://pytorch.org/get-started/locally/)
 
+Commands to install binaries via Conda or pip wheels are on our website: [https://pytorch.org/get-started/locally/](https://pytorch.org/get-started/locally/)
 
 #### NVIDIA Jetson Platforms
 
 Python wheels for NVIDIA's Jetson Nano, Jetson TX1/TX2, Jetson Xavier NX/AGX, and Jetson AGX Orin are provided [here](https://forums.developer.nvidia.com/t/pytorch-for-jetson-version-1-10-now-available/72048) and the L4T container is published [here](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/l4t-pytorch)
-
 They require JetPack 4.2 and above, and [@dusty-nv](https://github.com/dusty-nv) and [@ptrblck](https://github.com/ptrblck) are maintaining them.
-
 
 ### From Source
 
 #### Prerequisites
+
 If you are installing from source, you will need:
+
 - Python 3.8 or later (for Linux, Python 3.8.1+ is needed)
 - A compiler that fully supports C++17, such as clang or gcc (especially for aarch64, gcc 9.4.0 or newer is required)
 
 We highly recommend installing an [Anaconda](https://www.anaconda.com/download) environment. You will get a high-quality BLAS library (MKL) and you get controlled dependency versions regardless of your Linux distro.
 
 If you want to compile with CUDA support, [select a supported version of CUDA from our support matrix](https://pytorch.org/get-started/locally/), then install the following:
+
 - [NVIDIA CUDA](https://developer.nvidia.com/cuda-downloads)
 - [NVIDIA cuDNN](https://developer.nvidia.com/cudnn) v7 or above
 - [Compiler](https://gist.github.com/ax3l/9489132) compatible with CUDA
@@ -212,6 +249,7 @@ Other potentially useful environment variables may be found in `setup.py`.
 If you are building for NVIDIA's Jetson platforms (Jetson Nano, TX1, TX2, AGX Xavier), Instructions to install PyTorch for Jetson Nano are [available here](https://devtalk.nvidia.com/default/topic/1049071/jetson-nano/pytorch-for-jetson-nano/)
 
 If you want to compile with ROCm support, install
+
 - [AMD ROCm](https://rocm.docs.amd.com/en/latest/deploy/linux/quick_start.html) 4.0 and above installation
 - ROCm is currently supported only for Linux systems.
 
@@ -259,6 +297,7 @@ conda install -c conda-forge libuv=1.39
 ```
 
 #### Get the PyTorch Source
+
 ```bash
 git clone --recursive https://github.com/pytorch/pytorch
 cd pytorch
@@ -268,20 +307,24 @@ git submodule update --init --recursive
 ```
 
 #### Install PyTorch
+
 **On Linux**
 
 If you would like to compile PyTorch with [new C++ ABI](https://gcc.gnu.org/onlinedocs/libstdc++/manual/using_dual_abi.html) enabled, then first run this command:
+
 ```bash
 export _GLIBCXX_USE_CXX11_ABI=1
 ```
 
 If you're compiling for AMD ROCm then first run this command:
+
 ```bash
 # Only run this if you're compiling for ROCm
 python tools/amd_build/build_amd.py
 ```
 
 Install PyTorch
+
 ```bash
 export CMAKE_PREFIX_PATH=${CONDA_PREFIX:-"$(dirname $(which conda))/../"}
 python setup.py develop
@@ -341,7 +384,6 @@ Additional libraries such as
 
 You can refer to the [build_pytorch.bat](https://github.com/pytorch/pytorch/blob/main/.ci/pytorch/win-test-helpers/build_pytorch.bat) script for some other environment variables configurations
 
-
 ```cmd
 cmd
 
@@ -372,6 +414,7 @@ the following. For example, adjusting the pre-detected directories for CuDNN or 
 with such a step.
 
 On Linux
+
 ```bash
 export CMAKE_PREFIX_PATH=${CONDA_PREFIX:-"$(dirname $(which conda))/../"}
 python setup.py build --cmake-only
@@ -379,6 +422,7 @@ ccmake build  # or cmake-gui build
 ```
 
 On macOS
+
 ```bash
 export CMAKE_PREFIX_PATH=${CONDA_PREFIX:-"$(dirname $(which conda))/../"}
 MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ python setup.py build --cmake-only
@@ -428,6 +472,7 @@ readthedocs theme.
 cd docs/
 pip install -r requirements.txt
 ```
+
 You can then build the documentation by running `make <format>` from the
 `docs/` folder. Run `make` to get a list of all available output formats.
 
@@ -446,10 +491,10 @@ A combination of versions that is known to work is `node@6.13.1` and
 Installation instructions and binaries for previous PyTorch versions may be found
 on [our website](https://pytorch.org/previous-versions).
 
-
 ## Getting Started
 
 Three-pointers to get you started:
+
 - [Tutorials: get you started with understanding and using PyTorch](https://pytorch.org/tutorials/)
 - [Examples: easy to understand PyTorch code across all domains](https://github.com/pytorch/examples)
 - [The API Reference](https://pytorch.org/docs/)
@@ -469,6 +514,7 @@ Three-pointers to get you started:
 * [PyTorch YouTube](https://www.youtube.com/channel/UCWXI5YeOsh03QvJ59PMaXFw)
 
 ## Communication
+
 * Forums: Discuss implementations, research, etc. https://discuss.pytorch.org
 * GitHub Issues: Bug reports, feature requests, install issues, RFCs, thoughts, etc.
 * Slack: The [PyTorch Slack](https://pytorch.slack.com/) hosts a primary audience of moderate to experienced PyTorch users and developers for general chat, online discussions, collaboration, etc. If you are a beginner looking for help, the primary medium is [PyTorch Forums](https://discuss.pytorch.org). If you need a slack invite, please fill this form: https://goo.gl/forms/PP1AGvNHpSaJP8to1

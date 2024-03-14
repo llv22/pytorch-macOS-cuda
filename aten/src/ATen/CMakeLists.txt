@@ -304,11 +304,6 @@ if(USE_TBB)
   list(APPEND ATen_CPU_DEPENDENCY_LIBS TBB::tbb)
 endif()
 
-if(USE_OPENMP)
-  message("ATen is compiled with OPEN_MP (/Users/llv23/opt/miniconda3/lib/libomp.dylib)")
-  list(APPEND ATen_CPU_DEPENDENCY_LIBS /Users/llv23/opt/miniconda3/lib/libomp.dylib)
-endif()
-
 if(BLAS_FOUND)
   if($ENV{TH_BINARY_BUILD})
     message(STATUS "TH_BINARY_BUILD detected. Enabling special linkage.")
@@ -460,14 +455,14 @@ if(USE_CUDA AND NOT USE_ROCM)
       ${CUDA_LIBRARIES}
       CUDA::cusparse_static
       CUDA::cufft_static_nocallback
-      /Users/llv23/opt/miniconda3/lib/libomp.dylib # test parallel for symbol _omp_in_parallel
+      # /Users/llv23/opt/miniconda3/lib/libomp.dylib # test parallel for symbol _omp_in_parallel
     )
    if(NOT BUILD_LAZY_CUDA_LINALG)
      if(CUDA_VERSION_MAJOR LESS_EQUAL 11)
        list(APPEND ATen_CUDA_DEPENDENCY_LIBS
          CUDA::cusolver_static
          ${CUDAToolkit_LIBRARY_DIR}/liblapack_static.a     # needed for libcusolver_static
-         /Users/llv23/opt/miniconda3/lib/libomp.dylib # test parallel for symbol _omp_in_parallel
+        #  /Users/llv23/opt/miniconda3/lib/libomp.dylib # test parallel for symbol _omp_in_parallel
        )
      elseif(CUDA_VERSION_MAJOR GREATER_EQUAL 12)
        list(APPEND ATen_CUDA_DEPENDENCY_LIBS
