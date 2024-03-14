@@ -28,7 +28,7 @@ As officially Pytorch doesn't support for macOS cuda, I used this repository to 
 Consolidating [torch-2.2.1-mac-with-tensorpipe-cuda10.1-10.2-support-memory-mpi-enabling.patch]([https://github.com/llv22/pytorch-macOS-cuda/blob/v2.0.0-tensorpipe-fixed/torch-2.0.0-mac-with-tensorpipe-cuda-mpi-enabling.patch](https://github.com/llv22/pytorch-macOS-cuda/blob/v2.2.1-tensorpipe-fixed/torch-2.2.1-mac-with-tensorpipe-cuda10.1-10.2-support-memory-mpi-enabling.patch))) by
 
 ```bash
-git format-patch -17 --stdout > torch-2.2.1-mac-with-tensorpipe-cuda10.1-10.2-support-memory-mpi-enabling.patch
+git format-patch -22 --stdout > torch-2.2.1-mac-with-tensorpipe-cuda10.1-10.2-support-memory-mpi-enabling.patch
 ```
 
 +refer to <https://www.ivankristianto.com/create-patch-files-from-multiple-commits-in-git/>
